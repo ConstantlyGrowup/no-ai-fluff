@@ -98,7 +98,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
     return client
 
 
-def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 6000) -> tuple[str, dict, float]:
+def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 4000) -> tuple[str, dict, float]:
     # OpenRouter 专有字段（用量回传、推理预算）不发给本地服务，避免严格校验的服务端报错
     extra = None if getattr(client, "is_local", False) else {
         "usage": {"include": True}, "reasoning": {"effort": "low", "exclude": True}}
@@ -222,6 +222,43 @@ def stage_patch(args) -> None:
         list(pool.map(run, jobs))
 
 
+def stage_refinalize(args) -> None:
+    """用 patch.jsonl 里保存的宿主原始补丁，按当前 patcher 重新合并（不调用任何模型）。
+
+    定稿变化的补丁版，其旧评审作废：移到 .cache/quarantine/judge_stale.jsonl，等待重评。
+    """
+    out = args.dir / "patch.jsonl"
+    rows = load_jsonl(out)
+    pipe = Pipeline(
+        PipelineConfig(telemetry=False, store_dir=str(CACHE / "drafts"), draft_ttl_s=365 * 86400),
+        store=DraftStore(CACHE / "drafts", ttl_s=365 * 86400),
+    )
+    rtt = {(r["sample_id"], r["combo"]): r for r in load_jsonl(args.dir / "rtt.jsonl")}
+    changed: set[tuple[str, str]] = set()
+    before = after = 0
+    for r in rows:
+        fin = pipe.finalize(rtt[(r["sample_id"], r["combo"])]["draft_id"], r["raw_patches"], keep_draft=True)
+        before += r["applied"]
+        after += fin.applied
+        if fin.final_text != r["final_text"]:
+            changed.add((r["sample_id"], f"patched:{r['combo']}"))
+        r.update(patches=fin.patches, applied=fin.applied, rejected=fin.rejected, final_text=fin.final_text,
+                 fallback=fin.fallback, fallback_reason=fin.fallback_reason)
+    out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), "utf-8")
+    jpath = args.dir / "judge.jsonl"
+    judge = load_jsonl(jpath)
+    stale = [j for j in judge if (j["sample_id"], j["variant"]) in changed]
+    if stale:
+        q = CACHE / "quarantine"
+        q.mkdir(parents=True, exist_ok=True)
+        with (q / "judge_stale.jsonl").open("a", encoding="utf-8") as f:
+            f.writelines(json.dumps(j, ensure_ascii=False) + "\n" for j in stale)
+        keep = [j for j in judge if (j["sample_id"], j["variant"]) not in changed]
+        jpath.write_text("".join(json.dumps(j, ensure_ascii=False) + "\n" for j in keep), "utf-8")
+    print(f"refinalized {len(rows)} rows: applied {before} -> {after}; final_text changed in {len(changed)}; "
+          f"stale judge rows removed: {len(stale)}")
+
+
 def stage_export_patch(args) -> None:
     jobs, _, pipe = _patch_env(args)
     path = args.dir / "tasks_patch.jsonl"
@@ -294,7 +331,7 @@ def _judge_env(args):
     return jobs, out
 
 
-def record_judge(out: Path, s: dict, name: str, judge: str, raw: str, usage: dict) -> bool:
+def record_judge(out: Path, s: dict, name: str, judge: str, raw: str, usage: dict, source: str = "direct") -> bool:
     try:
         obj = parse_json_obj(raw)
         fid, rd = int(obj["fidelity"]), int(obj["readability"])
@@ -305,6 +342,7 @@ def record_judge(out: Path, s: dict, name: str, judge: str, raw: str, usage: dic
         "sample_id": s["id"], "scenario": s["scenario"], "variant": name, "judge": judge,
         "fidelity": fid, "readability": rd, "errors": obj.get("errors", []),
         "readability_issues": obj.get("readability_issues", []), "judge_cost_usd": usage.get("cost"),
+        "source": source, "raw": raw[:6000],  # 保留评委原始输出，便于审计
     }
     append_jsonl(out, rec)
     print(f"  {s['id']:15} {name:16} F={fid} R={rd} errors={len(rec['errors'])}", flush=True)
@@ -347,7 +385,7 @@ def stage_import_judge(args) -> None:
     resp = {x["task_id"]: x for x in load_jsonl(Path(args.file))}
     n = sum(
         record_judge(out, s, name, resp[f"{s['id']}|{name}"].get("model") or args.judge,
-                     resp[f"{s['id']}|{name}"]["response"], {})
+                     resp[f"{s['id']}|{name}"]["response"], {}, source="import")
         for s, name, _ in jobs if f"{s['id']}|{name}" in resp
     )
     print(f"imported {n}/{len(jobs)} judge responses")
@@ -380,6 +418,43 @@ def text_metrics(original: str, text: str) -> dict:
 def _mean(xs, nd: int = 4):
     xs = [x for x in xs if x is not None]
     return round(statistics.mean(xs), nd) if xs else None
+
+
+def audit_judge(args) -> list[str]:
+    """检查评审结果的来源与完整性，返回警告列表。"""
+    J = load_jsonl(args.dir / "judge.jsonl")
+    expected = {(s, n) for s, n in _all_judge_keys(args)}
+    got = {(j["sample_id"], j["variant"]) for j in J}
+    warns: list[str] = []
+    by_model = Counter(j["judge"] for j in J)
+    warns.append(f"评审来源：{dict(by_model) or '无'}；完成 {len(got & expected)}/{len(expected)}")
+    if expected - got:
+        warns.append(f"缺少 {len(expected - got)} 条评审，例如 {sorted(expected - got)[:3]}")
+    no_raw = [j for j in J if not j.get("raw")]
+    if no_raw:
+        warns.append(f"⚠ {len(no_raw)} 条评审没有保存评委原始输出，无法核实是否真由模型生成")
+    issues = Counter(json.dumps(j.get("readability_issues"), ensure_ascii=False) for j in J if j.get("readability_issues"))
+    if J and issues and issues.most_common(1)[0][1] > max(5, 0.2 * len(J)):
+        txt, n = issues.most_common(1)[0]
+        warns.append(f"⚠ {n} 条评审的 readability_issues 一字不差（{txt[:60]}），疑似模板化生成")
+    return warns
+
+
+def _all_judge_keys(args):
+    rtt = defaultdict(list)
+    for r in load_jsonl(args.dir / "rtt.jsonl"):
+        rtt[r["sample_id"]].append(r)
+    patch = defaultdict(list)
+    for r in load_jsonl(args.dir / "patch.jsonl"):
+        patch[r["sample_id"]].append(r)
+    for s in samples():
+        for name, _ in variants_for(s, rtt[s["id"]], patch[s["id"]]):
+            yield s["id"], name
+
+
+def stage_audit(args) -> None:
+    for w in audit_judge(args):
+        print(w)
 
 
 def stage_report(args) -> None:
@@ -490,6 +565,7 @@ def stage_report(args) -> None:
     for v in order:
         k = summary["variants"][v]["radar_kinds_per_kchar"]
         lines.append(f"| {v} | " + " | ".join(f(k[x]) for x in KINDS) + " |")
+    lines += ["", "## 评审来源审计", ""] + [f"- {w}" for w in audit_judge(args)]
     (args.dir / "summary.md").write_text("\n".join(lines) + "\n", "utf-8")
     print("\n".join(lines))
 
@@ -498,7 +574,7 @@ def main() -> None:
     load_dotenv()
     ap = argparse.ArgumentParser()
     ap.add_argument("stage", choices=["rtt", "patch", "judge", "report",
-                                      "export-patch", "import-patch", "export-judge", "import-judge"])
+                                      "export-patch", "import-patch", "export-judge", "import-judge", "audit", "refinalize"])
     ap.add_argument("file", nargs="?", help="import-* 阶段的回复文件")
     ap.add_argument("--run", default="m2")
     ap.add_argument("--only", nargs="*", help="样本 id 或场景名")
@@ -518,7 +594,8 @@ def main() -> None:
     {
         "rtt": stage_rtt, "patch": stage_patch, "judge": stage_judge, "report": stage_report,
         "export-patch": stage_export_patch, "import-patch": stage_import_patch,
-        "export-judge": stage_export_judge, "import-judge": stage_import_judge,
+        "export-judge": stage_export_judge, "import-judge": stage_import_judge, "audit": stage_audit,
+        "refinalize": stage_refinalize,
     }[args.stage](args)
 
 

@@ -24,6 +24,9 @@ python benchmarks/run_ablation.py report   # 汇总为 results/m2/summary.md
 
 ## 用本地模型跑阶段 2、3
 
+> 交给本地 Agent 执行评审时，请直接把 [`LOCAL_JUDGE_TASK.md`](LOCAL_JUDGE_TASK.md) 交给它，里面写明了禁止事项。
+> 跑完后用 `python benchmarks/run_ablation.py audit` 检查评审的来源与完整性。
+
 本地模型要做两件事，提示词都已写好，模型只需按要求输出 JSON。
 
 ### 任务 A：补丁审校（阶段 2，共 120 条）
