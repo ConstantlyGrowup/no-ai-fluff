@@ -7,7 +7,7 @@ Usage (OPENROUTER_API_KEY must be set in the environment; never hard-code it):
 Only the user task is sent (no system prompt, no style instructions), so the
 replies keep each vendor's native "AI voice". Raw replies plus token usage /
 cost are appended to generated_raw.jsonl next to this script; samples.jsonl is
-assembled from that file by build_samples.py.
+assembled from that file (latest record per id) by build_samples.py.
 """
 import json
 import os
@@ -28,10 +28,12 @@ GEMINI = "google/gemini-3.1-pro-preview"
 DEEPSEEK = "deepseek/deepseek-v3.2"
 
 # Reasoning models spend part of max_tokens on hidden reasoning, so they get a
-# low reasoning effort and a larger ceiling; visible output stays ~1200 tokens.
+# low reasoning effort and a larger ceiling. The first collection run (1200 / 2400)
+# truncated 11 of 15 replies (finish_reason=length), so the ceilings are now high
+# enough for a complete natural answer; build_samples.py keeps the latest record per id.
 REASONING_MODELS = {GPT, GEMINI}
-MAX_TOKENS = 1200
-MAX_TOKENS_REASONING = 2400
+MAX_TOKENS = 8000  # Claude Sonnet 5.5 也会先花约 2k token 推理
+MAX_TOKENS_REASONING = 8000
 
 TASKS = [
     # ---- teaching: STEM concept explanations ----
