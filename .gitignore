@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.env
+.env.*
+# 评测缓存（OpenRouter 原始响应，可重新生成）
+benchmarks/.cache/
+
+# Claude Code 本地配置
+.claude/

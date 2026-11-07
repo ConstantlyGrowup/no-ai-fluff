@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "no-ai-fluff"
+version = "0.1.0"
+description = "Delivery-layer Chinese de-AI-fluff engine: round-trip translation decompression + host-model JSON patch review, exposed as a stdio MCP server."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = []  # 刻意零第三方依赖：HTTP 用 urllib，MCP 协议手写 JSON-RPC
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+no-ai-fluff = "no_ai_fluff.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
