@@ -239,3 +239,51 @@ def test_small_batches_by_segment_count(fake_client):
     segs = [f"第{i}段中文内容" for i in range(13)]
     res = RoundTripTranslator(client, batch_segments=6).round_trip(segs, [[] for _ in segs])
     assert res.texts == segs and res.calls == 6  # 3 批 × 去回 2 次
+
+
+def _http_error(code, body):
+    import io
+    import urllib.error
+
+    return urllib.error.HTTPError("u", code, "x", {}, io.BytesIO(body))
+
+
+def test_client_retries_transient_402_in_flight(monkeypatch):
+    import json
+
+    calls = []
+
+    class Resp:
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake(req, timeout=None):
+        calls.append(1)
+        if len(calls) == 1:
+            raise _http_error(402, b'{"error":{"message":"insufficient credits for in_flight requests"}}')
+        return Resp()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    assert OpenRouterClient(api_key="k").chat("m", [{"role": "user", "content": "x"}]).text == "ok"
+    assert len(calls) == 2
+
+
+def test_client_does_not_retry_plain_402(monkeypatch):
+    calls = []
+
+    def fake(req, timeout=None):
+        calls.append(1)
+        raise _http_error(402, b'{"error":{"message":"Insufficient credits"}}')
+
+    monkeypatch.setattr("urllib.request.urlopen", fake)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    with pytest.raises(OpenRouterError, match="402"):
+        OpenRouterClient(api_key="k", max_retries=2).chat("m", [{"role": "user", "content": "x"}])
+    assert len(calls) == 1

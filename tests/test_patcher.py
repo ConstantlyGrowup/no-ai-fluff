@@ -107,3 +107,53 @@ def test_audit_prompt_contains_all_parts():
     p = build_audit_prompt("原文X", "初稿Y", "雷达Z")
     assert "原文X" in p and "初稿Y" in p and "雷达Z" in p and "JSON" in p and "[]" in p
     assert len(p) < 1600  # 提示词保持在甜点区
+
+
+def test_salvage_extra_brace_between_objects():
+    raw = '[{"find":"a","replace":"b","reason":"r"}},\n{"find":"c","replace":"d","reason":"r2"}]'
+    ps = parse_patches(raw)
+    assert [(p.find, p.replace) for p in ps] == [("a", "b"), ("c", "d")]
+
+
+def test_salvage_missing_comma_and_trailing_comma():
+    raw = '[{"find":"a","replace":"b"} {"find":"c","replace":"d"},]'
+    assert [p.find for p in parse_patches(raw)] == ["a", "c"]
+
+
+def test_salvage_does_not_corrupt_braces_inside_strings():
+    # replace 里本来就有 “}},”，坏格式抢救时必须原样保留
+    raw = '[{"find":"x","replace":"map{{k}},v"}}, {"find":"y","replace":"z"}]'
+    ps = parse_patches(raw)
+    assert ps[0].replace == "map{{k}},v" and ps[1].find == "y"
+
+
+def test_salvage_gives_up_when_nothing_usable():
+    with pytest.raises(PatchFormatError):
+        parse_patches('[{"find": "a", "replace": ')
+
+
+MD = "## 订单取消规则（已提交6条）\n\n1. **确认提交内容时的要点**：看第 3 个提交\n- [x] 已修复缓存\n> 引用里的话"
+
+
+def apply_md(*patches):
+    doc = parse(MD)
+    new, res = apply_patches(doc, [s.masked for s in doc.slots], [Patch(*p) for p in patches])
+    return doc.render(new), res
+
+
+@pytest.mark.parametrize("find,replace,expect", [
+    ("## 订单取消规则（已提交6条）", "## 订单取消规则（第 6 个提交）", "## 订单取消规则（第 6 个提交）"),
+    ("1. **确认提交内容时的要点**", "1. **审阅要点**", "1. **审阅要点**：看第 3 个提交"),
+    ("- [x] 已修复缓存", "- [x] 已修复缓存失效", "- [x] 已修复缓存失效"),
+    ("> 引用里的话", "> 引用中的话", "> 引用中的话"),
+])
+def test_patch_with_same_markdown_prefix_applies(find, replace, expect):
+    out, res = apply_md((find, replace, "r"))
+    assert res[0].applied, res[0].reason
+    assert expect in out
+
+
+def test_patch_changing_structure_prefix_is_rejected():
+    out, res = apply_md(("## 订单取消规则", "### 订单取消规则", "改标题级别"))
+    assert not res[0].applied and "结构标记" in res[0].reason
+    assert out == MD

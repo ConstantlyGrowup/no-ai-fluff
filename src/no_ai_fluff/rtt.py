@@ -131,8 +131,12 @@ class OpenRouterClient:
             except ContentFilteredError:
                 raise
             except urllib.error.HTTPError as e:
-                last_err = OpenRouterError(f"HTTP {e.code}: {e.read()[:300]!r}")
-                if e.code not in (408, 409, 425, 429, 500, 502, 503, 504):
+                err_body = e.read()
+                last_err = OpenRouterError(f"HTTP {e.code}: {err_body[:300]!r}")
+                # OpenRouter 在账户并发请求的预扣额度超出余额时返回 402 + in_flight，
+                # 属于暂时性限制，等在途请求结算后重试即可；其余 402（余额真的不足）不重试
+                transient_402 = e.code == 402 and b"in_flight" in err_body
+                if e.code not in (408, 409, 425, 429, 500, 502, 503, 504) and not transient_402:
                     break
             except (urllib.error.URLError, TimeoutError, OSError, OpenRouterError, json.JSONDecodeError) as e:
                 last_err = e

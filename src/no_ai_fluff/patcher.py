@@ -15,7 +15,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 
-from .masker import PLACEHOLDER, PLACEHOLDER_RE, Document, check_placeholders
+from .masker import _LINE_PREFIX_RE, PLACEHOLDER, PLACEHOLDER_RE, Document, check_placeholders
 
 AUDIT_INSTRUCTIONS = """你是中文技术文本审校员。【RTT 初稿】由【原文】经机器往返翻译得到，句式已变松弛。请对照原文全量审校初稿，只修下列问题：
 1. 术语翻偏：专业术语被误译或直译（如“正定矩阵→积极确定矩阵”“逃逸分析→逃跑分析”），改回中文标准名；首次出现的硬核学科概念写成“中文标准名（English Term）”。
@@ -45,6 +45,27 @@ class PatchFormatError(ValueError):
     pass
 
 
+def _salvage_objects(s: str) -> list[dict]:
+    """从格式损坏的 JSON 数组里逐个解析出含 find/replace 的完整对象。
+
+    从每个 “{” 起用标准解码器尝试解析一个完整对象；成功则跳过该对象，失败则前进一个字符。
+    字符串内容由解码器负责转义处理，不会被当作结构字符改写。
+    """
+    dec = json.JSONDecoder()
+    out: list[dict] = []
+    i = s.find("{")
+    while i != -1:
+        try:
+            obj, end = dec.raw_decode(s, i)
+        except json.JSONDecodeError:
+            i = s.find("{", i + 1)
+            continue
+        if isinstance(obj, dict) and "find" in obj and "replace" in obj:
+            out.append(obj)
+        i = s.find("{", end)
+    return out
+
+
 @dataclass
 class Patch:
     find: str
@@ -68,7 +89,12 @@ def parse_patches(raw) -> list[Patch]:
             try:
                 raw = json.loads(s[a : b + 1])
             except json.JSONDecodeError as e:
-                raise PatchFormatError(f"JSON 解析失败：{e}") from None
+                # 模型偶尔输出多余的 }、漏逗号或尾逗号：逐个抢救出完整的补丁对象，
+                # 而不是用正则改写原文（正则会误伤 replace 字符串里本来就有的 “}},”）
+                salvaged = _salvage_objects(s[a : b + 1])
+                if not salvaged:
+                    raise PatchFormatError(f"JSON 解析失败：{e}") from None
+                raw = salvaged
     if isinstance(raw, dict):
         if "patches" in raw:
             raw = raw["patches"]
@@ -165,7 +191,36 @@ def apply_patches(doc: Document, slot_texts: list[str], patches: list[Patch]) ->
     return texts, results
 
 
+def _strip_structure_prefix(p: Patch) -> tuple[Patch | None, str]:
+    """宿主模型常把行首的 Markdown 标记（## 、1. 、- [x] 、> ）一起摘进 find。
+
+    这些标记属于文档骨架，不在可改写的正文槽位里。find 与 replace 带同样的标记时去掉后再匹配；
+    replace 改动了标记本身（如改标题级别、改列表编号）则拒收，结构只能由原文决定。
+    返回 (去掉标记后的补丁或 None, 拒收原因)。
+    """
+    m = _LINE_PREFIX_RE.match(p.find)
+    prefix = m.group(1) if m else ""
+    if not prefix.strip():
+        return None, ""
+    if not p.replace.startswith(prefix):
+        return None, f"补丁改动了行首结构标记「{prefix.strip()}」"
+    return Patch(p.find[len(prefix):], p.replace[len(prefix):], p.reason), ""
+
+
 def _apply_one(doc: Document, texts: list[str], p: Patch) -> PatchResult:
+    r = _apply_core(doc, texts, p)
+    if r.applied or not r.reason.startswith("find 在初稿中不存在"):
+        return r
+    stripped, why = _strip_structure_prefix(p)
+    if why:
+        return PatchResult(p, False, why)
+    if stripped is None:
+        return r
+    r2 = _apply_core(doc, texts, stripped)
+    return PatchResult(p, r2.applied, r2.reason, r2.slot)
+
+
+def _apply_core(doc: Document, texts: list[str], p: Patch) -> PatchResult:
     if not p.find:
         return PatchResult(p, False, "find 为空")
     if p.find == p.replace:
