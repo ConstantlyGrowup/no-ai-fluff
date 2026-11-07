@@ -16,3 +16,4 @@ benchmarks/.cache/
 # 评测台导出/导入的中间文件（可随时重新生成）
 benchmarks/results/*/tasks_*.jsonl
 benchmarks/results/*/responses_*.jsonl
+benchmarks/results/*/agent_judge/packets/

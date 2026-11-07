@@ -24,7 +24,8 @@ python benchmarks/run_ablation.py report   # 汇总为 results/m2/summary.md
 
 ## 用本地模型跑阶段 2、3
 
-> 交给本地 Agent 执行评审时，请直接把 [`LOCAL_JUDGE_TASK.md`](LOCAL_JUDGE_TASK.md) 交给它，里面写明了禁止事项。
+> 评委是**能被接口调用的本地模型**（Ollama / LM Studio / vLLM）时，把 [`LOCAL_JUDGE_TASK.md`](LOCAL_JUDGE_TASK.md) 交给执行者。
+> 评委是**Agent 的宿主内置模型**（Codex、Antigravity 等）时，用 [`agent_judge.py`](agent_judge.py) 的评审包流程，把 [`AGENT_JUDGE_PROMPT.md`](AGENT_JUDGE_PROMPT.md) 里的提示词粘贴给 Agent。
 > 跑完后用 `python benchmarks/run_ablation.py audit` 检查评审的来源与完整性。
 
 本地模型要做两件事，提示词都已写好，模型只需按要求输出 JSON。
