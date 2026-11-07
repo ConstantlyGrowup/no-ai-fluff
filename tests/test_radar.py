@@ -56,3 +56,25 @@ def test_empty_report_prompt_still_demands_audit():
 def test_scan_document_skips_code():
     rep = scan_document("正文没问题。\n\n```\n值得注意的是 赋能\n```\n")
     assert rep.counts["cliche"] == 0
+
+
+def test_chinese_numeral_forms():
+    from no_ai_fluff.radar import to_chinese_numeral
+
+    assert to_chinese_numeral(3) == {"三"}
+    assert to_chinese_numeral(2) == {"二", "两"}
+    assert to_chinese_numeral(10) == {"十"}
+    assert to_chinese_numeral(12) == {"十二"}
+    assert to_chinese_numeral(20) == {"二十"}
+    assert to_chinese_numeral(105) == {"一百零五"}
+    assert "两千" in to_chinese_numeral(2000)
+    assert to_chinese_numeral(100000) == set()
+
+
+def test_digit_to_chinese_numeral_is_not_a_mismatch():
+    assert compare_numbers("需要跨 3 个服务查日志，发布 6 个月后下线", "需要查看三个服务的日志，发布后六个月下线") == []
+    assert compare_numbers("第 3–8 周", "第三至第八周") == []
+    assert compare_numbers("二十个实例", "20 个实例") == []
+    # 真正的改动仍会报
+    hs = compare_numbers("延迟 120ms，3 个服务", "延迟 150ms，三个服务")
+    assert hs and "120" in hs[0].message and "150" in hs[0].message

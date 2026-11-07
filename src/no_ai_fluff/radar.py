@@ -140,9 +140,59 @@ def scan_slot(masked: str, slot: int | None = None) -> list[Hint]:
     return hints
 
 
-def compare_numbers(original: str, draft: str, slot: int | None = None) -> list[Hint]:
+_ZH_DIGITS = "零一二三四五六七八九"
+
+
+def to_chinese_numeral(n: int) -> set[str]:
+    """0~99999 的常见中文写法（3 -> 三，12 -> 十二，20 -> 二十，2 -> 二/两）。"""
+    if n < 0 or n > 99999:
+        return set()
+    if n < 10:
+        forms = {_ZH_DIGITS[n]}
+        if n == 2:
+            forms.add("两")
+        return forms
+    out, units = [], [(10000, "万"), (1000, "千"), (100, "百"), (10, "十")]
+    rest, zero = n, False
+    for val, ch in units:
+        d, rest = divmod(rest, val)
+        if d:
+            if zero:
+                out.append("零")
+                zero = False
+            out.append(("" if (d == 1 and ch == "十" and not out) else _ZH_DIGITS[d]) + ch)
+        elif out:
+            zero = True
+    if rest:
+        if zero:
+            out.append("零")
+        out.append(_ZH_DIGITS[rest])
+    s = "".join(out)
+    forms = {s}
+    if s.startswith("二") and len(s) > 1 and s[1] in "千万百":
+        forms.add("两" + s[1:])
+    return forms
+
+
+def _spelled_out(num: str, text: str) -> bool:
+    """num 是否以中文数字形式出现在 text 里（只认整数）。"""
+    if not num.isdigit():
+        return False
+    return any(f in text for f in to_chinese_numeral(int(num)))
+
+
+def number_mismatch(original: str, draft: str) -> tuple[Counter, Counter]:
+    """返回 (初稿缺少的数字, 初稿多出的数字)。阿拉伯数字与中文数字互换（3 ↔ 三）不算不一致。"""
     a, b = extract_numbers(original), extract_numbers(draft)
     missing, added = a - b, b - a
+    pa, pb = PLACEHOLDER_RE.sub(" ", original), PLACEHOLDER_RE.sub(" ", draft)
+    missing = Counter({k: v for k, v in missing.items() if not _spelled_out(k, pb)})
+    added = Counter({k: v for k, v in added.items() if not _spelled_out(k, pa)})
+    return missing, added
+
+
+def compare_numbers(original: str, draft: str, slot: int | None = None) -> list[Hint]:
+    missing, added = number_mismatch(original, draft)
     if not missing and not added:
         return []
     parts = []
