@@ -107,14 +107,14 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
     return client
 
 
-EFFORT = "low"  # main() 里按 --effort 覆盖
+EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
 RULES = "v2"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
     # 各服务商的推理强度字段不同；本地服务不发任何专有字段，避免严格校验的服务端报错
     if getattr(client, "provider", None) == "deepseek":
-        # DeepSeek 默认 high：补丁任务实测推理 1.1 万 token 以上、常超输出上限被截断
+        # 补丁任务在 high 下推理约 1.3~2 万 token，输出上限需相应放宽（--patch-max-tokens 默认 64000）
         extra = {"reasoning_effort": EFFORT}
     elif getattr(client, "is_local", False):
         extra = None
@@ -622,11 +622,12 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--provider", default="deepseek", choices=["deepseek", "openrouter"],
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
-    ap.add_argument("--patch-max-tokens", type=int, default=32000,
+    ap.add_argument("--patch-max-tokens", type=int, default=64000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
     ap.add_argument("--rules", default="v2", choices=["v1", "v2"], help="宿主审校规则版本")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
-    ap.add_argument("--effort", default="low", choices=["low", "high", "max"], help="宿主/评委模型的推理强度")
+    ap.add_argument("--effort", default="high", choices=["low", "high", "max"],
+                    help="宿主/评委模型的推理强度。默认 high：m2v2hi 中 low 的漏修率明显更高")
     ap.add_argument("--base-url", help="OpenAI 兼容接口地址，如 http://localhost:11434/v1；给出时覆盖 --provider")
     ap.add_argument("--api-key", help="--base-url 对应服务的 Key；本地服务通常不需要")
     ap.add_argument("--timeout", type=float, default=180.0, help="RTT 整体时限；MVP 阶段不设硬约束，只记录耗时")

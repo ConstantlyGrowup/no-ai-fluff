@@ -185,6 +185,7 @@ def test_run_reviewer_failure_degrades_to_rtt(fake_translator, tmp_path):
 
     prep, fin = make(fake_translator(loosen), tmp_path).run(DOC, reviewer)
     assert fin.final_text == prep.rtt_draft
+    assert "reviewer error: RuntimeError: 宿主模型挂了" in fin.fallback_reason  # 不能静默吞掉
 
 
 def test_telemetry_events_written_without_text(fake_translator, tmp_path):

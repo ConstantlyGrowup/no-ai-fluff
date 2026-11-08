@@ -25,6 +25,7 @@ from typing import Any, Callable
 from . import telemetry
 from .config import env_float, load_dotenv
 from .masker import PLACEHOLDER_RE, Document, Slot, check_placeholders, parse
+from .cleanup import clean_punctuation
 from .patcher import PatchFormatError, apply_patches, build_audit_prompt, parse_patches, results_to_dicts
 from .radar import scan, scan_single
 from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult
@@ -214,6 +215,7 @@ class FinalizeResult:
     rejected: int
     fallback: bool
     fallback_reason: str | None
+    cleanups: int = 0  # 定稿前确定性标点清理的处数
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -400,6 +402,10 @@ class Pipeline:
             plist, format_error = [], f"补丁格式错误，已忽略全部补丁：{e}"
 
         new_slots, results = apply_patches(doc, draft.rtt_slots, plist)
+        cleanups = 0
+        for i in draft.translated:  # 只清理经过改写的槽位；未翻译的槽位就是原文，不动
+            new_slots[i], n = clean_punctuation(new_slots[i], doc.slots[i].masked)
+            cleanups += n
         reason = verify_final(doc, new_slots)
         if reason:
             final_text, fallback_reason = draft.original_text, f"verify: {reason}"
@@ -420,6 +426,7 @@ class Pipeline:
                 "patches_applied": applied,
                 "patches_rejected": rejected,
                 "patch_format_error": format_error is not None,
+                "punctuation_cleanups": cleanups,
                 "fallback": fallback_reason is not None,
                 "radar_original": scan_single([doc.slots[i].masked for i in only]).counts,
                 "radar_rtt": scan_single([draft.rtt_slots[i] for i in only]).counts,
@@ -435,6 +442,7 @@ class Pipeline:
             rejected=rejected,
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason or format_error,
+            cleanups=cleanups,
         )
 
     # -- 便捷：单进程一次跑完（DeepSeek Harness / 评测台） --------------------
@@ -449,9 +457,16 @@ class Pipeline:
         """reviewer(audit_prompt) -> JSON 补丁（字符串或列表）。不传 reviewer 时等价于纯 RTT。"""
         prep = self.prepare(text, fmt=fmt, exit=exit, mode=mode)
         patches: Any = []
+        reviewer_error: str | None = None
         if reviewer is not None:
             try:
                 patches = reviewer(prep.audit_prompt)
-            except Exception:  # noqa: BLE001 —— 审校失败就按空补丁出初稿
-                patches = []
-        return prep, self.finalize(prep.draft_id, patches)
+            except Exception as e:  # noqa: BLE001 —— 审校失败按空补丁出初稿，但必须如实告知调用方
+                patches, reviewer_error = [], f"reviewer error: {type(e).__name__}: {e}"
+        fin = self.finalize(prep.draft_id, patches)
+        if reviewer_error:
+            fin.fallback_reason = "; ".join(x for x in (reviewer_error, fin.fallback_reason) if x)
+            if self.config.telemetry:
+                telemetry.log_event({"event": "reviewer_error", "draft_id": prep.draft_id,
+                                     "error": reviewer_error.split(":", 2)[1].strip()})
+        return prep, fin
