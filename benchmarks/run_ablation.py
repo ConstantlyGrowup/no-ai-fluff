@@ -80,6 +80,8 @@ def combo_key(model: str, bridge: str) -> str:
 
 def samples(only: list[str] | None = None) -> list[dict]:
     rows = load_jsonl(SAMPLES)
+    if RUN_SAMPLES is not None:
+        rows = [r for r in rows if r["id"] in RUN_SAMPLES]
     return [r for r in rows if not only or r["id"] in only or r["scenario"] in only]
 
 
@@ -322,12 +324,28 @@ B. readability（中文自然易读度，1–5）：只看候选文本本身是�
 """
 
 
+JUDGE_VARIANTS: list[str] | None = None  # 由 results/<run>/run.json 的 judge_variants 设定（版本名前缀）
+RUN_SAMPLES: list[str] | None = None  # 由 results/<run>/run.json 的 samples 设定（本轮只用这些样本）
+
+
+def load_run_config(run_dir: Path) -> dict:
+    """读取 results/<run>/run.json，如 {"judge_variants": ["original", "patched:"]}，限定本轮评审哪些版本。"""
+    global JUDGE_VARIANTS, RUN_SAMPLES
+    p = run_dir / "run.json"
+    cfg = json.loads(p.read_text("utf-8")) if p.exists() else {}
+    JUDGE_VARIANTS = cfg.get("judge_variants")
+    RUN_SAMPLES = cfg.get("samples")
+    return cfg
+
+
 def variants_for(sample: dict, rtt_rows: list[dict], patch_rows: list[dict]) -> list[tuple[str, str]]:
     vs = [("original", sample["text"])]
     for r in rtt_rows:
         vs.append((f"rtt:{r['combo']}", r["rtt_draft"]))
     for r in patch_rows:
         vs.append((f"patched:{r['combo']}", r["final_text"]))
+    if JUDGE_VARIANTS is not None:
+        vs = [(n, t) for n, t in vs if any(n == v or (v.endswith(":") and n.startswith(v)) for v in JUDGE_VARIANTS)]
     return vs
 
 
@@ -618,6 +636,7 @@ def main() -> None:
     RULES = args.rules
     args.dir = BENCH / "results" / args.run
     args.dir.mkdir(parents=True, exist_ok=True)
+    load_run_config(args.dir)
     if args.stage.startswith("import-") and not args.file:
         ap.error(f"{args.stage} 需要回复文件路径")
     {

@@ -1,0 +1,23 @@
+{
+  "purpose": "小批盲测：验证宿主推理强度是否是 v2 补丁漏修的原因",
+  "samples": [
+    "coding-003",
+    "teaching-004",
+    "writing-002",
+    "discussion-003",
+    "daily-007"
+  ],
+  "sampling": "每场景 1 篇，random.Random(20261108).choice(sorted(ids))",
+  "bridge": "hymt-fr (OpenRouter tencent/hy-mt2-30b-a3b)",
+  "rules": "v2",
+  "host": "deepseek-flash",
+  "variants": {
+    "original": "原文",
+    "patched:hymt-fr-low": "v2 补丁，reasoning_effort=low（沿用 m2v2）",
+    "patched:hymt-fr-high": "v2 补丁，reasoning_effort=high（新跑）"
+  },
+  "judge_variants": [
+    "original",
+    "patched:"
+  ]
+}

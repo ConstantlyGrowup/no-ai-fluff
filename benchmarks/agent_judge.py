@@ -236,6 +236,7 @@ def main() -> None:
     args = ap.parse_args()
     args.dir = ra.BENCH / "results" / args.run
     args.only = None
+    ra.load_run_config(args.dir)
     {"export": stage_export, "import": stage_import, "status": stage_status}[args.stage](args)
 
 
