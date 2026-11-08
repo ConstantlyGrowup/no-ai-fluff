@@ -106,6 +106,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "low"  # main() 里按 --effort 覆盖
+RULES = "v2"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
@@ -188,7 +189,8 @@ def _patch_env(args):
     out = args.dir / "patch.jsonl"
     done = {(r["sample_id"], r["combo"]) for r in load_jsonl(out)}
     only_ids = {s["id"] for s in samples(args.only)}
-    jobs = [r for r in rtt if r["sample_id"] in only_ids and (r["sample_id"], r["combo"]) not in done]
+    jobs = [r for r in rtt if r["sample_id"] in only_ids and (r["sample_id"], r["combo"]) not in done
+            and (not args.combos or r["combo"] in args.combos)]
     pipe = Pipeline(
         PipelineConfig(telemetry=False, store_dir=str(CACHE / "drafts"), draft_ttl_s=365 * 86400),
         store=DraftStore(CACHE / "drafts", ttl_s=365 * 86400),
@@ -202,7 +204,7 @@ def patch_prompt(pipe: Pipeline, r: dict) -> str:
     draft = pipe.store.get(r["draft_id"])
     # 用当前版本的雷达重新生成提示（阶段 1 记录的提示可能来自旧口径）
     hints = scan([s.masked for s in draft.doc.slots], draft.rtt_slots, only=draft.translated).to_prompt()
-    return build_audit_prompt(draft.original_text, draft.rtt_text(), hints)
+    return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES)
 
 
 def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str) -> None:
@@ -212,7 +214,7 @@ def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage:
         "raw_patches": raw, "patches": fin.patches, "applied": fin.applied, "rejected": fin.rejected,
         "final_text": fin.final_text, "fallback": fin.fallback, "fallback_reason": fin.fallback_reason,
         "host_latency_s": round(lat, 2), "host_cost_usd": usage.get("cost"), "host_usage": usage,
-        "prompt_chars": len(prompt), "effort": EFFORT,
+        "prompt_chars": len(prompt), "effort": EFFORT, "rules": RULES,
     }
     append_jsonl(out, rec)
     print(f"  {r['sample_id']:15} {r['combo']:9} patches={len(fin.patches)} applied={fin.applied} "
@@ -439,6 +441,8 @@ def audit_judge(args) -> list[str]:
     """检查评审结果的来源与完整性，返回警告列表。"""
     J = load_jsonl(args.dir / "judge.jsonl")
     expected = {(s, n) for s, n in _all_judge_keys(args)}
+    if any(j["variant"] == "original@anchor" for j in J):
+        expected |= {(s["id"], "original@anchor") for s in samples()}
     got = {(j["sample_id"], j["variant"]) for j in J}
     warns: list[str] = []
     by_model = Counter(j["judge"] for j in J)
@@ -602,13 +606,16 @@ def main() -> None:
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
     ap.add_argument("--patch-max-tokens", type=int, default=32000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
+    ap.add_argument("--rules", default="v2", choices=["v1", "v2"], help="宿主审校规则版本")
+    ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="low", choices=["low", "high", "max"], help="宿主/评委模型的推理强度")
     ap.add_argument("--base-url", help="OpenAI 兼容接口地址，如 http://localhost:11434/v1；给出时覆盖 --provider")
     ap.add_argument("--api-key", help="--base-url 对应服务的 Key；本地服务通常不需要")
     ap.add_argument("--timeout", type=float, default=180.0, help="RTT 整体时限；MVP 阶段不设硬约束，只记录耗时")
     args = ap.parse_args()
-    global EFFORT
+    global EFFORT, RULES
     EFFORT = args.effort
+    RULES = args.rules
     args.dir = BENCH / "results" / args.run
     args.dir.mkdir(parents=True, exist_ok=True)
     if args.stage.startswith("import-") and not args.file:

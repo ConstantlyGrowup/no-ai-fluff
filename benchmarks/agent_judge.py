@@ -27,6 +27,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_ablation as ra  # noqa: E402
 
+ANCHOR = "original@anchor"
+
 RUBRIC = """## 评分规则（对每个候选独立打分）
 
 **fidelity：语义与技术事实保真度（1–5）**
@@ -70,6 +72,12 @@ def stage_export(args) -> None:
     for s, name, text in jobs:
         if (s["id"], name) not in assigned:
             by_sample.setdefault(s["id"], []).append((s, name, text))
+    if args.anchor:
+        # 每篇加一个匿名的原文作锚点（记为 original@anchor），让新候选与原文在同一包内比较，避免跨轮次尺度漂移
+        smap = {s["id"]: s for s in ra.samples()}
+        for sid, items in by_sample.items():
+            if (sid, ANCHOR) not in assigned and all(n != ANCHOR for _, n, _ in items):
+                items.append((smap[sid], ANCHOR, smap[sid]["text"]))
     rng = random.Random(args.seed)
     made = 0
     for sid, items in by_sample.items():
@@ -143,6 +151,7 @@ def _texts(args) -> dict:
     out = {}
     for s in smap.values():
         out[(s["id"], "original")] = s["text"]
+        out[(s["id"], ANCHOR)] = s["text"]
     for r in ra.load_jsonl(args.dir / "rtt.jsonl"):
         out[(r["sample_id"], f"rtt:{r['combo']}")] = r["rtt_draft"]
     for r in ra.load_jsonl(args.dir / "patch.jsonl"):
@@ -223,6 +232,7 @@ def main() -> None:
     ap.add_argument("--max-chars", type=int, default=45000, help="每个评审包的总字数上限（原文 + 候选）")
     ap.add_argument("--seed", type=int, default=20261108)
     ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--anchor", action="store_true", help="每篇加一个匿名原文作锚点候选（original@anchor）")
     args = ap.parse_args()
     args.dir = ra.BENCH / "results" / args.run
     args.only = None

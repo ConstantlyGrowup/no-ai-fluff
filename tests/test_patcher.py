@@ -157,3 +157,72 @@ def test_patch_changing_structure_prefix_is_rejected():
     out, res = apply_md(("## 订单取消规则", "### 订单取消规则", "改标题级别"))
     assert not res[0].applied and "结构标记" in res[0].reason
     assert out == MD
+
+
+def test_audit_rules_versions():
+    from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
+
+    assert DEFAULT_AUDIT_RULES == "v2"
+    v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
+    v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z")
+    assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
+    assert "翻译腔" in v2 and '"type"' in v2 and "原文X" in v2
+    assert len(v2) < 1800
+    with pytest.raises(ValueError):
+        build_audit_prompt("a", "b", "c", rules="v9")
+
+
+def test_patch_type_parsed_and_optional():
+    ps = parse_patches('[{"find":"a","replace":"b","type":"翻译腔"},{"find":"c","replace":"d"}]')
+    assert ps[0].type == "翻译腔" and ps[1].type == ""
+
+
+def test_overlong_find_rejected_as_rewrite():
+    from no_ai_fluff.patcher import MAX_FIND_CHARS
+
+    long = "长" * (MAX_FIND_CHARS + 1)
+    doc = parse(long)
+    _, res = apply_patches(doc, [s.masked for s in doc.slots], [Patch(long, "短", "重写")])
+    assert not res[0].applied and "整段重写" in res[0].reason
+
+
+def test_pipeline_uses_configured_rules(tmp_path):
+    from no_ai_fluff.pipeline import Pipeline, PipelineConfig
+
+    class Echo:
+        def round_trip(self, segs, ids, timeout_s=None):
+            from no_ai_fluff.rtt import RTTResult
+
+            return RTTResult(list(segs), [""] * len(segs), [], {}, 2, 0.01)
+
+    for rules, marker in (("v1", "严禁重写全文"), ("v2", "翻译腔")):
+        pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), audit_rules=rules), translator_factory=lambda c: Echo())
+        assert marker in pipe.prepare("这是一段需要审校的中文。").audit_prompt
+
+
+TABLE = "| 阶段 | 时间 | 说明 |\n|---|---|---|\n| API v1 下线 | 发布后六个月。 | API v1 停止服务 |\n| 迁移期 | 半年 | 两版并存 |"
+
+
+def apply_table(*patches):
+    doc = parse(TABLE)
+    new, res = apply_patches(doc, [s.masked for s in doc.slots], [Patch(*p) for p in patches])
+    return doc.render(new), res
+
+
+def test_whole_table_row_patch_split_into_cells():
+    out, res = apply_table(("| API v1 下线 | 发布后六个月。 | API v1 停止服务 |",
+                            "| API v1 下线 | 发布 6 个月后 | API v1 停止服务 |", "r"))
+    assert res[0].applied, res[0].reason
+    assert "| API v1 下线 | 发布 6 个月后 | API v1 停止服务 |" in out
+
+
+def test_table_row_patch_changing_columns_rejected():
+    out, res = apply_table(("| 迁移期 | 半年 | 两版并存 |", "| 迁移期 | 半年 |", "删列"))
+    assert not res[0].applied and "列数" in res[0].reason and out == TABLE
+
+
+def test_table_row_patch_is_all_or_nothing():
+    out, res = apply_table(("| 迁移期 | 半年 | 两版并存 |", "| 迁移阶段 | 半年 | 两版并存 |", "r"),
+                           ("| 迁移阶段 | 不存在的格 | 两版并存 |", "| 迁移阶段 | 六个月 | 两个版本同时可用 |", "r"))
+    assert res[0].applied and not res[1].applied
+    assert "| 迁移阶段 | 半年 | 两版并存 |" in out  # 第二条整条未生效，没有半改

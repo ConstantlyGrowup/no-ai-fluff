@@ -51,6 +51,7 @@ class PipelineConfig:
     cache_dir: str | None = None  # OpenRouter 响应磁盘缓存（评测复现用）
     store_dir: str | None = None  # 草稿存放目录，默认 ~/.no-ai-fluff/drafts
     draft_ttl_s: float = 6 * 3600
+    audit_rules: str = "v2"  # 宿主审校规则版本，见 patcher.AUDIT_RULES
     min_rtt_chars: int = 8  # 短于该长度且不含英文的槽位（表头、短标题）不送往返翻译
     telemetry: bool = True
 
@@ -382,7 +383,7 @@ class Pipeline:
             rtt_draft=rtt_text,
             radar_hints=report.to_prompt(),
             radar=report.to_dict(),
-            audit_prompt=build_audit_prompt(original_text, rtt_text, report.to_prompt()),
+            audit_prompt=build_audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules),
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason,
             stats=stats,
