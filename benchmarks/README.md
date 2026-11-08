@@ -80,3 +80,16 @@ python benchmarks/run_ablation.py report
 ```
 
 建议 `temperature=0`，单条输出上限 4000 token。导入时解析失败的条目会被跳过并打印出来，修好后再导入一次即可，已导入的不会重复。
+
+## M3 人工盲测
+
+```bash
+python benchmarks/blind_workbench.py build                       # 生成 blind_test_workbench.html（已生成）
+# 用浏览器直接打开 benchmarks/blind_test_workbench.html，读完投票后点“导出结果”
+python benchmarks/blind_workbench.py analyze blind_votes.json    # 解码并统计 -> results/m3/blind_summary.md
+```
+
+- 样本与候选见 `results/m3/run.json`：10 篇（每场景 2 篇，≤4500 字），每篇 4 个版本——原文，以及 hy-mt2 法 / 日 / 俄往返后由 DeepSeek 高推理强度宿主按 v2 规则开补丁、经标点清理的定稿。
+- 页面里只有随机代号，A~D 顺序和篇目顺序都已打乱，不显示参考原文。代号与版本的对照表在 `.cache/blind/key-m3.json`，**测完之前不要打开，也不要删除**：删掉后投票就无法解码了。
+- 投票自动保存在浏览器里，也可以中途“导出结果”，换浏览器后“载入进度”继续。
+- `build` 在对照表已存在时会拒绝覆盖。确实要重建请加 `--force`，但这会让已导出的投票作废。

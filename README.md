@@ -76,7 +76,11 @@ no-ai-fluff mcp                                   # 启动 stdio MCP Server
 claude mcp add no-ai-fluff -- no-ai-fluff mcp
 ```
 
-Server 提供 `prepare_rtt_draft` 和 `finalize_patched_delivery` 两个工具。配套的 `context: fork` 审校子智能体、Codex CLI 与 DeepSeek Harness 适配放在 Milestone 4。
+Server 提供 `prepare_rtt_draft` 和 `finalize_patched_delivery` 两个工具。配套的 `context: fork` 审校子智能体、Codex CLI 与 DeepSeek Harness 适配放在 Milestone 5。
+
+## 宿主模型的推理强度
+
+审校补丁质量高度依赖宿主模型的推理强度：在 m2v2hi 实验中，同一批初稿用低推理强度开补丁，5 篇全部漏修事实错误；改用高推理强度后，只剩 1 篇。接入时请让宿主以高推理强度运行审校子任务。
 
 ## 在 Python 里直接用
 
@@ -106,9 +110,10 @@ python -m pytest
 ## 路线图
 
 - [x] **Milestone 1**：核心四阶引擎、编排与回退、CLI、MCP Server 骨架、单元测试
-- [ ] **Milestone 2**：四大场景真实语料，`2 模型 × 3 桥接语` 消融实验
-- [ ] **Milestone 3**：本地盲测工作台，锁定默认模型与桥接语，产出评测报告
-- [ ] **Milestone 4**：Claude Code / Codex CLI / DeepSeek Harness 多端适配与发布
+- [x] **Milestone 2**：五大场景真实语料，`2 模型 × 3 桥接语` 消融实验，宿主补丁与双轴评测
+- [ ] **Milestone 3**：本地盲测工作台（已就绪，待人工投票），锁定默认桥接语
+- [ ] **Milestone 4**：与 Humanizer-zh 横向对比，产出评测报告
+- [ ] **Milestone 5**：Claude Code / Codex CLI / DeepSeek Harness 多端适配与发布
 
 ## License
 

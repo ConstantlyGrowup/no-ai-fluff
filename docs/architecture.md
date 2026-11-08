@@ -190,8 +190,8 @@ no-ai-fluff/
 
 ### 下一步执行路线（留待后续实施 Session 按序推进）
 1. **Milestone 1**：实现 `src/no_ai_fluff/` 核心四阶模块（含 5 类通用雷达 `radar.py` 与 JSON 补丁安全合并 `patcher.py`）及完整单元测试，完成首次规范化 Git 提交。（已完成）
-2. **Milestone 2**：构建真实多场景样本集，跑完 `2 模型 × 3 桥接语` 消融实验与独立上下文微创补丁对比，验证消融数据。（进行中）
-3. **Milestone 3**：生成本地交互式内部选型盲测网页，由人工盲测锁定默认翻译小模型与最佳桥接语言组合。
+2. **Milestone 2**：构建真实多场景样本集，跑完 `2 模型 × 3 桥接语` 消融实验与独立上下文微创补丁对比，验证消融数据。（已完成，见 `docs/rtt-model-comparison.md`）
+3. **Milestone 3**：生成本地交互式内部选型盲测网页，由人工盲测锁定默认翻译小模型与最佳桥接语言组合。（盲测工作台已就绪：`benchmarks/blind_test_workbench.html`，待人工投票）
 4. **Milestone 4（SOTA 横向打擂）**：对比 GitHub 最火开源标杆 `op7418/Humanizer-zh`（纯 Prompt 全文改写方案）。
    - **分层抽检**：从评测集中跨场景随机抽取 10 组样本，同台对决（`Original` vs `Humanizer-zh 全文改写` vs `no-ai-fluff 最佳组合`）；
    - **职责解耦的三维评价体系**：

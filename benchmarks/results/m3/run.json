@@ -1,0 +1,30 @@
+{
+  "purpose": "M3 人工盲测：锁定默认桥接语（翻译小模型已按横评选定 hy-mt2），并检验成稿是否比原文好读",
+  "samples": [
+    "coding-003",
+    "coding-005",
+    "teaching-002",
+    "teaching-004",
+    "writing-002",
+    "writing-003",
+    "discussion-004",
+    "discussion-005",
+    "daily-002",
+    "daily-007"
+  ],
+  "sampling": "每场景从 ≤4500 字的样本中 random.Random(20261108).sample 2 篇",
+  "candidates": {
+    "original": "原文",
+    "patched:hymt-fr": "hy-mt2 法语往返 + v2 补丁（DeepSeek high）",
+    "patched:hymt-ja": "hy-mt2 日语往返 + v2 补丁（DeepSeek high）",
+    "patched:hymt-ru": "hy-mt2 俄语往返 + v2 补丁（DeepSeek high）"
+  },
+  "rules": "v2",
+  "host": "deepseek-flash",
+  "effort": "high",
+  "punctuation_cleanup": true,
+  "judge_variants": [
+    "original",
+    "patched:"
+  ]
+}
