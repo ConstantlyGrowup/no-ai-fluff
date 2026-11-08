@@ -1,0 +1,24 @@
+{
+  "packet": "writing-004-1",
+  "judge_model": null,
+  "candidates": {
+    "A": {
+      "fidelity": null,
+      "readability": null,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": null,
+      "readability": null,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": null,
+      "readability": null,
+      "errors": [],
+      "readability_issues": []
+    }
+  }
+}

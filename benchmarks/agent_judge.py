@@ -246,6 +246,8 @@ def _texts(args) -> dict:
         out[(r["sample_id"], f"rtt:{r['combo']}")] = r["rtt_draft"]
     for r in ra.load_jsonl(args.dir / "patch.jsonl"):
         out[(r["sample_id"], f"patched:{r['combo']}")] = r["final_text"]
+    for r in ra.load_jsonl(args.dir / "baseline.jsonl"):
+        out[(r["sample_id"], r["variant"])] = r["final_text"]
     return out, smap
 
 

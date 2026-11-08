@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import re
 import statistics
@@ -248,7 +249,7 @@ def stage_patch(args) -> None:
         if tr:
             # 词对微筛：脱离上下文的小请求，用同一个宿主模型，推理强度单独设置（不改全局，避免并发线程串味）
             try:
-                t_raw, _t_usage, t_lat = chat_json(client, args.host, tr[0], max_tokens=16000, effort=args.term_effort)
+                t_raw, _t_usage, t_lat = chat_json(client, args.host, tr[0], max_tokens=32000, effort=args.term_effort)
             except Exception as e:  # noqa: BLE001
                 print(f"  {r['sample_id']} {r['combo']} TERM REVIEW FAILED {e}", flush=True)
                 t_raw, t_lat = None, 0.0
@@ -358,12 +359,23 @@ def load_run_config(run_dir: Path) -> dict:
     return cfg
 
 
-def variants_for(sample: dict, rtt_rows: list[dict], patch_rows: list[dict]) -> list[tuple[str, str]]:
+def load_baselines(run_dir: Path) -> dict[str, list[dict]]:
+    """results/<run>/baseline.jsonl：第三方对照（如 Humanizer-zh）的定稿，按样本分组。"""
+    out: dict[str, list[dict]] = defaultdict(list)
+    for r in load_jsonl(run_dir / "baseline.jsonl"):
+        out[r["sample_id"]].append(r)
+    return out
+
+
+def variants_for(sample: dict, rtt_rows: list[dict], patch_rows: list[dict],
+                 baseline_rows: list[dict] = ()) -> list[tuple[str, str]]:
     vs = [("original", sample["text"])]
     for r in rtt_rows:
         vs.append((f"rtt:{r['combo']}", r["rtt_draft"]))
     for r in patch_rows:
         vs.append((f"patched:{r['combo']}", r["final_text"]))
+    for r in baseline_rows:
+        vs.append((r["variant"], r["final_text"]))
     if JUDGE_VARIANTS is not None:
         vs = [(n, t) for n, t in vs if any(n == v or (v.endswith(":") and n.startswith(v)) for v in JUDGE_VARIANTS)]
     return vs
@@ -376,11 +388,12 @@ def _judge_env(args):
     patch = defaultdict(list)
     for r in load_jsonl(args.dir / "patch.jsonl"):
         patch[r["sample_id"]].append(r)
+    base = load_baselines(args.dir)
     out = args.dir / "judge.jsonl"
     done = {(r["sample_id"], r["variant"]) for r in load_jsonl(out)}
     jobs = []
     for s in samples(args.only):
-        for name, text in variants_for(s, rtt[s["id"]], patch[s["id"]]):
+        for name, text in variants_for(s, rtt[s["id"]], patch[s["id"]], base[s["id"]]):
             if (s["id"], name) not in done:
                 jobs.append((s, name, text))
     return jobs, out
@@ -467,6 +480,7 @@ def text_metrics(original: str, text: str) -> dict:
         "radar_per_kchar": {k: radar[k] / kchars for k in KINDS},
         "radar_total_per_kchar": sum(radar.values()) / kchars,
         "chars": len(text),
+        "rewrite_ratio": 1 - difflib.SequenceMatcher(None, original, text, autojunk=False).ratio(),
     }
 
 
@@ -504,8 +518,9 @@ def _all_judge_keys(args):
     patch = defaultdict(list)
     for r in load_jsonl(args.dir / "patch.jsonl"):
         patch[r["sample_id"]].append(r)
+    base = load_baselines(args.dir)
     for s in samples():
-        for name, _ in variants_for(s, rtt[s["id"]], patch[s["id"]]):
+        for name, _ in variants_for(s, rtt[s["id"]], patch[s["id"]], base[s["id"]]):
             yield s["id"], name
 
 
@@ -544,6 +559,13 @@ def stage_report(args) -> None:
             "patches": len(r["patches"]), "applied": r["applied"], "rejected": r["rejected"],
             "host_cost_usd": r["host_cost_usd"], "host_latency_s": r["host_latency_s"],
         })
+    for sid, group in load_baselines(args.dir).items():
+        if sid not in smap:
+            continue
+        for r in group:
+            m = text_metrics(smap[sid]["text"], r["final_text"])
+            rows.append({"sample_id": sid, "scenario": r["scenario"], "variant": r["variant"], **m,
+                         "host_latency_s": r.get("latency_s")})
     for row in rows:
         j = jmap.get((row["sample_id"], row["variant"]))
         row["fidelity"] = j["fidelity"] if j else None
@@ -562,6 +584,8 @@ def stage_report(args) -> None:
             "number_mismatch_rate": _mean([1.0 if r["number_mismatch"] else 0.0 for r in group]),
             "fence_ok_rate": _mean([1.0 if r["fence_ok"] else 0.0 for r in group]),
             "radar_per_kchar": _mean([r["radar_total_per_kchar"] for r in group]),
+            "rewrite_ratio": _mean([r.get("rewrite_ratio") for r in group]),
+            "chars_ratio": _mean([r["chars"] / len(smap[r["sample_id"]]["text"]) for r in group]),
             "radar_kinds_per_kchar": {k: _mean([r["radar_per_kchar"][k] for r in group]) for k in KINDS},
             "latency_p50_s": round(statistics.median(lat), 2) if lat else None,
             "cost_usd_mean": _mean([r.get("cost_usd") for r in group], 6),

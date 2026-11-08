@@ -1,0 +1,31 @@
+{
+  "purpose": "M4 横向对比：原文 / no-ai-fluff（俄语往返 + v5 补丁）/ Humanizer-zh（同一宿主模型执行其 SKILL.md）",
+  "samples": [
+    "coding-001",
+    "coding-002",
+    "teaching-001",
+    "teaching-003",
+    "writing-004",
+    "writing-005",
+    "discussion-001",
+    "discussion-002",
+    "daily-001",
+    "daily-012"
+  ],
+  "sampling": "每个场景 2 篇，全部避开 M3 盲测与 v3~v5 冒烟用过的样本，防止调参偏差",
+  "candidates": {
+    "original": "原文",
+    "patched:hymt-ru": "no-ai-fluff：hy-mt2 俄语往返 + v5 补丁（DeepSeek high）+ 词对微筛 + 标点清理",
+    "baseline:humanizer-zh": "op7418/Humanizer-zh @f4518a8，SKILL.md 作为系统提示，DeepSeek high"
+  },
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "rubric": "v3",
+  "bridge": "ru",
+  "rules": "v5",
+  "host": "deepseek-flash",
+  "effort": "high"
+}

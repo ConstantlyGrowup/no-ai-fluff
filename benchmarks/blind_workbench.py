@@ -24,7 +24,13 @@ import run_ablation as ra  # noqa: E402
 
 OUT_HTML = ra.BENCH / "blind_test_workbench.html"
 LABELS = {"original": "原文", "patched:hymt-fr": "法语往返 + 补丁", "patched:hymt-ja": "日语往返 + 补丁",
-          "patched:hymt-ru": "俄语往返 + 补丁"}
+          "patched:hymt-ru": "俄语往返 + 补丁", "baseline:humanizer-zh": "Humanizer-zh"}
+M3_ORDER = ["original", "patched:hymt-fr", "patched:hymt-ja", "patched:hymt-ru"]
+
+
+def run_order(cfg: dict) -> list[str]:
+    """盲测候选：run.json 写了 judge_variants 就按它（如 M4 的原文 / 俄语补丁 / Humanizer-zh），否则沿用 M3 的四个版本。"""
+    return [v for v in cfg.get("judge_variants") or [] if not v.endswith(":")] or M3_ORDER
 
 
 def key_path(run: str) -> Path:
@@ -32,15 +38,21 @@ def key_path(run: str) -> Path:
 
 
 def build(args) -> None:
-    ra.load_run_config(args.dir)
+    order = run_order(ra.load_run_config(args.dir))
     samples = ra.samples()
     patch = {(p["sample_id"], p["combo"]): p for p in ra.load_jsonl(args.dir / "patch.jsonl")}
+    base = {(b["sample_id"], b["variant"]): b for b in ra.load_jsonl(args.dir / "baseline.jsonl")}
     rng = random.Random(args.seed)
     key, items = {}, []
     for s in samples:
-        variants = [("original", s["text"])] + [
-            (f"patched:{c}", patch[(s["id"], c)]["final_text"]) for c in ("hymt-fr", "hymt-ja", "hymt-ru")
-            if (s["id"], c) in patch]
+        variants = []
+        for v in order:
+            if v == "original":
+                variants.append((v, s["text"]))
+            elif v.startswith("patched:") and (s["id"], v[8:]) in patch:
+                variants.append((v, patch[(s["id"], v[8:])]["final_text"]))
+            elif (s["id"], v) in base:
+                variants.append((v, base[(s["id"], v)]["final_text"]))
         rng.shuffle(variants)
         cands = []
         for v, text in variants:
@@ -81,12 +93,11 @@ def analyze(args) -> None:
         detail.append({"sample_id": sid, "best": b, "worst": w, "tie": bool(v.get("tie")), "note": v.get("note", ""),
                        "seconds": v.get("seconds")})
     n = sum(best.values())
-    order = ["original", "patched:hymt-fr", "patched:hymt-ja", "patched:hymt-ru"]
-    lines = [f"# M3 人工盲测结果（{n} 篇有效投票）", "", "| 版本 | 最好读（票） | 占比 | 最难读（票） |", "|---|---|---|---|"]
+    order = run_order(ra.load_run_config(args.dir))
+    lines = [f"# {args.run} 人工盲测结果（{n} 篇有效投票）", "", "| 版本 | 最好读（票） | 占比 | 最难读（票） |", "|---|---|---|---|"]
     for v in order:
         lines.append(f"| {LABELS[v]} | {best[v]} | {best[v] / n:.0%} | {worst[v]} |" if n else f"| {LABELS[v]} | 0 | - | {worst[v]} |")
-    pipe_best = n - best["original"]
-    lines += ["", f"- 流水线版本（任一桥接语）被选为最好读：{pipe_best}/{n} 篇；原文被选为最好读：{best['original']}/{n} 篇",
+    lines += ["", "- " + "；".join(f"{LABELS[v]} 被选为最好读 {best[v]}/{n} 篇" for v in order),
               f"- 标记“差不多，选不出”：{ties} 篇", "", "## 分场景（最好读）", "",
               "| 场景 | " + " | ".join(LABELS[v] for v in order) + " |", "|---|" + "---|" * len(order)]
     for sc, c in sorted(by_scen.items()):
