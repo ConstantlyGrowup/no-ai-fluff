@@ -24,6 +24,29 @@ from pathlib import Path
 from .masker import _CJK_RE, PLACEHOLDER_RE, check_placeholders, markup_signature, normalize_placeholders
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+TENCENT_URL = "https://tokenhub.tencentmaas.com/v1/chat/completions"
+DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+
+# 各服务商的接入参数。chunk_chars / batch_segments 按“输入 + 输出 ≤ 上下文”留足余量：
+# 腾讯云 hy-mt2-pro 上下文 8K、输出上限 4K，实测约 1.9 个汉字 ≈ 1 token，
+# 超长输入不会报错而是静默截断（finish_reason=length），所以单次输入控制在约 1200 字。
+PROVIDERS: dict[str, dict] = {
+    "openrouter": {
+        "url": OPENROUTER_URL, "key_env": ("OPENROUTER_API_KEY",), "default_model": "tencent/hy-mt2-30b-a3b",
+        "extra": {"usage": {"include": True}}, "batch_chars": 400, "batch_segments": 6, "max_workers": 8,
+        "max_segment_chars": 1500, "max_output_tokens": 4000,
+    },
+    "tencent": {
+        "url": TENCENT_URL, "key_env": ("TENCENTCLOUD_API_KEY", "TENCENT_API_KEY"), "default_model": "hy-mt2-pro",
+        "extra": None, "batch_chars": 1200, "batch_segments": 8, "max_workers": 4,
+        "max_segment_chars": 1200, "max_output_tokens": 4000,
+    },
+    "deepseek": {
+        "url": DEEPSEEK_URL, "key_env": ("DEEPSEEK_API_KEY", "Deepseek_OFFICIAL_API_KEY", "DEEPSEEK_OFFICIAL_API_KEY"),
+        "default_model": "deepseek-flash", "extra": None, "batch_chars": 400, "batch_segments": 6,
+        "max_workers": 4, "max_segment_chars": 1500, "max_output_tokens": 8000,
+    },
+}
 
 LANG_NAMES_ZH = {"zh": "中文", "fr": "法语", "ja": "日语", "ru": "俄语", "en": "英语", "de": "德语", "es": "西班牙语"}
 
@@ -41,6 +64,10 @@ class ContentFilteredError(OpenRouterError):
     """上游服务商对这段输入触发了内容过滤：确定性行为，重试无意义。"""
 
 
+class TruncatedOutputError(OpenRouterError):
+    """输出因长度上限被截断（finish_reason=length）：同样的输入重试无意义，应拆小。"""
+
+
 @dataclass
 class ChatResult:
     text: str
@@ -49,19 +76,35 @@ class ChatResult:
     cached: bool = False
 
 
-class OpenRouterClient:
-    """极简 OpenRouter 客户端（零依赖），带重试与可选的磁盘缓存（评测复现用）。"""
+def provider_key(provider: str) -> str:
+    for name in PROVIDERS[provider]["key_env"]:
+        if os.environ.get(name, "").strip():
+            return os.environ[name].strip()  # .strip()：Windows 编辑的 .env 可能带 \r
+    return ""
+
+
+class ChatClient:
+    """极简 OpenAI 兼容客户端（零依赖），带重试与可选的磁盘缓存（评测复现用）。
+
+    provider 决定默认地址、Key 环境变量和请求附加字段；url / api_key 可显式覆盖（如本地模型）。
+    """
 
     def __init__(
         self,
         api_key: str | None = None,
-        url: str = OPENROUTER_URL,
+        url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 2,
         cache_dir: str | os.PathLike | None = None,
+        provider: str = "openrouter",
     ):
-        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
-        self.url = url
+        if provider not in PROVIDERS:
+            raise ValueError(f"未知服务商 {provider}，可选：{', '.join(PROVIDERS)}")
+        self.provider = provider
+        spec = PROVIDERS[provider]
+        self.api_key = (api_key or provider_key(provider)).strip()
+        self.url = url or spec["url"]
+        self.default_extra = spec["extra"] if url in (None, spec["url"]) else None
         self.timeout = timeout
         self.max_retries = max_retries
         self.cache_dir = Path(cache_dir) if cache_dir else None
@@ -85,7 +128,7 @@ class OpenRouterClient:
         max_retries: int | None = None,
     ) -> ChatResult:
         if not self.api_key:
-            raise OpenRouterError("OPENROUTER_API_KEY 未设置")
+            raise OpenRouterError(f"{' / '.join(PROVIDERS[self.provider]['key_env'])} 未设置")
         payload: dict = {"model": model, "messages": messages, "temperature": temperature}
         if max_tokens:
             payload["max_tokens"] = max_tokens
@@ -118,6 +161,8 @@ class OpenRouterClient:
                 content = choice.get("message", {}).get("content")
                 if choice.get("finish_reason") == "content_filter" or choice.get("native_finish_reason") == "content_filter":
                     raise ContentFilteredError("上游内容过滤（content_filter）")
+                if choice.get("finish_reason") == "length":
+                    raise TruncatedOutputError("输出被长度上限截断（finish_reason=length）")
                 if not content:
                     raise OpenRouterError("空响应")
                 result = ChatResult(content, latency, data.get("usage") or {})
@@ -128,7 +173,7 @@ class OpenRouterClient:
                         "utf-8",
                     )
                 return result
-            except ContentFilteredError:
+            except (ContentFilteredError, TruncatedOutputError):
                 raise
             except urllib.error.HTTPError as e:
                 err_body = e.read()
@@ -142,7 +187,67 @@ class OpenRouterClient:
                 last_err = e
             if attempt < retries:
                 time.sleep(0.6 * (2**attempt))
-        raise OpenRouterError(f"OpenRouter 请求失败：{last_err}")
+        raise OpenRouterError(f"{self.provider} 请求失败：{last_err}")
+
+
+class OpenRouterClient(ChatClient):
+    """向后兼容：默认服务商为 OpenRouter 的 ChatClient。"""
+
+    def __init__(self, api_key: str | None = None, url: str = OPENROUTER_URL, **kw):
+        kw.setdefault("provider", "openrouter")
+        super().__init__(api_key=api_key, url=url, **kw)
+
+
+def make_client(provider: str = "openrouter", **kw) -> ChatClient:
+    return ChatClient(provider=provider, **kw)
+
+
+# ---------------------------------------------------------------------------
+# 超长段落切分
+# ---------------------------------------------------------------------------
+
+_SENT_END_RE = re.compile(r"(?<=[。！？!?；;\n])")
+_SOFT_END_RE = re.compile(r"(?<=[，,、：:])")
+
+
+def split_long(text: str, max_chars: int) -> list[str]:
+    """把超长段落按句末标点切成不超过 max_chars 的若干块（尽量不切断句子，绝不切断 {{Pn}}）。
+
+    拼接各块（"".join）严格等于原文。
+    """
+    if len(text) <= max_chars:
+        return [text]
+
+    def pack(units: list[str]) -> list[str]:
+        out, cur = [], ""
+        for u in units:
+            if cur and len(cur) + len(u) > max_chars:
+                out.append(cur)
+                cur = ""
+            cur += u
+        if cur:
+            out.append(cur)
+        return out
+
+    pieces: list[str] = []
+    for sent in [x for x in _SENT_END_RE.split(text) if x]:
+        if len(sent) <= max_chars:
+            pieces.append(sent)
+            continue
+        for clause in [x for x in _SOFT_END_RE.split(sent) if x]:
+            if len(clause) <= max_chars:
+                pieces.append(clause)
+                continue
+            # 没有标点可断：按长度硬切，但不切进占位符内部
+            i = 0
+            while i < len(clause):
+                j = min(len(clause), i + max_chars)
+                for m in PLACEHOLDER_RE.finditer(clause):
+                    if m.start() < j < m.end():
+                        j = m.start() if m.start() > i else m.end()
+                pieces.append(clause[i:j])
+                i = j
+    return pack(pieces)
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +357,7 @@ class Deadline:
 class RoundTripTranslator:
     def __init__(
         self,
-        client: OpenRouterClient,
+        client: ChatClient,
         model: str = DEFAULT_MODEL,
         bridge: str = DEFAULT_BRIDGE,
         source: str = "zh",
@@ -260,6 +365,8 @@ class RoundTripTranslator:
         batch_segments: int = 6,
         max_workers: int = 8,
         temperature: float = 0.1,
+        max_segment_chars: int = 1500,
+        max_output_tokens: int = 4000,
     ):
         self.client = client
         self.model = model
@@ -267,6 +374,8 @@ class RoundTripTranslator:
         self.source = source
         self.batch_chars = batch_chars
         self.batch_segments = batch_segments  # 0 表示不限段数
+        self.max_segment_chars = max_segment_chars
+        self.max_output_tokens = max_output_tokens
         self.max_workers = max_workers
         self.temperature = temperature
         self._calls = 0
@@ -286,9 +395,9 @@ class RoundTripTranslator:
             self.model,
             [{"role": "user", "content": build_prompt(text, target, batched)}],
             temperature=self.temperature,
-            max_tokens=min(4000, 200 + len(text) * 4),
+            max_tokens=min(self.max_output_tokens, 200 + len(text) * 4),
             timeout=timeout,
-            extra={"usage": {"include": True}},
+            extra=getattr(self.client, "default_extra", {"usage": {"include": True}}),
             **kwargs,
         )
         u = res.usage or {}
@@ -403,7 +512,34 @@ class RoundTripTranslator:
         return batches
 
     def round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None) -> RTTResult:
-        """对掩码后的槽位文本做 中 -> 桥接语 -> 中 往返翻译。"""
+        """对掩码后的槽位文本做 中 -> 桥接语 -> 中 往返翻译。
+
+        超过 max_segment_chars 的段落先按句切块分别翻译，再拼回原段；任一块失败只回退该块。
+        """
+        pieces: list[str] = []
+        owner: list[int] = []
+        for i, s in enumerate(segs):
+            for piece in split_long(re.sub(r"\s*\n\s*", " ", s), self.max_segment_chars):
+                pieces.append(piece)
+                owner.append(i)
+        if len(pieces) == len(segs):
+            return self._round_trip(segs, ids, timeout_s)
+        piece_ids = [[int(x) for x in PLACEHOLDER_RE.findall(p)] for p in pieces]
+        res = self._round_trip(pieces, piece_ids, timeout_s)
+        texts = ["" for _ in segs]
+        bridges = ["" for _ in segs]
+        reasons: dict[int, str] = {}
+        for k, i in enumerate(owner):
+            texts[i] += res.texts[k]
+            bridges[i] = (bridges[i] + " " + res.bridges[k]).strip()
+            if k in res.reasons:
+                reasons[i] = (reasons.get(i, "") + f"; piece: {res.reasons[k]}").lstrip("; ")
+        # 有任一块回退的段落记为段级回退（其余块已正常解压）
+        res.texts, res.bridges, res.reasons = texts, bridges, reasons
+        res.fallbacks = sorted(reasons)
+        return res
+
+    def _round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None) -> RTTResult:
         t0 = time.monotonic()
         deadline = Deadline(timeout_s)
         self._calls = self._ptok = self._ctok = 0

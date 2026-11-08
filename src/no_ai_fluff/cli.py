@@ -46,7 +46,8 @@ def _write(text: str, out: str | None) -> None:
 def _pipeline(args):
     from .pipeline import Pipeline, PipelineConfig
 
-    return Pipeline(PipelineConfig.from_env(model=getattr(args, "model", None), bridge=getattr(args, "bridge", None)))
+    return Pipeline(PipelineConfig.from_env(
+        provider=getattr(args, "provider", None), model=getattr(args, "model", None), bridge=getattr(args, "bridge", None)))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("input", nargs="?", default="-", help="输入文件，- 表示 stdin")
         p.add_argument("--format", dest="fmt", default="auto", choices=["auto", "markdown", "html", "text"])
         p.add_argument("--exit", default="terminal", choices=["terminal", "file"])
+        p.add_argument("--provider", choices=["openrouter", "tencent"], help="翻译小模型服务商（默认 openrouter）")
         p.add_argument("--model")
         p.add_argument("--bridge", choices=["fr", "ja", "ru"])
 

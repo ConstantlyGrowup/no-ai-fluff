@@ -47,7 +47,8 @@ OPENROUTER_API_KEY=sk-or-...
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `NO_AI_FLUFF_MODEL` | `tencent/hy-mt2-30b-a3b` | 翻译小模型，另一候选为 `google/gemma-3-4b-it` |
+| `NO_AI_FLUFF_PROVIDER` | `openrouter` | 翻译小模型服务商：`openrouter`，或 `tencent`（腾讯云 TokenHub，需 `TENCENTCLOUD_API_KEY`） |
+| `NO_AI_FLUFF_MODEL` | 随服务商 | OpenRouter 默认 `tencent/hy-mt2-30b-a3b`；腾讯云默认 `hy-mt2-pro` |
 | `NO_AI_FLUFF_BRIDGE` | `fr` | 桥接语：`fr` / `ja` / `ru` |
 | `NO_AI_FLUFF_CHAT_TIMEOUT` | `10` | 终端回复的 RTT 整体时限（秒） |
 | `NO_AI_FLUFF_DOC_TIMEOUT` | `60` | 落盘文档的 RTT 整体时限（秒） |
@@ -56,7 +57,7 @@ OPENROUTER_API_KEY=sk-or-...
 | `NO_AI_FLUFF_HOME` | `~/.no-ai-fluff` | 遥测与草稿目录 |
 | `NO_AI_FLUFF_TELEMETRY` | `1` | 设为 `0` 关闭遥测 |
 
-默认模型和桥接语是暂定值，Milestone 2/3 的消融实验和盲测会决定最终默认值。
+横评结论（[`docs/rtt-model-comparison.md`](docs/rtt-model-comparison.md)）：中文往返翻译选 hy-mt2，后续接入腾讯云 `hy-mt2-pro`；默认桥接语将在法语和日语之间由双轴评测与盲测决定。
 
 ## 命令行
 

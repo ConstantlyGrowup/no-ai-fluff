@@ -27,7 +27,7 @@ from .config import env_float, load_dotenv
 from .masker import PLACEHOLDER_RE, Document, Slot, check_placeholders, parse
 from .patcher import PatchFormatError, apply_patches, build_audit_prompt, parse_patches, results_to_dicts
 from .radar import scan, scan_single
-from .rtt import DEFAULT_BRIDGE, DEFAULT_MODEL, OpenRouterClient, OpenRouterError, RoundTripTranslator, RTTResult
+from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult
 
 EXITS = ("terminal", "file")
 MODES = ("auto", "chat", "doc")
@@ -35,15 +35,17 @@ MODES = ("auto", "chat", "doc")
 
 @dataclass
 class PipelineConfig:
-    model: str = DEFAULT_MODEL
+    provider: str = "openrouter"  # openrouter | tencent（翻译小模型所在服务商）
+    model: str | None = None  # 为空时取服务商默认模型
     bridge: str = DEFAULT_BRIDGE
     chat_timeout_s: float = 10.0  # 对话类交付的 RTT 整体时限
     doc_timeout_s: float = 60.0  # 文档类交付的 RTT 整体时限
     doc_chars: int = 1500  # auto 模式下超过该长度按文档处理
     extra_terms: list[str] = field(default_factory=list)
-    batch_chars: int = 400  # 小批次 + 高并行：单次输出短，延迟低，分界符也不易丢
-    batch_segments: int = 6
-    max_workers: int = 8
+    batch_chars: int | None = None  # 为空时取服务商默认值（小批次 + 高并行：延迟低，分界符不易丢）
+    batch_segments: int | None = None
+    max_workers: int | None = None
+    max_segment_chars: int | None = None  # 超过该长度的段落按句切块翻译
     temperature: float = 0.1
     request_timeout_s: float = 30.0
     cache_dir: str | None = None  # OpenRouter 响应磁盘缓存（评测复现用）
@@ -55,18 +57,27 @@ class PipelineConfig:
     @classmethod
     def from_env(cls, **overrides: Any) -> "PipelineConfig":
         load_dotenv()
-        cfg = cls(
-            model=os.environ.get("NO_AI_FLUFF_MODEL") or DEFAULT_MODEL,
+        values: dict[str, Any] = dict(
+            provider=os.environ.get("NO_AI_FLUFF_PROVIDER") or "openrouter",
+            model=os.environ.get("NO_AI_FLUFF_MODEL") or None,
             bridge=os.environ.get("NO_AI_FLUFF_BRIDGE") or DEFAULT_BRIDGE,
             chat_timeout_s=env_float("NO_AI_FLUFF_CHAT_TIMEOUT", 10.0),
             doc_timeout_s=env_float("NO_AI_FLUFF_DOC_TIMEOUT", 60.0),
             extra_terms=[t.strip() for t in os.environ.get("NO_AI_FLUFF_TERMS", "").split(",") if t.strip()],
             cache_dir=os.environ.get("NO_AI_FLUFF_CACHE_DIR") or None,
         )
-        for k, v in overrides.items():
-            if v is not None:
-                setattr(cfg, k, v)
-        return cfg
+        # 覆盖项必须在构造前合并：__post_init__ 会按最终的 provider 补全默认模型与批次参数
+        values.update({k: v for k, v in overrides.items() if v is not None})
+        return cls(**values)
+
+    def __post_init__(self) -> None:
+        if self.provider not in PROVIDERS:
+            raise ValueError(f"未知服务商 {self.provider}，可选：{', '.join(PROVIDERS)}")
+        spec = PROVIDERS[self.provider]
+        self.model = self.model or spec["default_model"]
+        for k in ("batch_chars", "batch_segments", "max_workers", "max_segment_chars"):
+            if getattr(self, k) is None:
+                setattr(self, k, spec[k])
 
 
 # ---------------------------------------------------------------------------
@@ -215,9 +226,9 @@ TranslatorFactory = Callable[["PipelineConfig"], Any]
 
 
 def default_translator_factory(cfg: PipelineConfig) -> RoundTripTranslator:
-    client = OpenRouterClient(timeout=cfg.request_timeout_s, cache_dir=cfg.cache_dir)
-    if not client.api_key:
-        raise OpenRouterError("OPENROUTER_API_KEY 未设置")  # 整体回退，不必逐段失败
+    client = ChatClient(provider=cfg.provider, timeout=cfg.request_timeout_s, cache_dir=cfg.cache_dir)
+    if not client.api_key:  # 整体回退，不必逐段失败
+        raise OpenRouterError(f"{' / '.join(PROVIDERS[cfg.provider]['key_env'])} 未设置")
     return RoundTripTranslator(
         client,
         model=cfg.model,
@@ -226,6 +237,8 @@ def default_translator_factory(cfg: PipelineConfig) -> RoundTripTranslator:
         batch_segments=cfg.batch_segments,
         max_workers=cfg.max_workers,
         temperature=cfg.temperature,
+        max_segment_chars=cfg.max_segment_chars,
+        max_output_tokens=PROVIDERS[cfg.provider]["max_output_tokens"],
     )
 
 
@@ -327,6 +340,7 @@ class Pipeline:
             "fmt": doc.fmt,
             "exit": exit,
             "mode": mode,
+            "provider": cfg.provider,
             "model": cfg.model,
             "bridge": cfg.bridge,
             "fallback": fallback_reason is not None,
@@ -339,6 +353,7 @@ class Pipeline:
         stats = {
             "fmt": doc.fmt,
             "mode": mode,
+            "provider": cfg.provider,
             "model": cfg.model,
             "bridge": cfg.bridge,
             "slots": len(doc.slots),
