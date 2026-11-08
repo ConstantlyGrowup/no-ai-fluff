@@ -26,7 +26,16 @@ from . import telemetry
 from .config import env_float, load_dotenv
 from .masker import PLACEHOLDER_RE, Document, Slot, check_placeholders, parse
 from .cleanup import clean_punctuation
-from .patcher import PatchFormatError, apply_patches, build_audit_prompt, parse_patches, results_to_dicts
+from .patcher import (
+    DEFAULT_AUDIT_RULES,
+    MAX_FIND_BY_RULES,
+    REVERT_MIN_CHARS,
+    PatchFormatError,
+    apply_patches,
+    build_audit_prompt,
+    parse_patches,
+    results_to_dicts,
+)
 from .radar import scan, scan_single
 from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult
 
@@ -52,7 +61,7 @@ class PipelineConfig:
     cache_dir: str | None = None  # OpenRouter 响应磁盘缓存（评测复现用）
     store_dir: str | None = None  # 草稿存放目录，默认 ~/.no-ai-fluff/drafts
     draft_ttl_s: float = 6 * 3600
-    audit_rules: str = "v2"  # 宿主审校规则版本，见 patcher.AUDIT_RULES
+    audit_rules: str = DEFAULT_AUDIT_RULES  # 宿主审校规则版本，见 patcher.AUDIT_RULES
     min_rtt_chars: int = 8  # 短于该长度且不含英文的槽位（表头、短标题）不送往返翻译
     telemetry: bool = True
 
@@ -346,6 +355,7 @@ class Pipeline:
             "provider": cfg.provider,
             "model": cfg.model,
             "bridge": cfg.bridge,
+            "audit_rules": cfg.audit_rules,
             "fallback": fallback_reason is not None,
             "fallback_reason": fallback_reason,
         }
@@ -392,8 +402,12 @@ class Pipeline:
         )
 
     # -- 握手 2 ---------------------------------------------------------------
-    def finalize(self, draft_id: str, patches: Any = None, keep_draft: bool = False) -> FinalizeResult:
+    def finalize(
+        self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None
+    ) -> FinalizeResult:
+        """audit_rules 决定补丁允许的改写范围；默认取 prepare 时记录的规则版本。"""
         draft = self.store.get(draft_id)
+        rules = audit_rules or draft.meta.get("audit_rules") or "v2"  # 旧草稿没有记录，按 v2 处理
         doc = draft.doc
         format_error: str | None = None
         try:
@@ -401,11 +415,13 @@ class Pipeline:
         except PatchFormatError as e:
             plist, format_error = [], f"补丁格式错误，已忽略全部补丁：{e}"
 
-        new_slots, results = apply_patches(doc, draft.rtt_slots, plist)
+        new_slots, results = apply_patches(
+            doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules))
         cleanups = 0
-        for i in draft.translated:  # 只清理经过改写的槽位；未翻译的槽位就是原文，不动
-            new_slots[i], n = clean_punctuation(new_slots[i], doc.slots[i].masked)
-            cleanups += n
+        for i, slot in enumerate(doc.slots):  # 只清理被改写过的槽位（往返翻译或补丁）；原样未动的不碰
+            if new_slots[i] != slot.masked:
+                new_slots[i], n = clean_punctuation(new_slots[i], slot.masked)
+                cleanups += n
         reason = verify_final(doc, new_slots)
         if reason:
             final_text, fallback_reason = draft.original_text, f"verify: {reason}"

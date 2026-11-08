@@ -43,10 +43,45 @@ AUDIT_INSTRUCTIONS_V2 = """你是中文审校员。【RTT 初稿】由【原文�
 - 只改有问题的局部；读起来自然、意思正确的句子不要动。保持初稿松弛的短句，不要合并成长句，也不要扩写。
 - 代码、路径、公式、URL、数字原样保留。"""
 
-AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2}
-DEFAULT_AUDIT_RULES = "v2"
+# v3（2026-11-08）：M2/M3 的“最小改动”规则是为选型服务的；面向最终效果，宿主按 SKILL 十条原则
+# 获得整句 / 整段的改写权限，也负责清理原文自带的 AI 腔。保真仍是第一优先级，受保护内容规则不变。
+AUDIT_INSTRUCTIONS_V3 = """你是中文编辑。【RTT 初稿】由【原文】经机器往返翻译得到。请交付一份“说人话”的定稿：事实与原文完全一致，读起来像有经验的人当面讲给同事听。按优先级做两件事：
+
+一、保真（必须先做）。对照原文修正初稿里的事实偏差，只改出错的那个词或短语，保留初稿已经拆松的句式：
+- 术语译错或换了说法，只把这个术语改回原文用词；硬核学科概念首次出现可写成“中文标准名（English Term）”；
+- 语气与条件强弱不能变：“尽量、通常、可能、建议、很”不能变成硬性要求，反之亦然；“以内、之间、仅当、至少”等边界不能变；
+- 因果方向、主体与客体、数字与量级必须与原文一致；原文信息不得遗漏，也不得凭空添加。
+- 严禁把整句改回原文的写法：往返翻译的目的就是拆掉原文的压缩句式和套话，整句复制原文会抵消这一步（这类补丁会被代码拒收）。
+
+二、说人话（放宽改写）。读着累的地方可以改写到一两句话的范围，包括原文本身就有的 AI 腔。依据：
+1. 句子主谓完整，不用名词短语堆砌代替句子；
+2. 因果直说，不用“打通、闭环、下沉、赋能”这类空间动作充当逻辑连词；比喻要能对应到实物实量，否则删掉；
+3. 不用读者需要回溯才能看懂的自造代号和压缩短语；
+4. 非必要不夹英文，只保留没有通行中文译法的技术术语；
+5. 去掉翻译腔：长定语拆开，被动句改主动，“对……进行……”“享受……”这类直译搭配改成自然说法；
+6. 删掉空洞大词、口号式排比和没有度量的夸张修饰（如“沉淀、抓手、底层逻辑、极其、全方位”），能给具体事实或数量就给；
+7. 推理不跳步，必要的“因为、所以、这样”不省；
+8. 不扩写、不加背景、不升华，不加原文没有的信息；
+9. 指代不清的“它、其、该”换成明确的名词；
+10. 原文作者明确使用的说法、比喻和术语照用。
+好读不等于字数少：为了说清楚多用几个字可以，但不要把句子压成名词短语。
+
+编辑范围与输出格式：
+- 只输出 JSON 数组：[{"find": "初稿原片段", "replace": "修改后片段", "type": "保真|说人话", "reason": "原因"}]；初稿已经准确又好读就输出 []。
+- 仍然是局部补丁：find 逐字摘自【RTT 初稿】，在全文中唯一，不跨行，范围是一个词、一个短语或一两句话（不超过 300 字），不要整段重写。
+- 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
+- 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
+
+AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3}
+DEFAULT_AUDIT_RULES = "v3"
 AUDIT_INSTRUCTIONS = AUDIT_RULES[DEFAULT_AUDIT_RULES]  # 向后兼容
-MAX_FIND_CHARS = 200  # 单条补丁的 find 上限：再长就是整段重写，拒收（M2 中超过 200 字的补丁只占 0.1%）
+# 单条补丁 find 的长度上限，按规则版本区分：v1/v2 只修局部，超过 200 字视为整段重写而拒收；
+# v3 允许整段改写，上限放宽到一个段落的量级（仍不得跨行，结构由原文决定）
+MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300}
+# v3 冒烟发现：宿主以“保真”为名把整句复制回原文，往返解压被完全抵消（三篇与原文差异降到 0%）。
+# replace 中与原文逐字相同的连续片段达到这个长度，就视为“改回原文”并拒收；短术语不受影响。
+REVERT_MIN_CHARS = {"v3": 25}
+MAX_FIND_CHARS = MAX_FIND_BY_RULES["v2"]
 
 
 def build_audit_prompt(original: str, rtt_draft: str, radar_text: str, rules: str = DEFAULT_AUDIT_RULES) -> str:
@@ -204,12 +239,39 @@ def _find_outside_placeholders(hay: str, needle: str) -> int:
     return -1
 
 
-def apply_patches(doc: Document, slot_texts: list[str], patches: list[Patch]) -> tuple[list[str], list[PatchResult]]:
-    """把补丁逐条合并进掩码槽位文本。返回 (新槽位文本, 每条补丁的处理结果)。"""
+_NORM_WS = re.compile(r"\s+")
+
+
+def _longest_common_run(a: str, b: str) -> int:
+    """a 与 b 的最长公共连续子串长度（忽略空白）。"""
+    from difflib import SequenceMatcher
+
+    a, b = _NORM_WS.sub("", a), _NORM_WS.sub("", b)
+    if not a or not b:
+        return 0
+    m = SequenceMatcher(None, a, b, autojunk=False).find_longest_match(0, len(a), 0, len(b))
+    return m.size
+
+
+def apply_patches(
+    doc: Document, slot_texts: list[str], patches: list[Patch], max_find: int = MAX_FIND_CHARS,
+    revert_min: int | None = None,
+) -> tuple[list[str], list[PatchResult]]:
+    """把补丁逐条合并进掩码槽位文本。返回 (新槽位文本, 每条补丁的处理结果)。
+
+    revert_min：给定时，replace 与原文的最长逐字相同片段达到该长度即视为“改回原文”并拒收
+    （以初稿里本来就有的同样片段为准，不重复计）。
+    """
     texts = list(slot_texts)
     results: list[PatchResult] = []
+    original = doc.render([s.masked for s in doc.slots]) if revert_min else ""
     for p in patches:
-        r = _apply_one(doc, texts, p)
+        if revert_min:
+            run = _longest_common_run(p.replace, original)
+            if run >= revert_min and run > _longest_common_run(p.find, original):
+                results.append(PatchResult(p, False, f"补丁把 {run} 字改回了原文写法，抵消了往返解压"))
+                continue
+        r = _apply_one(doc, texts, p, max_find)
         results.append(r)
     return texts, results
 
@@ -240,7 +302,7 @@ def _table_cells(row: str) -> list[str] | None:
     return [c.strip() for c in _CELL_SPLIT_RE.split(row)[1:-1]]
 
 
-def _apply_table_row(doc: Document, texts: list[str], p: Patch) -> PatchResult | None:
+def _apply_table_row(doc: Document, texts: list[str], p: Patch, max_find: int = MAX_FIND_CHARS) -> PatchResult | None:
     """宿主按整行改写 Markdown 表格时，拆成逐个单元格的补丁；任一格失败则整条拒收（不留半改状态）。"""
     fc, rc = _table_cells(p.find), _table_cells(p.replace)
     if fc is None or rc is None:
@@ -253,18 +315,18 @@ def _apply_table_row(doc: Document, texts: list[str], p: Patch) -> PatchResult |
             continue
         if not f:
             return PatchResult(p, False, "补丁向空单元格填写内容")
-        sub = _apply_core(doc, trial, Patch(f, r, p.reason, p.type))
+        sub = _apply_core(doc, trial, Patch(f, r, p.reason, p.type), max_find)
         if not sub.applied:
             return PatchResult(p, False, f"表格单元格「{f[:20]}」：{sub.reason}")
     texts[:] = trial
     return PatchResult(p, True, "")
 
 
-def _apply_one(doc: Document, texts: list[str], p: Patch) -> PatchResult:
-    r = _apply_core(doc, texts, p)
+def _apply_one(doc: Document, texts: list[str], p: Patch, max_find: int = MAX_FIND_CHARS) -> PatchResult:
+    r = _apply_core(doc, texts, p, max_find)
     if r.applied or not r.reason.startswith("find 在初稿中不存在"):
         return r
-    t = _apply_table_row(doc, texts, p)
+    t = _apply_table_row(doc, texts, p, max_find)
     if t is not None:
         return t
     stripped, why = _strip_structure_prefix(p)
@@ -272,19 +334,19 @@ def _apply_one(doc: Document, texts: list[str], p: Patch) -> PatchResult:
         return PatchResult(p, False, why)
     if stripped is None:
         return r
-    r2 = _apply_core(doc, texts, stripped)
+    r2 = _apply_core(doc, texts, stripped, max_find)
     return PatchResult(p, r2.applied, r2.reason, r2.slot)
 
 
-def _apply_core(doc: Document, texts: list[str], p: Patch) -> PatchResult:
+def _apply_core(doc: Document, texts: list[str], p: Patch, max_find: int = MAX_FIND_CHARS) -> PatchResult:
     if not p.find:
         return PatchResult(p, False, "find 为空")
     if p.find == p.replace:
         return PatchResult(p, False, "find 与 replace 相同")
     if "\n" in p.find or "\n" in p.replace:
         return PatchResult(p, False, "补丁不得跨行")
-    if len(p.find) > MAX_FIND_CHARS:
-        return PatchResult(p, False, f"find 超过 {MAX_FIND_CHARS} 字，疑似整段重写")
+    if len(p.find) > max_find:
+        return PatchResult(p, False, f"find 超过 {max_find} 字，超出本规则允许的改写范围")
     if PLACEHOLDER_RE.search(p.replace) or PLACEHOLDER_RE.search(p.find):
         return PatchResult(p, False, "补丁中不得出现占位符 {{Pn}}")
 

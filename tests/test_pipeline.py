@@ -230,3 +230,24 @@ def test_short_cjk_slots_skip_rtt(fake_translator, tmp_path):
     pipe = make(fake, tmp_path)
     pipe.prepare("| 含义 | 例子 |\n|---|---|\n| 这个方案的开销比较大 | 甲 |")
     assert fake.seen == [["这个方案的开销比较大"]]
+
+
+def test_v3_can_edit_slots_not_sent_to_rtt_and_cleans_them(fake_translator, tmp_path):
+    """标题等短槽位不送往返翻译，但 v3 宿主可以改写它们，标点清理也覆盖这些槽位。"""
+    pipe = make(fake_translator(), tmp_path)
+    prep = pipe.prepare("## 赋能闭环\n\n正文这一段没有什么问题，保持原样就好。")
+    assert "## 赋能闭环" in prep.rtt_draft
+    fin = pipe.finalize(prep.draft_id, [{"find": "赋能闭环", "replace": "怎么做：：", "type": "说人话"}])
+    assert fin.applied == 1 and fin.final_text.startswith("## 怎么做：\n") and fin.cleanups == 1
+
+
+def test_finalize_uses_rules_recorded_at_prepare(fake_translator, tmp_path):
+    from no_ai_fluff.patcher import MAX_FIND_BY_RULES
+
+    long = "这一段很长，" * 40 + "结束。"
+    p2 = Pipeline(PipelineConfig(store_dir=str(tmp_path / "a"), audit_rules="v2"), translator_factory=lambda c: fake_translator())
+    p3 = Pipeline(PipelineConfig(store_dir=str(tmp_path / "b"), audit_rules="v3"), translator_factory=lambda c: fake_translator())
+    patch = [{"find": long, "replace": "这一段改短了。"}]
+    assert len(long) > MAX_FIND_BY_RULES["v2"]
+    assert p2.finalize(p2.prepare(long).draft_id, patch).applied == 0
+    assert p3.finalize(p3.prepare(long).draft_id, patch).applied == 1

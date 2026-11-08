@@ -108,7 +108,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
-RULES = "v2"  # 宿主审校规则版本，main() 里按 --rules 覆盖
+RULES = "v3"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
@@ -210,7 +210,7 @@ def patch_prompt(pipe: Pipeline, r: dict) -> str:
 
 
 def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str) -> None:
-    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True)
+    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True, audit_rules=RULES)
     rec = {
         "sample_id": r["sample_id"], "scenario": r["scenario"], "combo": r["combo"], "host": host,
         "raw_patches": raw, "patches": fin.patches, "applied": fin.applied, "rejected": fin.rejected,
@@ -256,7 +256,8 @@ def stage_refinalize(args) -> None:
     changed: set[tuple[str, str]] = set()
     before = after = 0
     for r in rows:
-        fin = pipe.finalize(rtt[(r["sample_id"], r["combo"])]["draft_id"], r["raw_patches"], keep_draft=True)
+        fin = pipe.finalize(rtt[(r["sample_id"], r["combo"])]["draft_id"], r["raw_patches"], keep_draft=True,
+                            audit_rules=r.get("rules") or "v2")
         before += r["applied"]
         after += fin.applied
         if fin.final_text != r["final_text"]:
@@ -624,7 +625,7 @@ def main() -> None:
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
     ap.add_argument("--patch-max-tokens", type=int, default=64000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
-    ap.add_argument("--rules", default="v2", choices=["v1", "v2"], help="宿主审校规则版本")
+    ap.add_argument("--rules", default="v3", choices=["v1", "v2", "v3"], help="宿主审校规则版本（v3：按 SKILL 原则整句 / 整段改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],
                     help="宿主/评委模型的推理强度。默认 high：m2v2hi 中 low 的漏修率明显更高")

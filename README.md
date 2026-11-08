@@ -49,7 +49,7 @@ OPENROUTER_API_KEY=sk-or-...
 |---|---|---|
 | `NO_AI_FLUFF_PROVIDER` | `openrouter` | 翻译小模型服务商：`openrouter`，或 `tencent`（腾讯云 TokenHub，需 `TENCENTCLOUD_API_KEY`） |
 | `NO_AI_FLUFF_MODEL` | 随服务商 | OpenRouter 默认 `tencent/hy-mt2-30b-a3b`；腾讯云默认 `hy-mt2-pro` |
-| `NO_AI_FLUFF_BRIDGE` | `fr` | 桥接语：`fr` / `ja` / `ru` |
+| `NO_AI_FLUFF_BRIDGE` | `ru` | 桥接语：`ru` / `fr` / `ja` |
 | `NO_AI_FLUFF_CHAT_TIMEOUT` | `10` | 终端回复的 RTT 整体时限（秒） |
 | `NO_AI_FLUFF_DOC_TIMEOUT` | `60` | 落盘文档的 RTT 整体时限（秒） |
 | `NO_AI_FLUFF_TERMS` | 空 | 额外冻结的术语，逗号分隔 |
@@ -57,7 +57,7 @@ OPENROUTER_API_KEY=sk-or-...
 | `NO_AI_FLUFF_HOME` | `~/.no-ai-fluff` | 遥测与草稿目录 |
 | `NO_AI_FLUFF_TELEMETRY` | `1` | 设为 `0` 关闭遥测 |
 
-横评结论（[`docs/rtt-model-comparison.md`](docs/rtt-model-comparison.md)）：中文往返翻译选 hy-mt2，后续接入腾讯云 `hy-mt2-pro`；默认桥接语将在法语和日语之间由双轴评测与盲测决定。
+**选型已锁定（M3）**：翻译小模型 hy-mt2（后续接入腾讯云 `hy-mt2-pro`），桥接语俄语，宿主以高推理强度审校。依据见 [`docs/rtt-model-comparison.md`](docs/rtt-model-comparison.md) 第九、十节。
 
 ## 命令行
 
@@ -111,7 +111,7 @@ python -m pytest
 
 - [x] **Milestone 1**：核心四阶引擎、编排与回退、CLI、MCP Server 骨架、单元测试
 - [x] **Milestone 2**：五大场景真实语料，`2 模型 × 3 桥接语` 消融实验，宿主补丁与双轴评测
-- [ ] **Milestone 3**：本地盲测工作台（已就绪，待人工投票），锁定默认桥接语
+- [x] **Milestone 3**：本地人工盲测与 LLM 复核，锁定 hy-mt2 + 俄语桥接 + 高推理宿主
 - [ ] **Milestone 4**：与 Humanizer-zh 横向对比，产出评测报告
 - [ ] **Milestone 5**：Claude Code / Codex CLI / DeepSeek Harness 多端适配与发布
 

@@ -162,9 +162,9 @@ def test_patch_changing_structure_prefix_is_rejected():
 def test_audit_rules_versions():
     from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
 
-    assert DEFAULT_AUDIT_RULES == "v2"
+    assert DEFAULT_AUDIT_RULES == "v3"
     v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
-    v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z")
+    v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v2")
     assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
     assert "翻译腔" in v2 and '"type"' in v2 and "原文X" in v2
     assert len(v2) < 1800
@@ -183,7 +183,7 @@ def test_overlong_find_rejected_as_rewrite():
     long = "长" * (MAX_FIND_CHARS + 1)
     doc = parse(long)
     _, res = apply_patches(doc, [s.masked for s in doc.slots], [Patch(long, "短", "重写")])
-    assert not res[0].applied and "整段重写" in res[0].reason
+    assert not res[0].applied and "超出本规则允许的改写范围" in res[0].reason
 
 
 def test_pipeline_uses_configured_rules(tmp_path):
@@ -226,3 +226,48 @@ def test_table_row_patch_is_all_or_nothing():
                            ("| 迁移阶段 | 不存在的格 | 两版并存 |", "| 迁移阶段 | 六个月 | 两个版本同时可用 |", "r"))
     assert res[0].applied and not res[1].applied
     assert "| 迁移阶段 | 半年 | 两版并存 |" in out  # 第二条整条未生效，没有半改
+
+
+def test_v3_rules_cover_skill_principles_and_allow_paragraph_rewrites():
+    from no_ai_fluff.patcher import AUDIT_RULES, MAX_FIND_BY_RULES
+
+    v3 = AUDIT_RULES["v3"]
+    for kw in ("保真", "说人话", "尽量、通常、可能、建议、很", "原文本身就有的 AI 腔", "主谓完整", "翻译腔",
+               "口号式排比", "不扩写", "严禁把整句改回原文", "仍然是局部补丁", "每个只出现一次"):
+        assert kw in v3, kw
+    assert MAX_FIND_BY_RULES["v3"] > MAX_FIND_BY_RULES["v2"]
+    para = "这个方案打通了数据链路，" + "形成了完整的业务闭环，" * 20 + "极其关键。"
+    assert MAX_FIND_BY_RULES["v2"] < len(para) <= MAX_FIND_BY_RULES["v3"]
+    doc = parse(para)
+    texts = [s.masked for s in doc.slots]
+    _, res2 = apply_patches(doc, texts, [Patch(para, "这个方案统一了上报格式。", "整段重写")], MAX_FIND_BY_RULES["v2"])
+    _, res3 = apply_patches(doc, texts, [Patch(para, "这个方案统一了上报格式。", "整段重写")], MAX_FIND_BY_RULES["v3"])
+    assert not res2[0].applied and res3[0].applied
+
+
+def test_v3_paragraph_rewrite_may_move_protected_content_but_must_keep_it():
+    from no_ai_fluff.patcher import MAX_FIND_BY_RULES
+
+    text = "通过调用 `fetchUser()` 对 src/a.ts 中的数据进行读取处理操作。"
+    doc = parse(text)
+    texts = [s.masked for s in doc.slots]
+    ok_patch = Patch(text, "src/a.ts 里的数据由 `fetchUser()` 读取。", "说人话")
+    bad_patch = Patch(text, "由 `fetchUser()` 读取数据。", "丢了路径")
+    new, res = apply_patches(doc, texts, [ok_patch], MAX_FIND_BY_RULES["v3"])
+    assert res[0].applied and doc.render(new) == "src/a.ts 里的数据由 `fetchUser()` 读取。"
+    _, res = apply_patches(doc, texts, [bad_patch], MAX_FIND_BY_RULES["v3"])
+    assert not res[0].applied and "丢失" in res[0].reason
+
+
+def test_v3_rejects_reverting_sentence_to_original_but_allows_term_restore():
+    from no_ai_fluff.patcher import REVERT_MIN_CHARS
+
+    original = "过去六个月，我们重点攻坚了三大核心战役，为下半年的业务爆发奠定了坚实基础。"
+    doc = parse(original)
+    # 往返翻译后的初稿（槽位已被拆松）
+    rtt = ["在过去六个月里，我们重点推进了三个关键方向，为下半年的业务增长做了准备。"]
+    revert = Patch(rtt[0], original, "保真")
+    term = Patch("三个关键方向", "三个方向", "术语")
+    new, res = apply_patches(doc, rtt, [revert, term], 300, REVERT_MIN_CHARS["v3"])
+    assert not res[0].applied and "改回了原文" in res[0].reason
+    assert res[1].applied and "三个方向" in new[0]

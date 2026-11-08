@@ -51,7 +51,7 @@ PROVIDERS: dict[str, dict] = {
 LANG_NAMES_ZH = {"zh": "中文", "fr": "法语", "ja": "日语", "ru": "俄语", "en": "英语", "de": "德语", "es": "西班牙语"}
 
 DEFAULT_MODEL = "tencent/hy-mt2-30b-a3b"
-DEFAULT_BRIDGE = "fr"
+DEFAULT_BRIDGE = "ru"  # M3 锁定：人工盲测俄语 5/8 胜出（p≈0.027），LLM 复核保真度与法语持平
 SUPPORTED_MODELS = ("tencent/hy-mt2-30b-a3b", "google/gemma-3-4b-it")
 SUPPORTED_BRIDGES = ("fr", "ja", "ru")
 

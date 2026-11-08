@@ -1,0 +1,16 @@
+{
+  "purpose": "审校规则 v3（按 SKILL 原则整句 / 整段改写）冒烟测试",
+  "samples": [
+    "coding-003",
+    "writing-002",
+    "daily-007"
+  ],
+  "bridge": "ru",
+  "rules": "v3",
+  "host": "deepseek-flash",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:"
+  ]
+}
