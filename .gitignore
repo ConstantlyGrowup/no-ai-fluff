@@ -17,3 +17,5 @@ benchmarks/.cache/
 benchmarks/results/*/tasks_*.jsonl
 benchmarks/results/*/responses_*.jsonl
 benchmarks/results/*/agent_judge/packets/
+# 盲测工作台默认导出到根目录的投票文件（解码后的结果在 results/<run>/）
+/blind_votes.json

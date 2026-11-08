@@ -1,0 +1,166 @@
+{
+  "run": "m3",
+  "seed": 20261108,
+  "codes": {
+    "8a5496": {
+      "sample_id": "coding-003",
+      "variant": "patched:hymt-ru"
+    },
+    "dc227c": {
+      "sample_id": "coding-003",
+      "variant": "original"
+    },
+    "30a51f": {
+      "sample_id": "coding-003",
+      "variant": "patched:hymt-fr"
+    },
+    "d7c6d3": {
+      "sample_id": "coding-003",
+      "variant": "patched:hymt-ja"
+    },
+    "64a29c": {
+      "sample_id": "coding-005",
+      "variant": "patched:hymt-ru"
+    },
+    "4f8637": {
+      "sample_id": "coding-005",
+      "variant": "original"
+    },
+    "82934b": {
+      "sample_id": "coding-005",
+      "variant": "patched:hymt-fr"
+    },
+    "737888": {
+      "sample_id": "coding-005",
+      "variant": "patched:hymt-ja"
+    },
+    "346385": {
+      "sample_id": "teaching-002",
+      "variant": "patched:hymt-ja"
+    },
+    "60c04e": {
+      "sample_id": "teaching-002",
+      "variant": "patched:hymt-fr"
+    },
+    "0ce229": {
+      "sample_id": "teaching-002",
+      "variant": "original"
+    },
+    "6d2fc9": {
+      "sample_id": "teaching-002",
+      "variant": "patched:hymt-ru"
+    },
+    "fae1c4": {
+      "sample_id": "teaching-004",
+      "variant": "patched:hymt-ja"
+    },
+    "1f68ad": {
+      "sample_id": "teaching-004",
+      "variant": "patched:hymt-fr"
+    },
+    "0d81c3": {
+      "sample_id": "teaching-004",
+      "variant": "patched:hymt-ru"
+    },
+    "d14489": {
+      "sample_id": "teaching-004",
+      "variant": "original"
+    },
+    "f11157": {
+      "sample_id": "writing-002",
+      "variant": "original"
+    },
+    "8aa705": {
+      "sample_id": "writing-002",
+      "variant": "patched:hymt-fr"
+    },
+    "cd9805": {
+      "sample_id": "writing-002",
+      "variant": "patched:hymt-ru"
+    },
+    "4ff162": {
+      "sample_id": "writing-002",
+      "variant": "patched:hymt-ja"
+    },
+    "bc9c57": {
+      "sample_id": "writing-003",
+      "variant": "patched:hymt-ja"
+    },
+    "efad79": {
+      "sample_id": "writing-003",
+      "variant": "patched:hymt-fr"
+    },
+    "31087e": {
+      "sample_id": "writing-003",
+      "variant": "original"
+    },
+    "a08943": {
+      "sample_id": "writing-003",
+      "variant": "patched:hymt-ru"
+    },
+    "9d1c65": {
+      "sample_id": "discussion-004",
+      "variant": "original"
+    },
+    "7d069b": {
+      "sample_id": "discussion-004",
+      "variant": "patched:hymt-fr"
+    },
+    "6beae9": {
+      "sample_id": "discussion-004",
+      "variant": "patched:hymt-ru"
+    },
+    "f38e5c": {
+      "sample_id": "discussion-004",
+      "variant": "patched:hymt-ja"
+    },
+    "a301b8": {
+      "sample_id": "discussion-005",
+      "variant": "patched:hymt-ru"
+    },
+    "685d47": {
+      "sample_id": "discussion-005",
+      "variant": "patched:hymt-ja"
+    },
+    "be3c94": {
+      "sample_id": "discussion-005",
+      "variant": "patched:hymt-fr"
+    },
+    "554799": {
+      "sample_id": "discussion-005",
+      "variant": "original"
+    },
+    "3b1f5e": {
+      "sample_id": "daily-002",
+      "variant": "original"
+    },
+    "44063d": {
+      "sample_id": "daily-002",
+      "variant": "patched:hymt-ja"
+    },
+    "6972ea": {
+      "sample_id": "daily-002",
+      "variant": "patched:hymt-ru"
+    },
+    "702c65": {
+      "sample_id": "daily-002",
+      "variant": "patched:hymt-fr"
+    },
+    "87f82d": {
+      "sample_id": "daily-007",
+      "variant": "patched:hymt-fr"
+    },
+    "09f4ea": {
+      "sample_id": "daily-007",
+      "variant": "original"
+    },
+    "0b00de": {
+      "sample_id": "daily-007",
+      "variant": "patched:hymt-ja"
+    },
+    "ea7976": {
+      "sample_id": "daily-007",
+      "variant": "patched:hymt-ru"
+    }
+  }
+}

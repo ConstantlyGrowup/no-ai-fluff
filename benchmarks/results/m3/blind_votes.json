@@ -1,0 +1,162 @@
+{
+  "raw": {
+    "run": "m3",
+    "exported_at": "2026-11-08T09:37:17.312Z",
+    "completed": 8,
+    "total": 10,
+    "votes": {
+      "daily-002": {
+        "best": "6972ea",
+        "worst": "3b1f5e",
+        "tie": false,
+        "note": "",
+        "seconds": 233
+      },
+      "coding-005": {
+        "best": null,
+        "worst": null,
+        "tie": true,
+        "note": "",
+        "seconds": 324
+      },
+      "teaching-002": {
+        "best": "6d2fc9",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 287
+      },
+      "writing-002": {
+        "best": null,
+        "worst": null,
+        "tie": true,
+        "note": "",
+        "seconds": 87
+      },
+      "teaching-004": {
+        "best": "d14489",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 162
+      },
+      "daily-007": {
+        "best": "ea7976",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 43
+      },
+      "writing-003": {
+        "best": "efad79",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 178
+      },
+      "discussion-005": {
+        "best": "be3c94",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 160
+      },
+      "discussion-004": {
+        "best": "6beae9",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 71
+      },
+      "coding-003": {
+        "best": "8a5496",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 26
+      }
+    }
+  },
+  "decoded": [
+    {
+      "sample_id": "daily-002",
+      "best": "patched:hymt-ru",
+      "worst": "original",
+      "tie": false,
+      "note": "",
+      "seconds": 233
+    },
+    {
+      "sample_id": "coding-005",
+      "best": null,
+      "worst": null,
+      "tie": true,
+      "note": "",
+      "seconds": 324
+    },
+    {
+      "sample_id": "teaching-002",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 287
+    },
+    {
+      "sample_id": "writing-002",
+      "best": null,
+      "worst": null,
+      "tie": true,
+      "note": "",
+      "seconds": 87
+    },
+    {
+      "sample_id": "teaching-004",
+      "best": "original",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 162
+    },
+    {
+      "sample_id": "daily-007",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 43
+    },
+    {
+      "sample_id": "writing-003",
+      "best": "patched:hymt-fr",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 178
+    },
+    {
+      "sample_id": "discussion-005",
+      "best": "patched:hymt-fr",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 160
+    },
+    {
+      "sample_id": "discussion-004",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 71
+    },
+    {
+      "sample_id": "coding-003",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 26
+    }
+  ]
+}
