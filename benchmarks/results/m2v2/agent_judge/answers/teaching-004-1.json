@@ -1,0 +1,30 @@
+{
+  "packet": "teaching-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "详细解释内存屏障（Memory Barrier）以及它在不同架构中的差异", "why": "开头省掉主语，像一条写作指令，放在讲解正文中不够自然。"}]
+    }
+  }
+}

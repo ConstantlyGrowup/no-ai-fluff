@@ -1,0 +1,30 @@
+{
+  "packet": "daily-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"部分老一居或开间可以碰", "why":"可以碰缺少碰运气的宾语，表达生硬。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"单程通勤时间在45–60分钟之间", "why":"把原文控制在该时长以内的上限建议改成了区间要求，排除了更短的通勤。"},{"quote":"切勿支付大额押金", "why":"原文此处警告的是大额定金，押金和定金不是同一笔款项。"},{"quote":"我第一次在北京租房", "why":"原文是对首次租房者的建议，这里改成了叙述者自己的经历。"}],
+      "readability_issues": [{"quote":"六月是毕业生和换房季", "why":"毕业生是人而换房季是时段，两者直接并列不通顺。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"先带 essentials", "why":"生活必需品无须夹用英文。"},{"quote":"部分老一居/开间可碰", "why":"可碰的压缩说法不够自然。"}]
+    }
+  }
+}

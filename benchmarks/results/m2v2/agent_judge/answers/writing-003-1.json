@@ -1,0 +1,38 @@
+{
+  "packet": "writing-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "此次事件让我们更清醒地认识到系统健壮性的重要性", "why": "这句感想偏套话，健壮性对客户也不如系统稳定直白。"}
+      ]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "未来我们将持续投入基础设施优化", "why": "投入基础设施优化的搭配略生硬，没有把投入资源说完整。"}
+      ]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "增加预切换兼容性测试环节", "why": "预切换兼容性测试堆叠名词，改为切换前测试兼容性更好读。"}
+      ]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "此次事件让我们更清醒地认识到系统健壮性的重要性", "why": "感想式套话和健壮性术语使客户通知略显生硬。"}
+      ]
+    }
+  }
+}

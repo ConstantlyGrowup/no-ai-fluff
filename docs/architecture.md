@@ -189,7 +189,14 @@ no-ai-fluff/
 ```
 
 ### 下一步执行路线（留待后续实施 Session 按序推进）
-1. **Milestone 1**：实现 `src/no_ai_fluff/` 核心四阶模块（含 5 类通用雷达 `radar.py` 与 JSON 补丁安全合并 `patcher.py`）及完整单元测试，完成首次规范化 Git 提交。
-2. **Milestone 2**：构建四大场景（Coding / 教学 / 写作 / 讨论）真实样本集，跑完 `2 模型 × 3 桥接语` 消融实验与独立上下文微创补丁对比。
-3. **Milestone 3**：生成本地交互式 `blind_test_workbench.html` 由你完成盲测，根据盲测胜率锁定默认模型与默认桥接语，产出 `docs/evaluation-report.md`。
-4. **Milestone 4**：完成 MCP Server 与 Claude Code（`context: fork` 子智能体 + Hook）、Codex CLI、DeepSeek Harness 多端封装及 `stats` 遥测验证，推送发布至 GitHub。
+1. **Milestone 1**：实现 `src/no_ai_fluff/` 核心四阶模块（含 5 类通用雷达 `radar.py` 与 JSON 补丁安全合并 `patcher.py`）及完整单元测试，完成首次规范化 Git 提交。（已完成）
+2. **Milestone 2**：构建真实多场景样本集，跑完 `2 模型 × 3 桥接语` 消融实验与独立上下文微创补丁对比，验证消融数据。（进行中）
+3. **Milestone 3**：生成本地交互式内部选型盲测网页，由人工盲测锁定默认翻译小模型与最佳桥接语言组合。
+4. **Milestone 4（SOTA 横向打擂）**：对比 GitHub 最火开源标杆 `op7418/Humanizer-zh`（纯 Prompt 全文改写方案）。
+   - **分层抽检**：从评测集中跨场景随机抽取 10 组样本，同台对决（`Original` vs `Humanizer-zh 全文改写` vs `no-ai-fluff 最佳组合`）；
+   - **职责解耦的三维评价体系**：
+     1. **人类纯感性盲测（核心服务目标）**：人类不承担任何数字和规则统计负担，纯凭阅读直觉给出“哪篇更好读 / 哪个读起来最像人话、最不累”，进行 A/B/C 盲选投票；
+     2. **LLM 独立双轴盲评**：第三方评委模型打出保真度与易读度评分，严格执行技术事实错误一票否决；
+     3. **自动化客观工程雷达**：脚本全自动统计占位符 100% 存活率、数字零篡改率、5 类表层雷达命中降幅、Token 开销与端到端耗时；
+   - 沉淀终极评测报告 `docs/evaluation-report.md`。
+5. **Milestone 5**：完成 MCP Server 与 Claude Code（`context: fork` 子智能体 + Hook）、Codex CLI、DeepSeek Harness 多端封装及 `stats` 遥测验证，推送发布至 GitHub。

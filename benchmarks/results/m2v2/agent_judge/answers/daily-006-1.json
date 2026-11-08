@@ -1,0 +1,30 @@
+{
+  "packet": "daily-006-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"每天都会出现在你的生活中", "why":"把日常相伴写成出现在生活中，语气像翻译而不够自然。"},{"quote":"这完全是正常的", "why":"这一判断句偏生硬，放在安慰语境中略有翻译腔。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    }
+  }
+}

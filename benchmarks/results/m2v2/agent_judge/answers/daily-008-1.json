@@ -1,0 +1,30 @@
+{
+  "packet": "daily-008-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"上海拥车约束多", "why":"拥车约束是名词压缩，直接说在上海买车用车限制多更自然。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"上海拥车约束多", "why":"拥车约束的说法偏生硬，不像对同事直接解释用车限制。"}]
+    },
+    "C": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"乘坐火车加出租车或网约车到达", "why":"将原文具体的高铁方案泛化成火车，丢失了交通方式的信息。"}],
+      "readability_issues": [{"quote":"一辆价值约15万元人民币的汽车", "why":"日常买车建议反复加人民币和价值等书面限定，读起来拖沓。"},{"quote":"上海拥车约束多", "why":"拥车约束是生硬的压缩名词。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"周末租车费用约为300–600元人民币；每月租两次的话，全年开支约0.7万–1.5万元人民币", "why":"同一句重复人民币使普通费用说明显得冗长。"},{"quote":"上海拥车约束多", "why":"拥车约束这种压缩说法不如买车用车限制多直观。"}]
+    }
+  }
+}

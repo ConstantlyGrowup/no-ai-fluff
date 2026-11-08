@@ -1,0 +1,30 @@
+{
+  "packet": "coding-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "其余 ranker 共享 deployed feedback 轨迹", "why": "整句混用多个未解释的英文术语，读者需要自行翻译才能理解实验设置。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "当相似度较高时", "why": "原文是在候选相似度接近时优先使用反馈，改成相似度较高改变了重排条件。"}, {"quote": "历史内容被最小化", "why": "强门控压低的是历史记忆的排序分数，并非将历史内容缩减到最少。"}],
+      "readability_issues": [{"quote": "则该记忆的就撤回这条记忆的使用加分", "why": "残留的主语和助词拼接在一起，造成明显病句。"}, {"quote": "并非端到端或完整的性能收益 L0->L1", "why": "修饰语和技术标识倒置，读者难以判断L0到L1修饰什么。"}]
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "其余ranker使用统一的反馈传播路径", "why": "原文说明各排序器共享deployed排序器的反馈轨迹，改写遗漏轨迹来源并误称传播路径，改变了实验设置。"}, {"quote": "45个带中文注释的请求", "why": "原文是45条经过标注的中文查询，改写把查询语言误作注释语言。"}],
+      "readability_issues": [{"quote": "150条记录 L1，45个带中文注释的请求", "why": "L1后置且量词和术语搭配生硬，像逐词翻译。"}, {"quote": "R1 包含预设场景的使用历史 C/D", "why": "C/D放在句尾，读者需要回读才能知道它限定哪些场景。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "其余 ranker 共享 deployed feedback 轨迹", "why": "多个英文术语连续混入中文且没有解释，增加了理解实验设置的负担。"}]
+    }
+  }
+}

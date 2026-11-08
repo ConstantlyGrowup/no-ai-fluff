@@ -1,0 +1,30 @@
+{
+  "packet": "teaching-005-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "用具体类型，如 `strconv`、`strings.Builder`", "why": "原文并列建议使用具体类型和strconv，改写却把strconv这个包名当成具体类型的例子。"}],
+      "readability_issues": [{"quote": "1次alloc/op", "why": "把中文次数和每操作分配数的英文单位连在一起，表达不自然。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "通过接口或函数调用", "why": "原文限定为接口或函数值的动态调用，删掉值后泛化到普通函数调用，错误扩大逃逸条件。"}, {"quote": "当指针指向堆、全局区域、返回值、通道或未知调用时", "why": "原文说变量地址流向这些位置，改成指针指向这些位置混淆了指针目标与地址保存位置。"}, {"quote": "使用特定类型 `strconv`、`strings.Builder`", "why": "strconv是包而不是类型，改写把并列的优化建议误写成类型列举。"}],
+      "readability_issues": [{"quote": "该变量的地址是否会被流到比它生命周期更长的地方", "why": "会被流到是生硬的被动搭配，妨碍理解地址流向。"}, {"quote": "避开关键路径 `interface{}` / `any` 和 `fmt`", "why": "语序缺少在关键路径中等关系词，难以看出应在何处避免使用这些机制。"}, {"quote": "频繁的GC会导致CPU占用更多资源", "why": "CPU占用资源的说法主客关系别扭，应该由GC占用CPU时间。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "GC 期间的 assist", "why": "可用中文说明的协助标记仍以未解释的英文作小标题，增加入门读者的理解负担。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "GC 期间的 assist", "why": "标题使用未解释的英文术语，读者需要读完正文才能回头理解标题。"}]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "packet": "coding-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "已提交6条", "why": "原文指第6个提交，改写误成已经提交了6条规则或记录。"}],
+      "readability_issues": [{"quote": "该PR是基于#2#3#4#5开发的", "why": "编号连写且缺少分隔，阅读时不容易辨认各个PR。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "`ReferenceError`此问题在master分支", "why": "两句话之间没有标点，使报错与问题范围粘在一起。"}]
+    }
+  }
+}

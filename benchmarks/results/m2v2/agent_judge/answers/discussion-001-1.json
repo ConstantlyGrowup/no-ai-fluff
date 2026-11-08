@@ -1,0 +1,30 @@
+{
+  "packet": "discussion-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote": "支持100万并发连接", "why": "原文仅说百万并发，改成并发连接给性能指标加上了原文没有的限定。"}],
+      "readability_issues": [{"quote": "Build 是一个稳健的 Monolith", "why": "英文动词与中文判断句拼接，句子不成立。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "具体 Trade-off 分析", "why": "这里直接说权衡分析更自然，英文没有必要。"}, {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "中文说明中整句改用英文，增加阅读负担。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "以下是针对这种规模团队的特定权衡分析", "why": "特定权衡分析搭配生硬，直接说具体分析更顺。"}, {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "整句英文口号打断中文阅读。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "要在在线环境中查找错误", "why": "在线环境中查找错误是直译腔，说排查线上问题更自然。"}, {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "整句英文口号增加中文读者的理解负担。"}]
+    }
+  }
+}

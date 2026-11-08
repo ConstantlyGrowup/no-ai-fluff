@@ -1,0 +1,30 @@
+{
+  "packet": "discussion-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "并辅以代理和依赖追踪", "why": "原文是代理或依赖追踪，改成并用两者会误导读者理解这些响应式方案的实现要求。"}],
+      "readability_issues": [{"quote": "几条根本的分歧轴", "why": "分歧轴是抽象比喻，直接说几方面区别更易读。"}, {"quote": "Redux 买的是约束和可追溯", "why": "用买来代指工具提供的能力，表述不够直接。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "以牺牲仪式感为代价", "why": "原文说代价是额外的仪式感，此处说牺牲仪式感，反转了Redux约束所带来成本的含义。"}],
+      "readability_issues": [{"quote": "几条根本的分歧轴", "why": "轴这一抽象比喻不如直接说设计上的区别清楚。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "客户端自己拥有的真相，还是对远端真相的副本", "why": "用真相指代数据的权威来源带有直译腔。"}, {"quote": "Redux 买的是约束和可追溯", "why": "买这一比喻不如直接说明提供的能力清楚。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "客户端自己拥有的真相，还是对远端真相的副本", "why": "把权威数据称作真相有翻译腔。"}, {"quote": "Redux 买的是约束和可追溯", "why": "买这一比喻使能力描述不够直白。"}]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "packet": "daily-012-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote":"房东您好。收到您说的房租调整了。也理解您的考虑。", "why":"把连续的话拆成过多短句，微信协商语气显得僵硬。"},{"quote":"麻烦您考虑一下非常感谢", "why":"两个独立表达之间缺少停顿。"},{"quote":"您看能否少涨一些比如涨200～300，或者等几个月后再进行调整如何", "why":"能否和如何重复提问，中间又缺少停顿，句式拧巴。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"好好爱护这套公寓", "why":"原文没有说明房屋是公寓，这里添加了房屋类型。"}],
+      "readability_issues": [{"quote":"您好，房东！", "why":"倒置的称呼加感叹号有明显翻译腔。"},{"quote":"我已经习惯了这套房子", "why":"习惯了这套房子的直译说法不如住得习惯自然。"},{"quote":"我会按时支付租金，并好好爱护这套公寓", "why":"日常微信协商里用支付租金和这套公寓显得书面而生硬。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"我愿意签署一份为期一年的新租约", "why":"对微信协商而言表达过于书面，显得像翻译合同措辞。"},{"quote":"先表示认可再提出提议", "why":"提出提议重复而拖沓。"}]
+    }
+  }
+}

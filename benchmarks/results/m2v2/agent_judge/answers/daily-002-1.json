@@ -1,0 +1,30 @@
+{
+  "packet": "daily-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"周末也尽量不超过1小时", "why":"省略了与平日起床时间的差值，单看句子不清楚一小时限制什么。"}]
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"最终做到在23点30分至24点之间入睡", "why":"把原文这一时间之前入睡的上限目标改成了只能在区间内入睡。"}],
+      "readability_issues": [{"quote":"周末也尽量不超过1小时", "why":"省略了与平日起床时间的差值，时间限制的对象不清楚。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"下午2点后不咖啡因", "why":"缺少摄入或喝等动词，压缩得不自然。"},{"quote":"周末也尽量不超过1小时", "why":"没有说清一小时指与平日相比的起床时间差。"}]
+    }
+  }
+}

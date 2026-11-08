@@ -1,0 +1,30 @@
+{
+  "packet": "coding-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "未基于独立环境进行比较", "why": "原文未验证的是干净基线上的测试对照，改成独立环境遗漏了判断既有失败所需的基线条件。"}],
+      "readability_issues": [{"quote": "这标志着合作伙伴目录与普通会话之间的分界线", "why": "合作伙伴目录容易让人想到组织关系，不能自然指向前文的bot能力目录。"}, {"quote": "引发故障的最小输入条件为", "why": "用冗长的名词结构包装简单测试输入，语气生硬。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote": "符合合同条款`managed-skill-plugins.ts:10`", "why": "把代码约定称为合同条款，有明显翻译腔。"}, {"quote": "其名称Skill仍与菜单`/`中的名称保持一致", "why": "Skill插在名称之后，语序不自然且打断理解。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "文件头的 `测试价值` 注释记录了 tier（unit，fake `RemoteAgentFileOps`）与耗时", "why": "一句话混用多个非必要英文词，读者要额外转换术语才能理解测试层级。"}]
+    },
+    "D": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "同时仅展开`extra/`，并将Skill目录命名为`build`", "why": "原文列举三个分别能触发失败的最小输入，改写把它们串成必须同时具备的一个示例。"}],
+      "readability_issues": [{"quote": "解析失败时的回退机制installPath", "why": "标识符硬接在机制之后，缺少说明回退到哪个路径的动词。"}, {"quote": "+1件（6件／25毫秒）", "why": "用件来计量测试用例，中文表达别扭。"}]
+    }
+  }
+}

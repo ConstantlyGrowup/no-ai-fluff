@@ -1,0 +1,30 @@
+{
+  "packet": "discussion-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "WAL/compaction 后对象失效", "why": "中文说明中保留可翻译的压实术语，阅读时需要切换语言。"}, {"quote": "团队Rust缺乏经验", "why": "词序生硬，应说团队缺乏Rust经验。"}, {"quote": "历史 bug workaround", "why": "普通说明直接夹入英文名词串，不如说历史问题的变通处理清楚。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "集约化战略", "why": "把存储引擎的compaction策略误译为经营式的集约化战略，丢失了具体技术含义。"}],
+      "readability_issues": [{"quote": "集约化战略", "why": "读者无法从这个抽象短语判断所指的存储操作。"}, {"quote": "性能分析级别", "why": "级别指什么没有说明，名词短语不自然。"}, {"quote": "在C++与Rust的混合架构中，必须格外小心", "why": "标题只泛泛强调小心，没有直接交代需要注意的内容。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote": "iterator 不能越过 owning context", "why": "一句话混用多个可翻译的英文术语，中文阅读不连贯。"}, {"quote": "mutable access 必须经过 latch / guard", "why": "主要语义都靠英文名词表达，增加中文读者理解负担。"}, {"quote": "历史 bug workaround", "why": "没有解释的英文名词串显得生硬。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "迭代器不能越过其 owning context", "why": "关键约束夹用英文，直接说所属上下文更顺。"}, {"quote": "性能分析级别", "why": "级别缺少明确含义，表达生硬。"}, {"quote": "团队有意愿在Rust的能力建设上进行投资", "why": "在能力建设上进行投资过于公文化，可直接说愿意培养Rust能力。"}]
+    }
+  }
+}

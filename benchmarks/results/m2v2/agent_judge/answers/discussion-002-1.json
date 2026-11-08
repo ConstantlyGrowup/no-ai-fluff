@@ -1,0 +1,30 @@
+{
+  "packet": "discussion-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "可控的优", "why": "把性质压缩成不完整的评价短语，读起来生硬。"}, {"quote": "融入你的RAG pipeline中", "why": "这里用检索流程即可，夹用英文增加阅读阻力。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "其性能，也远不如使用专用搜索系统", "why": "主语和谓语间多余的逗号让长句不顺。"}, {"quote": "但为了不超出限制，需要自己处理长文本的分段、摘要、压缩等预处理，以保证不超限", "why": "句首句尾重复不超限，表达拖沓。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote": "可控的优点", "why": "可控的优点作为表格结论搭配生硬。"}, {"quote": "并非寻找具体事实，而是需要进行**整体把握**的文档分析", "why": "把分析与寻找事实直接并列比较，句式不平行。"}, {"quote": "随着长上下文模型能力的进一步演进（例如，能够真正解决注意力稀释问题）时", "why": "随着与时混用，句法不顺。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "可控的优", "why": "评价短语压缩过度，表达不自然。"}, {"quote": "融入你的RAG pipeline中", "why": "可以直接说加入RAG流程，英文没有必要。"}]
+    }
+  }
+}

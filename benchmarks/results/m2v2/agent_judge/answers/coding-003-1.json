@@ -1,0 +1,30 @@
+{
+  "packet": "coding-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote": "损坏的只读状态", "why": "名词搭配不清，难以直接读出数据损坏后进入只读状态。"}, {"quote": "旧服务器、非学生角色`cacheScope` 不符", "why": "并列条件之间漏了分隔，容易把角色和cacheScope读成一个条件。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "类权限被缩减", "why": "原文是班级权限收窄，改成类权限会让读者误认为测试针对程序类的权限。"}, {"quote": "时间表、集中隔离", "why": "原文的课表和专注记录隔离被改成时间表与集中隔离，丢失了专注数据这一测试对象。"}],
+      "readability_issues": [{"quote": "标识符冲突时不拥有归档", "why": "不拥有归档的说法生硬，没有直说冲突时停止认领。"}, {"quote": "身份不一致/异常状态 `cacheScope`", "why": "技术标识后置且缺少明确关系，读者需要猜测异常状态修饰什么。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "访客/账号命名空间、同步锁屏、串行写入绑定原空间、损坏只读、显式迁移", "why": "一格中堆了多个压缩动作短语，省略主语和条件，理解时需要反复拆分。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "访客/账号命名空间、同步锁屏、串行写入绑定原空间、损坏只读、显式迁移", "why": "多个压缩动作短语连列，省略条件和对象，增加了理解成本。"}]
+    }
+  }
+}

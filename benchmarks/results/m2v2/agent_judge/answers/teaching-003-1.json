@@ -1,0 +1,30 @@
+{
+  "packet": "teaching-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "底层魔法：I/O 多路复用", "why": "魔法的包装没有帮助解释机制，使教学语气略显夸张。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "通知操作系统", "why": "该步骤应是操作系统通知事件循环，标题把通知方向写反了。"}],
+      "readability_issues": [{"quote": "I. 协程与线程之间的本质区别", "why": "中文正文突然使用罗马数字编号，与后面的中文序号不一致，阅读不够顺畅。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "事件循环从ReadyQueue中获取TaskA并执行它", "why": "把前文分写的英文名称黏成新标识，增加了初学者识别术语的负担。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "同时执行的只能是一个处理 Python 字节码的线程", "why": "定语过长且语序绕，直接说同一时刻只有一个线程执行字节码会更易读。"}]
+    }
+  }
+}

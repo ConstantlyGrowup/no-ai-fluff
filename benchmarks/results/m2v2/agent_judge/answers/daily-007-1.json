@@ -1,0 +1,30 @@
+{
+  "packet": "daily-007-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"猫会掉很多毛，这很快就会填满集尘盒", "why":"这会填满集尘盒的指代和动词搭配有翻译腔。"},{"quote":"适合重拖", "why":"重拖是未解释的压缩用语，不清楚是频繁拖地还是重度清洁。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"猫家庭 + 木地板", "why":"猫家庭这种省略养猫的说法生硬。"},{"quote":"适合重拖", "why":"重拖含义不直观，需要读者猜测所指的清洁需求。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"猫家庭 + 木地板", "why":"猫家庭是省略过度的名词组合。"},{"quote":"适合重拖", "why":"重拖没有解释清楚，普通购买者难以准确理解。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"适合重拖", "why":"重拖是没有解释的压缩说法，指代的拖地需求不明确。"}]
+    }
+  }
+}

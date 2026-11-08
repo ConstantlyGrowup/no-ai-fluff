@@ -1,0 +1,30 @@
+{
+  "packet": "teaching-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "整体上是弯曲的", "why": "原文说整体可以弯曲，改成必然弯曲会错误排除平直的欧氏空间等流形。"}],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "利用了“数据的内在维度很低”这一事实", "why": "原文将低维结构作为可以利用的直觉和假设，称为事实抬高了结论确定性。"}],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "这和 diffusion model 的联系", "why": "可直接说扩散模型的地方仍使用英文，给中文入门说明增加了转换负担。"}]
+    }
+  }
+}

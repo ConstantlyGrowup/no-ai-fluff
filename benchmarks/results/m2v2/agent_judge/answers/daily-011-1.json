@@ -1,0 +1,30 @@
+{
+  "packet": "daily-011-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"真的很遗憾因为实在赶不过去", "why":"遗憾后直接接因为而不作停顿，句子衔接拗口。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"真的很遗憾因为实在赶不过去", "why":"遗憾和因为从句连在一起，缺少必要停顿而显得拗口。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "packet": "daily-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"骑电动车游览瘦西湖", "why":"把乘坐景区电瓶车改成自行骑电动车，改变了原文为老人省力的游览方式。"},{"quote":"乘坐平江路、山塘街的游船", "why":"将原文列出的平江路游览也改为乘船，添加了原文没有的具体行程。"}],
+      "readability_issues": [{"quote":"喜欢慢节奏生活的人、爱喝茶的人、喜欢看熊猫的人。能接受坐飞机或高铁的人。", "why":"反复堆列同类人群并拆成残句，读起来拖沓。"}]
+    },
+    "C": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"游览拙政园和留园", "why":"把原文拙政园或留园的选择改成了两个都游览，增加了行程负担。"}],
+      "readability_issues": [{"quote":"可乘船或坐船或电瓶车游览瘦西湖", "why":"乘船和坐船重复，电瓶车前又缺少乘坐动词。"},{"quote":"沿途都江堰景区平路+电瓶车", "why":"沿途与后面的名词清单无法组成通顺句子。"},{"quote":"行程节奏可非常缓慢", "why":"用非常缓慢描述轻松游玩的节奏有翻译腔。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"景区相对可坐车", "why":"相对的比较对象缺失，也没说清景区里哪些路段可以乘车。"}]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "packet": "daily-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"认真考虑是否继续这段关系", "why":"原文建议考虑是否继续深交，这里扩大成考虑是否维持关系。"}],
+      "readability_issues": [{"quote":"转移对主要问题的注意力——即借出去的钱没有归还", "why":"多层抽象名词加解释插语，使本可直说的欠款问题显得绕。"},{"quote":"你至少会有证据可依", "why":"有证据可依的搭配生硬，可直接说保留证据。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    }
+  }
+}
