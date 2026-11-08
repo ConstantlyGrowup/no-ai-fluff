@@ -1,0 +1,36 @@
+{
+  "packet": "coding-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "其余 ranker 共享 deployed feedback 轨迹", "why": "连续夹入多个英文普通名词，读者需要自行还原为其他排序方法共用已部署方法的反馈记录。"}
+      ]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "真正有助于得出答案的记忆会获得轻量的 recency/frequency 加分", "why": "新近使用和使用频率可以直接用中文说明，夹入英文增加了阅读负担。"},
+        {"quote": "此举旨在纠正在实际模型评估中观察到的退化现象", "why": "多层修饰和公文式措辞使一句简单的修复说明显得生硬。"}
+      ]
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "当相似度较高时，优先返回那些确实有助于解答的记忆记录", "why": "原文限定在候选相似度接近时优先，改成相似度较高会让读者误解使用反馈影响排序的条件。"},
+        {"quote": "仍无法严格验证该ID是否来自此次查询", "why": "该ID承接前面的轮次ID，把原文无法校验记忆id来自本轮搜索的限制变成了轮次ID的来源问题。"}
+      ],
+      "readability_issues": [
+        {"quote": "则该记忆的就撤回这条记忆的使用加分", "why": "残留的半句和重复宾语拼在一起，句法明显断裂。"},
+        {"quote": "并非端到端或完整的性能收益 L0->L1", "why": "L0->L1悬在句尾且修饰关系颠倒，读者需要重组句子才能理解。"},
+        {"quote": "统计数据按任务配对，bootstrap 95% CI", "why": "后半句只有英文术语和数字，缺少说明如何给出置信区间的谓语。"}
+      ]
+    }
+  }
+}
