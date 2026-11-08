@@ -1,0 +1,36 @@
+{
+  "packet": "teaching-005-2",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 1,
+      "readability": 1,
+      "errors": [{"quote":"快速释放的goroutine被迫协助标记","why":"原文是分配快的goroutine触发assist，不是释放快。"},{"quote":"吞吐量可能会相差几个数量级","why":"原文是数倍，改成几个数量级夸大了测量结论。"},{"quote":"结合嵌套","why":"原文与函数内联配合，不是嵌套函数。"},{"quote":"面向流感知性","why":"原文主要流不敏感，改写反转分析性质。"},{"quote":"内存泄漏的影响可以忽略","why":"把正常逃逸分配说成内存泄漏，改变了业务代码风险判断。"}],
+      "readability_issues": [{"quote":"堆栈突出显示： 足够移动堆栈指针","why":"突出显示与栈分配无可理解的关系，且语序混乱。"},{"quote":"泄漏分析是一种静态分析编译器对数据流相对于","why":"连续嵌套名词和介词，句子无法顺畅解析。"},{"quote":"提供缓冲区由调用方提供","why":"提供重复且主语倒置。"}]
+    },
+    "B": {
+      "fidelity": 1,
+      "readability": 3,
+      "errors": [{"quote":"更深层的循环层级","why":"原文更长生命周期包括更外层循环，改写反转层级。"},{"quote":"主要是与线程无关的静态分析","why":"原文流不敏感指控制流顺序，与线程无关不是同一分析属性。"},{"quote":"内联后，内存泄漏往往就会消失","why":"原文内联可能消除逃逸，逃逸与内存泄漏不是同一概念。"}],
+      "readability_issues": [{"quote":"变量Go既可以存放在","why":"Go后置，开句不自然。"},{"quote":"以减少扫描量 GC","why":"GC被放在扫描量后面，技术短语语序错误。"},{"quote":"影响内存消耗goroutine","why":"goroutine后置造成修饰关系不明。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"沿着边追踪路径寻找路线","why":"路径和路线重复，表达冗长。"},{"quote":"GC 触发器发生的频率越高","why":"发生的是GC触发，不是触发器本身发生，搭配生硬。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"通过值传递和作为返回值传递小结构体","why":"传递反复出现，语法结构拖长。"}]
+    },
+    "E": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    }
+  }
+}

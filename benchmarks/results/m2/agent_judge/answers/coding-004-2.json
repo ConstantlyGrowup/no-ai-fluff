@@ -1,0 +1,36 @@
+{
+  "packet": "coding-004-2",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"单元测试未在真实的远程机器上通过","why":"原文是未在真实远端验证，不能改成验证未通过。"},{"quote":"文件扩展名 `installed_plugins.json#installPath`","why":"installPath是元数据字段，不是文件扩展名。"},{"quote":"修改远程插件检测，8路，有限队列","why":"原文限制并发数为八路，不是描述有限队列。"}],
+      "readability_issues": [{"quote":"断言与 `pluginName` 的元素","why":"断言后缺少明确谓语，无法读出断言条目带有pluginName。"},{"quote":"这标志着合作伙伴目录与正常会话之间的过渡","why":"过渡一词无法自然说明两种会话的过滤分界。"},{"quote":"完全 diff 已过审","why":"完全放在diff前修饰不自然。"}]
+    },
+    "B": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"未提交证书、令牌或授权文件","why":"原文未提交的是凭证，改成证书缩窄了安全检查范围。"}],
+      "readability_issues": [{"quote":"解析失败时的回退机制installPath","why":"installPath放在短语末尾，未清楚说回退到哪里。"},{"quote":"UI的变更记载于“UI的变更”中所引用的设计规范章节中","why":"变更和章节重复堆叠，句子绕口。"}]
+    },
+    "C": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"将目录命名为Skill而非`build`","why":"原文失败输入正是把Skill目录命名为build，这里反转了名称条件。"},{"quote":"8个用于8毫秒内的独立执行","why":"原文是该文件单跑耗时八毫秒，没有八个测试这一数量。"}],
+      "readability_issues": [{"quote":"仅限于吊带Claude Code的能力扫描结果","why":"吊带是harness的机械误译，读者无法理解软件作用范围。"},{"quote":"这两个案例installPath对应真实的缺陷","why":"标识符插在主语中间，词序生硬。"},{"quote":"Pi的边界回退Git","why":"Git放在末尾，无法自然读出Git边界回溯。"}]
+    },
+    "D": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"+1个入口（6个入口 / 25毫秒）","why":"原文计数对象是新增及总测试用例，改写成入口会误解测试规模。"}],
+      "readability_issues": [{"quote":"这是本次补的覆盖缺口新增用例保护","why":"两句话之间缺少标点，读者需要重新断句。"},{"quote":"把目录命名为 `build`文件头部的注释","why":"缺少句号使输入条件与文件头注释黏连。"},{"quote":"测试补充值","why":"不自然的压缩标题，无法直观理解测试价值。"}]
+    },
+    "E": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"只取 user scope 安装","why":"术语压缩且夹英文，直接说只扫描用户级安装更易读。"}]
+    }
+  }
+}

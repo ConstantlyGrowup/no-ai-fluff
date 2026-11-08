@@ -1,0 +1,84 @@
+{
+  "packet": "daily-006-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"你从一只小小的毛茸茸的团团变成一个每天都在融入你生活的人","why":"把宠物成长为家人误写成了听者自己的变化。"},{"quote":"抱抱我。","why":"将安慰对方的拥抱改成要求对方拥抱自己。"}],
+      "readability_issues": [{"quote":"如果想只是坐在那里看着空虚就坐","why":"语序别扭且看着空虚不符合自然汉语表达。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"你被如此真诚地爱着，这真是一段被祝福的生活","why":"原文说宠物被爱且一生有福气，这里把对象换成了听者。"},{"quote":"请不要犹豫，请给自己时间去适应他","why":"原文是不用急着告别，并非让听者停止犹豫和适应宠物。"}],
+      "readability_issues": [{"quote":"它是时间流逝","why":"代词与时间流逝的搭配使句子难以理解。"},{"quote":"喝点水，如果你没饿就吃点","why":"没饿就吃点的条件关系突兀。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"“想哭就哭”，“想发呆就发呆”","why":"给普通安慰话加引号让语气显得刻意。"}]
+    },
+    "E": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"我们一起度过的十二年","why":"把听者与宠物的共同经历改成了说话者参与的经历。"},{"quote":"拥抱它。","why":"原文拥抱安慰的是听者，这里改成了宠物。"}],
+      "readability_issues": [{"quote":"让一些东西进入你的嘴里","why":"把吃东西机械地拆成动作描述，语气生硬。"},{"quote":"你现在悲伤，也是因为你们彼此相爱过的证明","why":"因为与证明混用导致句法不通顺。"}]
+    },
+    "F": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"你还不够坚强","why":"将原文否定听者不坚强的安慰反转为肯定其不够坚强。"}],
+      "readability_issues": [{"quote":"是一段真实而完整的存在","why":"用抽象的存在替代陪伴使安慰表达生硬。"}]
+    },
+    "G": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "H": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"它能被如此真挚地爱了十二年","why":"能与了的组合不够顺畅。"}]
+    },
+    "I": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "J": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"他能被你如此真挚地爱了12年","why":"能与了的组合使句子略显拗口。"}]
+    },
+    "K": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"喝点水，或多少吃点东西","why":"将喝水和吃东西两项并列建议改成了二选一。"},{"quote":"最喜欢在哪里睡觉","why":"把最喜欢趴的地方收窄成了睡觉的地方。"}],
+      "readability_issues": [{"quote":"他能被你如此真挚地爱了12年","why":"能与了的组合使句子略显拗口。"}]
+    },
+    "L": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"不是一个短的时间","why":"表达时间长短的说法不够自然。"}]
+    },
+    "M": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"十二年，不是一个短的时间","why":"表达时间长短的说法不够自然。"},{"quote":"它的离开不是你的错","why":"前文称您而此处改用你，称谓不一致。"}]
+    }
+  }
+}

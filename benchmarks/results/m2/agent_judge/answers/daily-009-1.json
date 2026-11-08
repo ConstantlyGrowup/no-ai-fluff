@@ -1,0 +1,15 @@
+{"packet":"daily-009-1","judge_model":"gpt-6","candidates":{
+"A":{"fidelity":4,"readability":4,"errors":[{"quote":"从X号到X号","why":"日期占位符省去了月份信息。"},{"quote":"回家参加庆祝","why":"省略了回老家这一出行地点信息。"}],"readability_issues":[{"quote":"恳请您批准我的请求","why":"对普通请假消息而言措辞稍显翻译腔。"}]},
+"B":{"fidelity":1,"readability":3,"errors":[{"quote":"她八岁生日","why":"将奶奶八十岁生日误写成八岁。"},{"quote":"农场举办生日宴会","why":"无依据增加了农场这一地点。"}],"readability_issues":[{"quote":"尊敬的先生/女士","why":"泛用书信称呼与向领导请假的语境不贴合。"},{"quote":"并感谢您的考虑","why":"结尾用语有明显英文书信翻译腔。"}]},
+"C":{"fidelity":4,"readability":4,"errors":[{"quote":"我希望从X月X日到X月X日的这三天里能回老家参加","why":"省略了明确申请请假这一表达，只剩回老家的愿望。"}],"readability_issues":[{"quote":"尊敬的上级","why":"直接以上级作称呼不符合自然的同事沟通习惯。"}]},
+"D":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"E":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"因此，特此联络您","why":"重复说明联系目的，语气生硬。"}]},
+"F":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"G":{"fidelity":3,"readability":4,"errors":[{"quote":"感谢您批准我的申请","why":"把请求批准改成了对已经批准的感谢。"},{"quote":"回老家参加","why":"两个版本均遗漏回老家参加的地点信息。"}],"readability_issues":[{"quote":"我的祖母即将庆祝八十岁生日","why":"祖母即将庆祝的说法较书面，日常请假略显生硬。"}]},
+"H":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"请三天假，从X月X日至X月X日回老家参加寿宴——共计3天","why":"请三天与共计三天重复，句子略长。"}]},
+"I":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"(您把“领导”和具体日期替换一下即可；如果想更简短，可用下面这版：","why":"左括号没有闭合，使说明与正文的边界不够整洁。"}]},
+"J":{"fidelity":1,"readability":3,"errors":[{"quote":"我的母亲最近过八十岁生日","why":"将奶奶换成了母亲。"},{"quote":"工作已经提前整理和安排妥当","why":"将将来会安排工作的承诺改成已经完成的事实。"},{"quote":"从十月〇日到十月〇日","why":"把可替换的月份占位符固定成了十月。"}],"readability_issues":[{"quote":"请将“リーダー”和具体日期替换为实际内容","why":"说明中突兀使用日文。"},{"quote":"因此，特此联络您","why":"措辞机械且重复请假的联系目的。"}]},
+"K":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"因此，我希望从X月X日到X月X日请三天假回老家参加寿宴","why":"前文已解释寿宴，再用因此连接使短消息略显公文化。"}]},
+"L":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"我希望请假三天，回老家参加寿宴。我申请从X月X日到X月X日休假（共3天）","why":"相邻两句重复提出三天请假。"},{"quote":"我们计划在家X月X日办寿宴来庆祝","why":"地点与时间的语序不够自然。"}]},
+"M":{"fidelity":2,"readability":3,"errors":[{"quote":"举办婚礼宴会","why":"把奶奶的寿宴误写成婚宴。"},{"quote":"最近我奶奶过生日","why":"长版遗漏八十大寿这一具体年龄信息。"}],"readability_issues":[{"quote":"参加这个盛宴","why":"盛宴用词夸张，不符合普通请假消息。"},{"quote":"这个盛大的庆祝活动","why":"修饰过重，让简短请假消息显得冗长。"}]}
+}}

@@ -1,0 +1,24 @@
+{
+  "packet": "writing-001-4",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote": "集成Spring、Boot、Actuator和Micrometer", "why": "原文是接入Spring Boot Actuator和Micrometer，这里把Spring Boot Actuator拆成三个组件，技术名称错误。"}, {"quote": "主界面日志中包含traceId", "why": "原文要求核心接口日志包含traceId，主界面不是核心接口，改变了验收对象。"}, {"quote": "通知邮件服务", "why": "原文选择通知消息服务，改成邮件服务擅自缩小了拆分对象的业务范围。"}, {"quote": "通过Q4平台进行治理", "why": "Q4是后续季度，并非一个治理平台。"}],
+      "readability_issues": [{"quote": "针对单体服务的微服务化Java", "why": "Java的位置错乱，标题难以顺畅理解。"}, {"quote": "建议由Q3承担以下职责", "why": "把季度写成承担职责的主体，句意不通。"}, {"quote": "内存使用量CPU/过高", "why": "词序和符号混乱，读者需要自行还原资源告警的含义。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "故障定位流程沉淀", "why": "用沉淀代替明确动作，无法直接看出是整理还是编写故障定位流程。"}, {"quote": "完成微服务和可观测性的基础底座建设", "why": "基础与底座含义重复，抽象名词偏多，直接写搭建基础设施更清楚。"}]
+    },
+    "C": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote": "ERROR 日志中必须注明清晰的排除项列表", "why": "原文要求异常堆栈，排除项列表是完全不同的内容，丢失了故障诊断要求。"}, {"quote": "活跃线程、队列长度、偏差数量", "why": "线程池指标中的拒绝数被改成偏差数量，指标含义错误。"}, {"quote": "常见问题的发现时间", "why": "原文目标是降低定位时间，发现故障与定位原因是不同阶段，改变了效果指标。"}, {"quote": "5xx错误级别过高", "why": "原文要求针对5xx错误率过高告警，错误级别不是错误率。"}, {"quote": "连接到 Spring、Boot、Actuator 和 Micrometer", "why": "把Spring Boot Actuator错误拆分为三个并列组件，改变了接入技术。"}],
+      "readability_issues": [{"quote": "应避免在主要事务周期内拆分第一组中的高风险模块Q3", "why": "修饰语与Q3的位置混乱，读者难以辨认拆分时机和模块范围。"}, {"quote": "对数据库或生产消费链的临界访问 MQ", "why": "临界访问用词不当且MQ悬在句末，无法顺畅理解接入范围。"}, {"quote": "关于保留10.3版本日志的决定", "why": "把章节编号写成版本号，标题表达别扭且与下面的采集架构不相称。"}]
+    }
+  }
+}

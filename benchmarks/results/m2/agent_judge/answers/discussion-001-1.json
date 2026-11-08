@@ -1,0 +1,19 @@
+{
+  "packet": "discussion-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {"fidelity": 4, "readability": 3, "errors": [{"quote": "复杂的流程追踪", "why": "原文说的是分布式链路追踪，这里把技术术语泛化成了流程追踪。"}], "readability_issues": [{"quote": "Build是个不错的选择Monolith", "why": "中英文词序混乱，读者需要自行还原总结的意思。"}, {"quote": "那么该模块AI就可以被视为一个独立服务", "why": "模块AI的倒置词序和被视为的说法显得生硬。"}]},
+    "B": {"fidelity": 2, "readability": 2, "errors": [{"quote": "通常由 1-2 个 swing 组成", "why": "原文的敏捷小组被替换成无关英文，团队结构信息失真。"}, {"quote": "服务分区分", "why": "原文的服务发现被改成不明确的技术名称。"}], "readability_issues": [{"quote": "康威定律符合性", "why": "名词化标题有明显翻译腔。"}, {"quote": "通常由 1-2 个 swing 组成", "why": "无解释的英文使读者无法理解团队如何组成。"}, {"quote": "统一应用程序可以部署在多个服务器、一个数据库和一个简单的 CI/CD 上", "why": "把服务器、数据库和CI/CD都写成部署位置，句意别扭。"}]},
+    "C": {"fidelity": 5, "readability": 4, "errors": [], "readability_issues": [{"quote": "具体 Trade-off 分析", "why": "这里直接说权衡分析更自然，无需夹英文。"}, {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "总结整句使用英文，打断中文阅读。"}]},
+    "D": {"fidelity": 2, "readability": 3, "errors": [{"quote": "巨大的代码块（Big Ball of Mud）", "why": "大泥球描述的是结构混乱和耦合，并不等于代码块巨大。"}, {"quote": "一旦生产环境出现漏洞", "why": "原文的一般线上Bug被缩窄成了漏洞。"}], "readability_issues": [{"quote": "往往会对初创公司而言成为", "why": "对某公司和对某公司而言两种句式混用。"}, {"quote": "Build 是一个稳健的 Monolith", "why": "中英文拼接使建议写成了不通顺的判断句。"}]},
+    "E": {"fidelity": 2, "readability": 1, "errors": [{"quote": "在数十个团队的协作下", "why": "原文是一个几十人的团队，并非数十个团队协作。"}, {"quote": "而不是“证明我们的架构能支撑百万并发”上", "why": "遗漏了原文对创业阶段投入重点的明确对比。"}], "readability_issues": [{"quote": "なぜ「モノリシック」が今のあなたに適しているのか", "why": "大段日语使中文读者难以直接阅读。"}, {"quote": "如果报告生成/视频转换模块消耗非常 CPU 的资源", "why": "消耗非常CPU的资源不符合中文语序。"}, {"quote": "将会是一个幸运的问题", "why": "直译式结尾不自然。"}]},
+    "F": {"fidelity": 5, "readability": 4, "errors": [], "readability_issues": [{"quote": "过早引入微服务通常会对初创企业造成“技术毒药”", "why": "造成技术毒药搭配生硬。"}, {"quote": "从物理上讲，一个整体", "why": "标题缺少谓语，读起来像直译片段。"}]},
+    "G": {"fidelity": 4, "readability": 3, "errors": [{"quote": "当你的单体架构真正崩溃", "why": "原文的架构撑不住被强化成必须实际崩溃。"}], "readability_issues": [{"quote": "对于一个拥有约20名成员团队的初创公司", "why": "成员、团队和公司层层嵌套，定语关系不顺。"}, {"quote": "康威定律符合性", "why": "标题名词化，有翻译腔。"}]},
+    "H": {"fidelity": 5, "readability": 4, "errors": [], "readability_issues": [{"quote": "往往会对初创公司而言成为", "why": "句式混搭影响流畅度。"}, {"quote": "高开发速度和低成本运维优势", "why": "多个定语挤在一起，表达略显拗口。"}]},
+    "I": {"fidelity": 5, "readability": 4, "errors": [], "readability_issues": [{"quote": "在这个阶段，生存、寻找产品市场契合度（PMF）以及快速迭代是绝对优先事项", "why": "绝对优先事项比首要任务更像翻译表达。"}, {"quote": "例如，模块`User`、模块`Order`、模块`Payment`", "why": "模块放在名称前面显得生硬。"}]},
+    "J": {"fidelity": 2, "readability": 2, "errors": [{"quote": "一大团乱码（Big Ball of Mud）", "why": "大泥球指架构混乱而不是字符乱码，技术含义被误译。"}], "readability_issues": [{"quote": "单体应用只需运行在几台服务器上、一个数据库以及简单的CI/CD上", "why": "数据库和CI/CD被并列当作运行位置，句子不顺。"}, {"quote": "Build是可靠的Monolith", "why": "混合英文词序导致总结句无法直接理解。"}, {"quote": "此类服务如Worker应被拆分并单独部署", "why": "如Worker插入的位置和被动句式都很生硬。"}]},
+    "K": {"fidelity": 5, "readability": 4, "errors": [], "readability_issues": [{"quote": "模块消耗非常消耗 CPU", "why": "消耗重复，属于明显病句。"}, {"quote": "团队顶尖工程师1到2人的全部精力", "why": "人数放在工程师后面，语序不自然。"}]},
+    "L": {"fidelity": 5, "readability": 3, "errors": [], "readability_issues": [{"quote": "往往会对初创公司而言成为", "why": "混合两种句式，读起来拗口。"}, {"quote": "单体应用只需运行在几台服务器上、一个数据库以及简单的CI/CD上", "why": "运行在数据库和CI/CD上的表达不自然。"}, {"quote": "要在在线环境中查找错误", "why": "在线环境是生硬的直译说法。"}]},
+    "M": {"fidelity": 1, "readability": 2, "errors": [{"quote": "与其证明公司能够赚钱，不如证明我们的架构能够承受一百万个并发连接", "why": "把原文应优先证明业务赚钱的核心建议完全颠倒。"}, {"quote": "并作为一个部署过程组合在一起", "why": "原文明确要求打包成一个进程部署，这里把进程误写成部署过程。"}], "readability_issues": [{"quote": "无“分发税”", "why": "自造译名让读者难以理解分布式开销。"}, {"quote": "Build 具有坚实的基础 Monolith", "why": "中英文拼接后缺少完整通顺的句法。"}, {"quote": "可以轻松地将模块解耦为独立的微服务，当团队扩展到50-100人", "why": "条件后置且衔接松散，明显带有翻译腔。"}]}
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "packet": "teaching-004-2",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"使用较低级别的内存排序","why":"较弱内存序被写成低级别内存排序，带有不自然的直译感。"}]
+    }
+  }
+}

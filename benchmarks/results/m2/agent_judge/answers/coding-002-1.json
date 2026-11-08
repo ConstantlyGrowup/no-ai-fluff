@@ -1,0 +1,54 @@
+{
+  "packet": "coding-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"学习阶段问“过去怎么做”并确认了旧方案","why":"解释16次退化时遗漏了学习阶段确认旧方案这一关键反馈步骤。"}],
+      "readability_issues": [{"quote":"本 PR（反馈+门控，加点撤回）","why":"“加点撤回”搭配生硬，不如撤回加分清楚。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote":"通过使用得分，被确认过的旧方案凭使用加分","why":"同一句反复交代使用加分，读起来累赘。"},{"quote":"唯一的区别是 gating 的强度","why":"已有门控这一中文术语，此处夹英文没有必要。"},{"quote":"第二阶段，第二轮因 embedding 额度耗尽","why":"第二阶段和第二轮重复，句首显得拖沓。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote":"此前regressed/rescued仅在分类篮中计入","why":"“分类篮”是生硬直译，读者难以对应分类统计。"},{"quote":"由于配额耗尽embedding","why":"embedding和配额的语序倒置，读起来不顺。"},{"quote":"实际产生的效益尚未被定量评估","why":"被动表达偏书面，直接说生产收益尚未量化更自然。"}]
+    },
+    "D": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"[-7.5, +4.4] (微小)","why":"原文是不显著，统计显著性不能替换为效应微小。"},{"quote":"在训练中固化记忆","why":"原文是学习阶段由模型确认使用记忆，未描述模型训练或固化记忆。"}],
+      "readability_issues": [{"quote":"Agent，最终只基于其中一个结果来回答","why":"主语后多余的逗号打断句子。"},{"quote":"其他语言或部署可以根据需要进行调整，可按需调整标记表","why":"连续两次说按需调整，重复拖沓。"},{"quote":"我们的PR（使用反馈+Gate Control，取消奖励）","why":"无必要夹入Gate Control，术语表达也不统一。"}]
+    },
+    "E": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"它仅针对实际选中的Agent ID记录使用数据","why":"写回对象是Agent选用的记忆id，不是Agent自身的id。"},{"quote":"当相似度较高时","why":"原文条件是候选相似度接近，并不要求相似度较高。"},{"quote":"回答的准确性差异微乎其微","why":"原文仅说差异不显著，不能据此断言差异微乎其微。"},{"quote":"deployed的ALL值从regressed 4→0变为rescued 8→15","why":"退化数与挽救数是两项并列统计，不是一项变成另一项。"}],
+      "readability_issues": [{"quote":"No 受影响的现有功能","why":"中英词序混杂，无法形成自然短语。"},{"quote":"每手228对","why":"把实验组arm写成每手，读者无法理解分组规模。"},{"quote":"同一模型对10组未标注候选记录执行单步选择实际应用的ID操作query/","why":"修饰语堆叠且query/悬在句尾，语序混乱。"}]
+    },
+    "F": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"在生产收益尚未量化","why":"多余的在字使句子结构不完整。"},{"quote":"三个测试文件通过了8/8","why":"文件数和测试通过数混在一起，表达不够顺畅。"}]
+    },
+    "G": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"只有属于“gold”级别的标注才会被返回","why":"原文是检索结果含gold才写回gold，不是只返回某个级别的标注。"},{"quote":"该PR采用了一种保守的“扣分”处理方式","why":"本PR只撤回使用加分，不对记忆扣分。"},{"quote":"未实现：`touchL1Usage`的存储保留了上游现有的调度行为","why":"原文说未实现该方法的store保持原排序，不是方法未实现或保持调度。"},{"quote":"当相似度较高时","why":"原文是在相似度接近时优先考虑使用反馈，较高不是同一条件。"}],
+      "readability_issues": [{"quote":"仅移除多余的点","why":"“点”没有明确含义，读者难以知道是撤回排序加分。"},{"quote":"这并非端到端的在线或完整收益L0->L1","why":"端到端、在线和L0到L1的修饰关系混乱。"},{"quote":"同一模型在一步内为10组未标注的候选记忆条目query/选出实际采用的ID","why":"query/插在中文名词后，句子读起来割裂。"}]
+    },
+    "H": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"仅进行加分而不降低权重","why":"门控是撤回使用加分而不降权，不是仅进行加分。"},{"quote":"本PR采用了较为保守的“扣分机制”","why":"原文明确只撤回加分，扣分机制会误导实现行为。"},{"quote":"由于尚未实现`touchL1Usage`的商店功能","why":"store是存储实现，原文描述的是未实现该方法的store兼容行为，并非商店功能。"},{"quote":"当相似度较高时","why":"候选相似度接近被改成较高，改变了反馈优先的适用条件。"}],
+      "readability_issues": [{"quote":"本书 PR 新增了","why":"本书与PR搭配突兀，像误译残留。"},{"quote":"bootstrap 95%置信区间下的CI","why":"CI本身就是置信区间，重复叠加使表达绕口。"},{"quote":"No 不影响现有功能","why":"英文No与中文否定并列，容易造成理解停顿。"}]
+    }
+  }
+}

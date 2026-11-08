@@ -1,0 +1,84 @@
+{
+  "packet": "teaching-001-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"一阶多维空间","why":"原文是一维流形，改写混淆维度与阶数。"},{"quote":"没有正态概率密度","why":"原文是在环境空间没有通常的概率密度，不是没有正态密度。"},{"quote":"多样性假设","why":"流形假设被改成多样性假设，核心术语错误。"}],
+      "readability_issues": [{"quote":"增大任何小段落时","why":"把放大小段曲线写成增大小段落，搭配生硬。"},{"quote":"在多样性之外添加噪声，将噪声恢复到多样性","why":"多样性与恢复噪声的搭配使总结难以理解。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"这种被称为","why":"“这种”后缺少所指名词，直接说这被称为更顺。"},{"quote":"是一个在196608维空间中的一点","why":"量词和修饰结构重复，读起来拗口。"}]
+    },
+    "E": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"球体为2维","why":"球面是二维，球体不能用经纬度两个坐标完整描述。"},{"quote":"score指示了流形的位置","why":"原文说score近似指向流形的方向，不是直接给出流形位置。"}],
+      "readability_issues": [{"quote":"一幅256×256大小的图像RGB","why":"RGB被放在图像之后，语序不自然。"},{"quote":"添加噪声能够支撑整个空间中的分布","why":"把分布有全空间支撑写成噪声支撑分布，表述生硬。"}]
+    },
+    "F": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "G": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"持续变化这些因素会绘制出图像空间中的一条平滑曲线","why":"原文多个自由度形成光滑曲面，改成曲线把变化范围降成了一维。"}],
+      "readability_issues": [{"quote":"高维图像数据是这种情况的放大","why":"“情况的放大”收尾生硬，缺少放大版一类完整表达。"}]
+    },
+    "H": {
+      "fidelity": 2,
+      "readability": 1,
+      "errors": [{"quote":"直接预测ε之类的技巧，而不是预测ε","why":"原文是预测ε而非score，这里前后都变成ε，丢失技术区别。"},{"quote":"多样体假설","why":"核心流形假设术语夹杂韩文且不一致。"}],
+      "readability_issues": [{"quote":"したがって、この文の意味は：","why":"整句日文没有中文解释，中文读者无法连续阅读。"},{"quote":"当データが厳密に低次元多様体上にある場合","why":"中文推理中突入日文条件句，明显妨碍理解。"}]
+    },
+    "I": {
+      "fidelity": 2,
+      "readability": 5,
+      "errors": [{"quote":"整体上是弯曲的","why":"原文允许整体弯曲，并不要求流形一定弯曲，改写排除了平直流形。"}],
+      "readability_issues": []
+    },
+    "J": {
+      "fidelity": 1,
+      "readability": 1,
+      "errors": [{"quote":"得到Perlin噪声","why":"随机独立赋值产生雪花噪声，不是具有空间相关结构的Perlin噪声。"},{"quote":"分布极其集中在方差附近","why":"原文集中在流形附近，方差不是此处的空间对象。"},{"quote":"数据集中在曲面上","why":"原文更准确的表述是在流形附近，改写删除附近这一限定。"}],
+      "readability_issues": [{"quote":"本地/行像素计划，全局弯曲空间","why":"名词拼接无法构成可理解的流形定义。"},{"quote":"Stable Diffusion 首先，我们使用 VAE","why":"主语切换且标点断裂，句法不通。"}]
+    },
+    "K": {
+      "fidelity": 2,
+      "readability": 5,
+      "errors": [{"quote":"整体上是弯曲的","why":"把整体可以弯曲改成必然弯曲，错误收紧流形定义。"}],
+      "readability_issues": []
+    },
+    "L": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"球体是二维的","why":"二维的是球面，球体的内在维度不是二。"},{"quote":"图像的局部平面/线条，全局弯曲空间","why":"原文流形是一般空间，定义不限于图像局部平面或线条。"}],
+      "readability_issues": [{"quote":"Stable Diffusion 我们首先使用VAE","why":"两个主语直接叠在一起，语句不完整。"},{"quote":"《在流形假设下去噪扩散模型的Convergence》","why":"标题中残留未译英文词，中文标题读起来不顺。"}]
+    },
+    "M": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"在多样性之外添加噪声，将噪声恢复到多样性，评估指示多样性","why":"原文是数据离开并回到流形，改成多样性且把去噪对象和方向表述弄错。"},{"quote":"Convergence 关于扩散模型中去噪的多元假设","why":"给出的论文题名不再对应流形假设下去噪扩散模型的收敛性。"}],
+      "readability_issues": [{"quote":"靠近数字“8”的交点的区域不看起来像一条直线","why":"“不看起来像”是生硬直译语序。"},{"quote":"了解以上所述，在文章中的许多设计决策都有一个动机","why":"开头与后半句主语衔接生硬。"}]
+    }
+  }
+}

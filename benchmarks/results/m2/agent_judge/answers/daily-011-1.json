@@ -1,0 +1,15 @@
+{"packet":"daily-011-1","judge_model":"gpt-6","candidates":{
+"A":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"B":{"fidelity":2,"readability":2,"errors":[{"quote":"我们一定在我们的房间里聚在一起","why":"将原室友们聚会改成了在共同房间里聚会，增加了地点限制。"},{"quote":"老朋友，恭喜你下周结婚","why":"将老室友的特定关系泛化为老朋友。"}],"readability_issues":[{"quote":"sürecinhuī dà hùi","why":"不明外文和拼音混合，中文读者无法理解。"},{"quote":"幸福、爱情、长长久久、幸福美满的生活","why":"并列项结构不齐且幸福反复堆叠。"},{"quote":"等你们忙完一些后","why":"忙完一些缺少明确宾语，表达不自然。"}]},
+"C":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"D":{"fidelity":2,"readability":3,"errors":[{"quote":"希望你们会忙碌一段时间","why":"把等待对方忙完的条件改成祝愿对方忙碌。"},{"quote":"我们也会在宿舍里好好聚一聚","why":"原文说室友相聚，并没有要求聚会地点在宿舍里。"}],"readability_issues":[{"quote":"不能亲自到场参加你人生中如此重要的时刻，因为我无法前来","why":"无法到场与无法前来互作解释，重复且空泛。"},{"quote":"生活长长久久，充满相互支持、温柔和幸福","why":"长长久久修饰生活生硬，并列名词结构带翻译腔。"}]},
+"E":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"F":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"G":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"H":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"I":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"J":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"K":{"fidelity":3,"readability":3,"errors":[{"quote":"恭喜你下周结婚","why":"遗漏婚期在下周这一具体时间。"},{"quote":"我们会在我们的房间里好好聚一聚","why":"将宿舍室友们相聚误改成在共同房间里聚会。"}],"readability_issues":[{"quote":"拥有幸福的婚姻、漫长的共同生活、彼此扶持，以及甜蜜的关系","why":"名词短语堆叠且并列结构不一致。"},{"quote":"愿你们真正幸福","why":"真正幸福的限定语气显得突兀。"}]},
+"L":{"fidelity":2,"readability":4,"errors":[{"quote":"我一定会找机会补办婚礼宴席","why":"将改日补喝喜酒改成由说话者补办婚礼宴席。"}],"readability_issues":[{"quote":"等这段忙碌的时期过去后","why":"把简单的忙完这阵写得过于书面。"}]},
+"M":{"fidelity":2,"readability":3,"errors":[{"quote":"我接下来一段时间会很忙","why":"原文是等待新人忙完，此处换成说话者忙碌。"},{"quote":"补上这顿喜酒","why":"遗漏了改日补喝喜酒的具体承诺。"},{"quote":"我们一起在宿舍里聚聚","why":"把室友们聚会改成了在宿舍聚会。"}],"readability_issues":[{"quote":"错过了人生中这么重要的时刻和你一起见证","why":"句子成分衔接混乱，见证的对象与主语不清。"},{"quote":"我的祝贺之情一定不会迟到的","why":"抽象情感与迟到搭配显得刻意。"}]}
+}}

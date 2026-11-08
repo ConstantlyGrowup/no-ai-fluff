@@ -1,0 +1,15 @@
+{"packet":"daily-012-1","judge_model":"gpt-6","candidates":{
+"A":{"fidelity":4,"readability":4,"errors":[{"quote":"> 各位，","why":"简短版把单独联系房东改成了对多人讲话。"}],"readability_issues":[{"quote":"我也是在附近调查过类似房源","why":"也是在的结构冗余，不如直接说了解过自然。"}]},
+"B":{"fidelity":2,"readability":2,"errors":[{"quote":"房租增加500日元","why":"原文没有日元币种，擅自指定日元改变了金额含义。"},{"quote":"我对房租非常满意","why":"原文满意的是房子，并非租金。"},{"quote":"如果能稍微降低房租","why":"把少涨一点改成了降低现有租金。"}],"readability_issues":[{"quote":"给送给别人的时候","why":"给字重复使句子不通顺。"},{"quote":"房东さん","why":"对中文房东称呼混入不必要日文。"},{"quote":"续约希望","why":"压缩成名词短语，带翻译腔。"}]},
+"C":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"您好，亲爱的房东","why":"亲爱的与房东协商语境不贴合。"},{"quote":"我按时交租且悉心照料","why":"悉心照料缺少对象，语气也偏书面。"}]},
+"D":{"fidelity":2,"readability":4,"errors":[{"quote":"下个月突然增加500欧元","why":"原文未使用欧元，擅自改变了币种。"}],"readability_issues":[{"quote":"您好，亲爱的房东","why":"亲爱的用于普通房租协商显得突兀。"},{"quote":"如果您同意的话，我们可以一起商量","why":"先同意再商量的顺序不够清楚。"}]},
+"E":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"F":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"我收到了关于租金上涨的信息，并理解您的考虑","why":"措辞偏公文，普通微信协商略显生硬。"}]},
+"G":{"fidelity":4,"readability":4,"errors":[{"quote":"发帖时，建议将","why":"原文是私下发送消息，此处改成发帖。"}],"readability_issues":[{"quote":"不过对我来说负担有些大，下个月一下子涨500对我来说负担比较大","why":"相邻分句重复说明负担大。"}]},
+"H":{"fidelity":2,"readability":3,"errors":[{"quote":"这个月的500欧元的涨幅","why":"将下个月涨500改成本月涨500欧元，时间和币种均改变。"}],"readability_issues":[{"quote":"我 ALSO 检查了周边类似房产的价格","why":"不必要的英文打断中文表达。"},{"quote":"我愿意合作","why":"孤立的合作表态没有说明配合内容，显得机械。"},{"quote":"对我来说是一个挑战","why":"将经济负担称作挑战，带有翻译腔。"}]},
+"I":{"fidelity":4,"readability":3,"errors":[{"quote":"我愿意续签一年租约并按时支付房租","why":"第二版将原文带条件的配合意愿改成了直接承诺。"}],"readability_issues":[{"quote":"方便的话咱们商量一下感谢您的理解","why":"两句话缺少标点分隔。"},{"quote":"我非常希望能保持稳定","why":"保持稳定未明确指租住关系，表达抽象。"},{"quote":"我将不胜感激","why":"日常微信协商使用过于程式化的客套话。"}]},
+"J":{"fidelity":4,"readability":4,"errors":[{"quote":"先表示同意，再提出请求","why":"原文只先表示理解与认可，并未表示同意涨租。"}],"readability_issues":[{"quote":"如果我续签一年合同并按时付款——没问题，我愿意配合","why":"条件句被破折号打断，逻辑与主谓衔接不顺。"}]},
+"K":{"fidelity":2,"readability":2,"errors":[{"quote":"我负担不起下个月租金上涨500元","why":"把有点吃力强化成了完全负担不起。"},{"quote":"Вова/Вовка","why":"原文给的是王哥王姐示例，这里改成了俄语人名称呼。"}],"readability_issues":[{"quote":"对我来说相当 부담","why":"中文句中混入韩语。"},{"quote":"Здравствуйте, арендодатель","why":"称呼替换说明使用俄语，中文读者难以直接使用。"},{"quote":"并且计划长期在这里留下来","why":"留下来的说法冗长且不如继续租住准确自然。"}]},
+"L":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"如果我续签一年合同并按时付款——没问题，我愿意配合","why":"破折号打断条件句，语法衔接不够自然。"}]},
+"M":{"fidelity":2,"readability":3,"errors":[{"quote":"下个月一下子涨500日元","why":"原文未指定日元，擅自增加币种改变金额含义。"},{"quote":"希望维持现有租约","why":"将愿意续签这一重点改成希望维持现有租约。"}],"readability_issues":[{"quote":"一直按时交租且悉心使用","why":"悉心使用搭配生硬。"},{"quote":"各位房东，您好","why":"对单个房东的协商消息使用复数称呼突兀。"},{"quote":"发帖时，建议将","why":"私下商量房租却称发帖，让沟通场景不够清楚。"}]}
+}}

@@ -1,0 +1,84 @@
+{
+  "packet": "daily-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"每月每天还多少","why":"原文是每月几号还多少，改成每日还款。"},{"quote":"转账记录、短信、借款金额","why":"保留聊天记录的范围被缩成短信。"}],
+      "readability_issues": [{"quote":"对过去的翻旧账","why":"过去与旧账重复，搭配不自然。"},{"quote":"拒绝借钱并不意味着不忠诚","why":"忠诚用于朋友借钱的语境有明显翻译腔。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"但这笔钱我早就借了","why":"缺少借出的方向，容易被读成说话者借入了钱。"}],
+      "readability_issues": [{"quote":"我不能接受称我小气","why":"缺少称呼行为的主语，表达不自然。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "E": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"请不要回复消息","why":"原文可暂不回复的选择被强化成明确禁止回复。"}],
+      "readability_issues": [{"quote":"转移人们对“不还债”这一本质问题的注意力","why":"人们无明确指代，两人沟通被写得像面对公众。"}]
+    },
+    "F": {
+      "fidelity": 3,
+      "readability": 3,
+      "errors": [{"quote":"她称你为“贪婪”","why":"原文的小气被换成贪婪，两种指责含义不同。"},{"quote":"往来信件","why":"应保留聊天记录，被替换为范围不同的信件。"},{"quote":"按时还债是我们的责任","why":"把对方还钱的责任泛化成双方共同责任。"}],
+      "readability_issues": [{"quote":"不会利用它作为手段来迫使你突破自己的底线","why":"它与作为手段重复堆叠，句子冗长。"}]
+    },
+    "G": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"因为我也需要还钱","why":"原文只是自己有安排，新增读者也欠钱需还的事实。"},{"quote":"与朋友可以掩饰自己的难处","why":"原文朋友可以救急，改成掩饰难处，建议改变。"},{"quote":"如果金额不重要","why":"原文金额不大，金额大小被改成重要程度。"}],
+      "readability_issues": [{"quote":"如果你继续指责你自命清高/小气","why":"你指责你导致主体混乱。"},{"quote":"不要争论你是否“小”或“大”","why":"小大无法表达小气，含义不明。"},{"quote":"我理解你感到不舒服被提醒","why":"语序颠倒，翻译腔明显。"}]
+    },
+    "H": {
+      "fidelity": 1,
+      "readability": 1,
+      "errors": [{"quote":"你稍微还一点钱","why":"催对方还款被改成自己还款，主体相反。"},{"quote":"“不借钱”这个核心问题","why":"核心问题借钱未还被改成不借钱。"},{"quote":"但我不能一直唠叨你","why":"拒绝被说小气的边界改成自己不能唠叨对方。"},{"quote":"并说“不用回复了”","why":"原文不要说不用还钱，改成不用回复消息。"}],
+      "readability_issues": [{"quote":"她却把“小言”贴在你的身上","why":"小言含义不明，贴在身上用法生硬。"},{"quote":"你只是小题大非","why":"生造词无法表达清楚的指责。"},{"quote":"但这件事是关于我们之间的","why":"句式直译且缺少实质内容。"}]
+    },
+    "I": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"演变成对过去的翻旧账","why":"修饰重复且动名词组合不顺。"}]
+    },
+    "J": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"首先拥抱我吧","why":"安慰读者被反转成要求读者拥抱作者。"},{"quote":"记录翻译、往来、债务总额和协议","why":"转账记录和聊天记录被写成翻译与泛指往来，证据建议失真。"},{"quote":"这有助于了解你是否真的有困难","why":"判断对方是否困难被改成判断自己。"}],
+      "readability_issues": [{"quote":"不是为了立刻制造 escándalo","why":"未解释的西班牙文使中文阅读中断。"},{"quote":"要具体(的)","why":"括号内虚词无意义，文本明显不自然。"},{"quote":"了解她作为人的价值的机会","why":"抽象且生硬，无法自然表达认清人的代价。"}]
+    },
+    "K": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"那也并不代表真实的你","why":"将被评价是否属实说成是否代表真实的你，表达偏抽象。"}]
+    },
+    "L": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"现在，继续争论很容易，而且很可能会演变成关于旧怨的争吵","why":"继续争论很容易与后半句衔接绕，句子不够利落。"}]
+    },
+    "M": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"实际上只是转移“借钱未还”这个核心问题","why":"原文更像是在转移是推测，改写变成对动机的确定判断。"}],
+      "readability_issues": [{"quote":"首先，先冷静一两天","why":"首先与先重复。"}]
+    }
+  }
+}

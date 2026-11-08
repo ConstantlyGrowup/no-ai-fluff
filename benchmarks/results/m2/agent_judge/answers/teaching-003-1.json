@@ -1,0 +1,84 @@
+{
+  "packet": "teaching-003-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"同时执行的只能是一个处理 Python 字节码的线程","why":"限制关系的语序绕，直接说同一时刻只有一个线程执行字节码更清楚。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "D": {
+      "fidelity": 2,
+      "readability": 1,
+      "errors": [{"quote":"I/O 多线程 (I/O Multiplexing)","why":"多路复用被错称多线程，混淆单线程并发的核心机制。"},{"quote":"单线程进程能够处理巨大并行性","why":"原文指海量并发，不是单线程实现海量并行。"}],
+      "readability_issues": [{"quote":"如何安排协程 Event 和 Loop","why":"把Event Loop拆成两个对象，标题无法理解。"},{"quote":"Task 并且 `yield` 被激活","why":"主语与连接词无合理关系，句子不通。"},{"quote":"强制切换**流** OS 会产生较大的开销","why":"语序混乱，流和OS关系不明。"}]
+    },
+    "E": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"总结成一句话：，","why":"冒号逗号连用打断句子。"},{"quote":"事件循环被极简化的 Python 伪代码表示","why":"被动结构生硬，直接说用伪代码表示更顺。"}]
+    },
+    "F": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"Waiters（等待队列）","why":"原文是等待者字典，改成队列改变了所述数据结构。"},{"quote":"封装的协作线程","why":"Task包装的是协程，不是线程。"},{"quote":"在将控制权移交给 `await` 后","why":"await是让出控制权的语法点，不是接受控制权的调度者。"}],
+      "readability_issues": [{"quote":"事件循环需要安排下一个协作","why":"把协程反复称作协作，读者不清楚被调度的对象。"},{"quote":"Python 疑似代码","why":"伪代码被写成疑似代码，不像中文技术表达。"},{"quote":"线程** 可以 OS 被强制切换","why":"主语和被动结构次序错乱。"}]
+    },
+    "G": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"通过将控制权交给 `await`","why":"控制权应通过await交回事件循环，此处把语法点写成接收者，表述不准确。"}],
+      "readability_issues": [{"quote":"不会被其他事物中断","why":"“其他事物”指代宽泛，技术说明不够具体。"}]
+    },
+    "H": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "I": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"`epoll` 的 macOS，`kqueue` 的 Windows","why":"epoll属于Linux，kqueue属于macOS，平台对应关系被打乱。"},{"quote":"通过代码 `data = await socket.read()` 发送网络请求","why":"原文在此等待读取数据，不是通过read发送网络请求。"},{"quote":"事件循环维护多个键值数据结构","why":"就绪队列不属于键值结构，原文只说关键结构。"}],
+      "readability_issues": [{"quote":"两个，asyncio 如何管理协程 Event Loop 的调度","why":"序号和Event Loop位置错乱，标题难读。"},{"quote":"处理事件 I/O 在一个无限循环中","why":"地点状语置后且I/O语序颠倒，有明显翻译腔。"}]
+    },
+    "J": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"为操作系统提供一个 Socket 堆","why":"“堆”容易被当成具体数据结构，直接说一组Socket更自然。"}]
+    },
+    "K": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"无需阻塞（除非在`await`期间状态发生变化）","why":"原文讨论不需要锁及其例外，不是无需阻塞。"},{"quote":"单线程系统能够处理大量并行任务","why":"单线程在此实现并发调度，改成并行会误导执行方式。"},{"quote":"网卡从Task A处接收到数据","why":"原文是网卡收到供Task A读取的数据，方向被反转。"}],
+      "readability_issues": [{"quote":"随后从Ready中取出Queue以供执行Task B","why":"把队列名拆开，句子无法表达取任务这一动作。"},{"quote":"线程**是强制切换的 OS","why":"将OS与线程主宾颠倒，读起来不通。"}]
+    },
+    "L": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "M": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"创建过多线程会导致内存消耗过大","why":"原文明确说内存耗尽，改写弱化成消耗过大。"}],
+      "readability_issues": [{"quote":"一次只能有一个线程执行字节码Python","why":"Python后置使术语语序不自然。"},{"quote":"表示事件循环Python","why":"Python与事件循环的修饰关系颠倒。"}]
+    }
+  }
+}

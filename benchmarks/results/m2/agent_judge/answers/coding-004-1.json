@@ -1,0 +1,54 @@
+{
+  "packet": "coding-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"已删除的会话SSH","why":"原文是SSH远端会话，与删除会话无关。"},{"quote":"两个位置进行扫描：本地和远程服务器SSH","why":"原文两处扫描指输入框补全和技能管理页，本地与SSH是覆盖的环境。"},{"quote":"并入 `palette-scanner` 的 `scanClaudeSlashCommands`","why":"把扫描结果并入方法误写成与方法合并，弱化了集成方式。"}],
+      "readability_issues": [{"quote":"将目录命名为Skill为`build`","why":"词序混乱，难以读出Skill目录命名的要求。"},{"quote":"这是关闭无效开关SkillHub的依据","why":"SkillHub放在无效开关后面，句子结构不顺。"},{"quote":"Claude Code来自#8187","why":"缺少明确关系词，不能自然表达需求来自Issue的Claude Code部分。"}]
+    },
+    "B": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"并在用户范围中安装","why":"扫描器只读取user scope已安装插件，并不安装插件。"},{"quote":"声明路径的替换而非添加`skills/`","why":"原文是声明路径补充而非替换skills目录，关系反转。"},{"quote":"禁止 `managedByPlugin` / 删除","why":"原文标记managedByPlugin并禁止卸载，不是禁止该标记。"},{"quote":"只需删除3处调用","why":"回滚还要删除扫描文件和远程扫描函数，不能只删调用。"}],
+      "readability_issues": [{"quote":"Claude Code 仅影响ハーネス的技能扫描结果","why":"混入日文且主谓关系不自然，增加阅读负担。"},{"quote":"由于 `scanClaudeRuntimeSkills` 的访问断言，显示包含 `pluginName` 的项目","why":"访问断言导致显示的说法绕口，难以理解这是测试断言。"},{"quote":"这是 SkillHub 中已禁用关机开关的依据","why":"关机开关无法清楚指代技能启停开关。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"这些行为分支的防护包括","why":"名词化表达偏硬，直接说测试覆盖哪些行为更自然。"}]
+    },
+    "D": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"添加了一个 Skill 扫描插件","why":"原文新增插件Skill扫描器，不是新增扫描插件。"},{"quote":"插件远程检测已更改为 8 线程","why":"八路有界并发并不等于使用八个线程。"},{"quote":"扫描已删除插件 SSH","why":"原文未验证的是SSH远端插件扫描，不是已删除插件。"},{"quote":"源目录权限的必要性","why":"原文验证源目录解析的必要性，与权限无关。"}],
+      "readability_issues": [{"quote":"合作伙伴（机器人）能力目录排除这些元素通过 host-only","why":"通过结构后置，语序明显不自然。"},{"quote":"实际下载来源是源目录在 `known_marketplaces.json`","why":"主谓结构错乱，来源和目录关系不清楚。"},{"quote":"缺少提供的文档、令牌或授权文件","why":"句子无法清楚表达未提交敏感文件这一检查结果。"}]
+    },
+    "E": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"它仅在用户范围内安装","why":"扫描器仅选择用户级已安装插件，本身不执行安装。"},{"quote":"commands/skills的两种源代码","why":"commands和skills是扫描来源，不是两种源代码。"},{"quote":"未提交证书、令牌或授权文件","why":"原文承诺未提交凭证，改成证书缩窄了敏感材料范围。"}],
+      "readability_issues": [{"quote":"Codex / Pi线束的插件 Skill的连接","why":"线束是harness的机械直译，无法自然表达软件运行环境。"},{"quote":"本书PR新增了插件Skill扫描器","why":"本书与PR搭配突兀。"},{"quote":"解析失败时的回退机制installPath","why":"标识符悬在名词短语末尾，读起来不顺。"}]
+    },
+    "F": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"SkillHub 投影保留 `<plugin>:<skill>` 命名空间","why":"投影没有给出简要解释，对不了解内部实现的读者稍显抽象。"}]
+    },
+    "G": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"缺少提供的文档、令牌或授权文件","why":"原文是未提交凭证、令牌或授权文件，改写把凭证换成文档并改变检查含义。"}],
+      "readability_issues": [{"quote":"已确认测试结果或说明测试未进行并解释原因","why":"说明测试未进行并解释原因重复绕口。"}]
+    },
+    "H": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"仅远程插件公开用户范围","why":"语序倒置，难以立即读出远端只暴露用户级插件。"},{"quote":"并引导用户管理其所属插件页面","why":"应是在所属插件页管理插件，管理页面的宾语关系不自然。"}]
+    }
+  }
+}

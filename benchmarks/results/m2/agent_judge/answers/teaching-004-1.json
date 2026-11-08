@@ -1,0 +1,78 @@
+{
+  "packet": "teaching-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 5,
+      "errors": [{"quote":"也称为内存锁","why":"内存栅栏被误称内存锁，混淆屏障与互斥锁。"}],
+      "readability_issues": []
+    },
+    "B": {
+      "fidelity": 1,
+      "readability": 1,
+      "errors": [{"quote":"什么是内存泄漏 (Memory Barrier)","why":"内存屏障被错误称为内存泄漏。"},{"quote":"常用屏障类型（从弱到强）","why":"原文按强度递减排列，改写方向相反。"},{"quote":"完整防火墙","why":"全屏障不是网络防火墙。"}],
+      "readability_issues": [{"quote":"基于MBR（Memory Barrier) 内存","why":"自造MBR缩写且名词关系不完整。"},{"quote":"通常保修","why":"保修与内存操作顺序没有可理解的关系。"},{"quote":"mbarré 之前和之后随机内存操作","why":"不明外文代号与不自然修饰关系妨碍理解。"}]
+    },
+    "C": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"常见的屏障类型（强度递增）","why":"原文该列表强度递减，不是递增。"},{"quote":"防止重新参与（重新关联）","why":"原文防止指令重排，改写变成不相关的参与与关联。"},{"quote":"编译时边界条件","why":"编译时屏障不是边界条件。"}],
+      "readability_issues": [{"quote":"确保延续操作之前以前的操作已完成","why":"“之前以前”连续嵌套，语序拗口。"},{"quote":"写着顺序","why":"“写着”不像中文内存顺序术语。"}]
+    },
+    "D": {
+      "fidelity": 1,
+      "readability": 1,
+      "errors": [{"quote":"完整韦斯勒","why":"将全屏障术语替换成没有定义的韦斯勒。"},{"quote":"确保在屏障之后，所有写入操作都对读取操作可见","why":"删去了写在屏障前、读在屏障后的顺序限定，变成笼统保证所有写入可见。"},{"quote":"6 种内存模型","why":"原文引入六种内存序，不是六种内存模型。"}],
+      "readability_issues": [{"quote":"常见的韦斯勒类型","why":"未解释的韦斯勒使整段屏障分类无法理解。"},{"quote":"特性 ARM (弱内存模型)","why":"架构名称与特性次序颠倒，标题生硬。"}]
+    },
+    "E": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "F": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "G": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "H": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "I": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote":"强大的内存模型","why":"原文强内存模型指顺序保证强，改写成强大弱化了术语的具体含义。"}],
+      "readability_issues": [{"quote":"了解作为基础的架构差异","why":"“作为基础的”是多余的生硬修饰。"},{"quote":"主要在Store-Load中重新安排","why":"重排被写成重新安排，读起来像任务安排而非指令顺序。"}]
+    },
+    "J": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"使用较低级别的内存排序","why":"“低级别”不如较弱内存序直接，翻译感明显。"}]
+    },
+    "K": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"特性 ARM (弱内存模型)","why":"标题语序反常，应该由架构名称修饰特性。"}]
+    },
+    "L": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"确保之前的操作完成，在后续操作之前","why":"时间限定倒装且逗号截断，读起来不如直接说明完成顺序自然。"}]
+    }
+  }
+}

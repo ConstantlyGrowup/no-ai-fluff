@@ -1,0 +1,15 @@
+{"packet":"daily-010-1","judge_model":"gpt-6","candidates":{
+"A":{"fidelity":2,"readability":2,"errors":[{"quote":"希望明天她能看到许多海洋","why":"将对以后人生的祝愿改成了明天的事情。"},{"quote":"一整天都追逐着它们","why":"将追了一下午改成一整天。"},{"quote":"今天的心情：她女儿第一次去海边","why":"把说话者的女儿改成了第三人的女儿。"}],"readability_issues":[{"quote":"这些三个词","why":"数量搭配不通顺。"},{"quote":"带女儿去海滩第一次","why":"第一次的位置不符合中文语序。"},{"quote":"以下是一些故事的标题建议","why":"开头同一句重复两次，影响阅读。"}]},
+"B":{"fidelity":4,"readability":5,"errors":[{"quote":"今天第一次和女儿一起去海边","why":"第一次共同出游不明确等于女儿第一次见海，弱化了该版本的核心信息。"}],"readability_issues":[]},
+"C":{"fidelity":5,"readability":4,"errors":[],"readability_issues":[{"quote":"她的任务是踩浪、捡贝壳、欢呼雀跃。我的任务是拍照、拿鞋子、微笑","why":"把亲子玩耍逐项称作任务，口吻略显机械。"}]},
+"D":{"fidelity":3,"readability":4,"errors":[{"quote":"即时消息文案","why":"将朋友圈文案改成了即时消息文案。"},{"quote":"整天追着它们跑","why":"把一下午改成了一整天。"},{"quote":"拍照、穿鞋和欢笑","why":"把家长拎鞋的动作改成了穿鞋。"}],"readability_issues":[{"quote":"在浪中行走","why":"日常玩水被写成书面动作说明，俏皮感减弱。"}]},
+"E":{"fidelity":2,"readability":3,"errors":[{"quote":"立刻兴奋地跑不动了","why":"原文是不愿离开，而非兴奋得无法跑动。"},{"quote":"一定不会忘记今天这片海","why":"将愿望改成了确定承诺。"},{"quote":"她的笑容是最重要的","why":"将笑声最大改成了笑容最重要，信息发生变化。"},{"quote":"追了一下午","why":"遗漏了文艺版追浪一下午的时间与动作信息。"}],"readability_issues":[{"quote":"我第一次给女儿看海","why":"给女儿看海的动词搭配不自然。"},{"quote":"我拍照，搬鞋，笑","why":"搬鞋与轻松亲子语境不合。"},{"quote":"孩子第一次，也是大人小小的幸福","why":"孩子第一次缺少必要结构助词，句子略显残缺。"}]},
+"F":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"G":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"H":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"I":{"fidelity":4,"readability":4,"errors":[{"quote":"微信状态文案","why":"把朋友圈文案改成了微信状态文案。"}],"readability_issues":[{"quote":"我则负责拍照、帮她提鞋，然后欢笑","why":"然后欢笑像按顺序执行动作，略显翻译腔。"}]},
+"J":{"fidelity":3,"readability":4,"errors":[{"quote":"她兴奋得动弹不得","why":"将不肯离开误改成无法活动。"}],"readability_issues":[{"quote":"她的任务是踩浪、捡贝壳、欢呼雀跃。我的任务是拍照、拿鞋子、微笑","why":"将玩耍反复写成任务，表达机械。"}]},
+"K":{"fidelity":4,"readability":4,"errors":[{"quote":"以下是一些故事的标题建议","why":"将朋友圈文案的用途误称为故事标题建议。"}],"readability_issues":[{"quote":"以下是一些故事的标题建议","why":"同一句开场重复出现两次。"}]},
+"L":{"fidelity":5,"readability":5,"errors":[],"readability_issues":[]},
+"M":{"fidelity":2,"readability":3,"errors":[{"quote":"请提供您引言的文本，以便我将其翻译成俄语","why":"无依据增加了索取文本和翻译俄语的请求，改变了开场任务。"},{"quote":"永远记住这片平静的景象","why":"增加了永远和平静的景象，原文只祝愿记得今天这片海。"}],"readability_issues":[{"quote":"这些“第一次”的词语","why":"这些与单个第一次搭配不自然。"},{"quote":"拍照，搬鞋子","why":"日常携鞋用搬显得生硬。"},{"quote":"也是对大人来说的小小幸福","why":"介词结构位置别扭。"}]}
+}}

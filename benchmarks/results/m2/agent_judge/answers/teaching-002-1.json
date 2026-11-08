@@ -1,0 +1,84 @@
+{
+  "packet": "teaching-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 4,
+      "readability": 3,
+      "errors": [{"quote":"该方向平坦化","why":"遗漏了特征值为零时向量被压到零这一明确结果。"}],
+      "readability_issues": [{"quote":"协方差矩阵（covariance matrix）做特征分解（eigendecomposition）","why":"常见中文术语后反复添加英文使标题累赘。"},{"quote":"只是被拉伸、压缩或反向的向量，就是特征向量","why":"前半句已有向量主语，后面重复向量且结构拖长。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [{"quote":"因为方差的期望总是非负的","why":"上式是标量平方的期望，原文论证并非对方差再取期望。"},{"quote":"自变量和特征向量的意义在PCA中","why":"将特征值误称自变量。"}],
+      "readability_issues": [{"quote":"特征向量给出的是在哪些特殊方向上线性变换“不改变方向”的方向","why":"方向重复三次且嵌套冗长。"},{"quote":"个前沿特征向量将被选为降维后的坐标轴","why":"“前沿特征向量”是不自然的直译。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"最大的特征值对应于特征向量：椭圆最长轴的方向","why":"“对应于特征向量”没有限定哪个向量，语序拗口。"}]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "E": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "F": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"具有行列式","why":"原文A本身是矩阵，不是矩阵的行列式。"},{"quote":"方向反转，同时缩小","why":"负特征值也可使长度增大，原文是缩放而非必然缩小。"},{"quote":"这显示了需要保留的数据的元信息","why":"方差保留比例表示保留的方差信息，不是待保留数据的元信息。"}],
+      "readability_issues": [{"quote":"したがって，PCA 按特征值大小排序","why":"中文说明突然夹入日文连接词。"},{"quote":"协方差子行列的奇异值分解","why":"“协方差子行列”含义不清，术语拼接生硬。"}]
+    },
+    "G": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote":"设概率向量为","why":"原文为一般随机向量，概率向量是受非负和归一化约束的另一类对象。"}],
+      "readability_issues": [{"quote":"是半正定的，意味着以下几点","why":"后面只给一个不等式，“以下几点”衔接不合适。"}]
+    },
+    "H": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote":"拉伸在这方向上","why":"语序是明显翻译腔。"},{"quote":"对应最小特征值对应的特征向量","why":"“对应”重复，使简单对应关系绕口。"}]
+    },
+    "I": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote":"随机向量（random vector）","why":"已经清楚的中文术语再插英文没有帮助，打断阅读。"}]
+    },
+    "J": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote":"必定是一个正定矩阵","why":"非负二次型只推出半正定，协方差矩阵可能有零特征值。"},{"quote":"只是被拉伸、压缩或旋转","why":"原文特征向量沿同一轴伸缩或反向，改成旋转会误导特殊方向的含义。"}],
+      "readability_issues": [{"quote":"对协方差矩阵进行自己的分解","why":"“自己的分解”不能清楚表达特征分解。"},{"quote":"第一主成分PCA定义为","why":"PCA和第一主成分次序混乱。"}]
+    },
+    "K": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "L": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "M": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [{"quote":"是一个正定矩阵","why":"原文只证明半正定，协方差不一定严格正定。"},{"quote":"固有向量 \\(\\lambda\\)","why":"lambda是特征值，不是向量。"}],
+      "readability_issues": [{"quote":"他的自向量指示了与数据分散度最高的方向","why":"“自向量”不明且“指示了与”结构不完整。"},{"quote":"所以，对于 PCA 的第一个主要组件是计算","why":"介词和主语搭配错误，主要组件也不像中文数学术语。"}]
+    }
+  }
+}

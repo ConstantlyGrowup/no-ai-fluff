@@ -1,0 +1,52 @@
+{
+  "packet": "discussion-004-2",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "mutable access 必须经过 latch / guard", "why": "普通动作和约束也直接夹用英文，增加了中文读者的阅读负担。"}
+      ]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "集约化战略", "why": "原文的 compaction 策略是存储引擎的数据合并策略，此处替换成了无关的战略概念。"},
+        {"quote": "WAL/压缩后对象的失效", "why": "将 compaction 误写为压缩，混淆了存储合并和数据压缩。"}
+      ],
+      "readability_issues": [
+        {"quote": "在提交完成之前，不能释放写入缓冲区WAL。", "why": "WAL 后置得突兀，读者难以确认它修饰哪个名词。"},
+        {"quote": "其复杂性体现在以下几个方面", "why": "这种公文化引导语比直接说明难点更生硬。"}
+      ]
+    },
+    "C": {
+      "fidelity": 1,
+      "readability": 2,
+      "errors": [
+        {"quote": "访问页面只能在页面被锁定后允许。", "why": "将 page pin 固定页面误写为锁定页面，改变了访问约束。"},
+        {"quote": "不建议直接将现有代码“重写”为 C++，除非它得到了充分的支持", "why": "原文是在现有 C++ 严重不可维护时才考虑重写，此处同时改变了重写方向和例外条件。"},
+        {"quote": "无块数据结构", "why": "原文的 lock-free 数据结构指无锁结构，并非无块结构。"},
+        {"quote": "元数据管理 / 镜像管理", "why": "把 manifest 管理改成了镜像管理，替换了建议试点的模块。"},
+        {"quote": "按层级分析", "why": "原文的 profiling 水平指性能分析能力，不是按层级分析。"}
+      ],
+      "readability_issues": [
+        {"quote": "这些模块，如果用 C++ 编写，可能会非常复杂，Rust，这可能会大大减少某种类型的错误。", "why": "Rust 被孤立在逗号之间，主谓关系断裂。"},
+        {"quote": "团队准备投入 Rust 的潜力用于发展", "why": "投入潜力用于发展搭配不通，无法直接理解要投入什么。"},
+        {"quote": "否则，安全性 Rust 将在边界 FFI 上受到削弱。", "why": "名词和修饰语顺序颠倒，呈现明显翻译腔。"}
+      ]
+    },
+    "D": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "认真评估引入 Rust 到新模块/高风险模块是有价值的", "why": "动词和介词短语的顺序别扭，使开头结论读起来费劲。"},
+        {"quote": "如果否，Rust 的安全性将受到 FFI 边界的削弱。", "why": "如果否没有说清否定的是明确约定还是前面的几个是否问题。"},
+        {"quote": "首先需要建立 FFI，测试，进行基准测试并进行故障注入。", "why": "建立与后续动作的并列关系不清，测试一词也重复。"}
+      ]
+    }
+  }
+}
