@@ -1,0 +1,16 @@
+{
+  "purpose": "审校规则 v5（拔掉回抄诱导源 + 保真补丁≤20字 + 词对微筛）冒烟测试，与 v3smoke/v4smoke 同样本对比",
+  "samples": [
+    "coding-003",
+    "writing-002",
+    "daily-007"
+  ],
+  "bridge": "ru",
+  "rules": "v5",
+  "host": "deepseek-flash",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:"
+  ]
+}

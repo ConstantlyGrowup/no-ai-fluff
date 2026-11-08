@@ -40,7 +40,7 @@ def test_prepare_returns_audit_material(fake_translator, tmp_path):
     assert 'print("代码块不动")' in res.rtt_draft
     assert not res.fallback
     assert res.stats["translated_slots"] == 2 and res.stats["placeholders"] == 1
-    assert "【原文】" in res.audit_prompt and "【RTT 初稿】" in res.audit_prompt
+    assert "【AI 原始底稿" in res.audit_prompt and "【RTT 初稿】" in res.audit_prompt
     # 只有正文槽位送去翻译，代码块和标题标记都不送
     sent = fake.seen[0]
     assert not any("print" in s or "##" in s for s in sent)

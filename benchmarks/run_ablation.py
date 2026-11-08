@@ -108,18 +108,20 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
-RULES = "v4"  # 宿主审校规则版本，main() 里按 --rules 覆盖
+RULES = "v5"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
-def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
+def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000,
+              effort: str | None = None) -> tuple[str, dict, float]:
+    effort = effort or EFFORT
     # 各服务商的推理强度字段不同；本地服务不发任何专有字段，避免严格校验的服务端报错
     if getattr(client, "provider", None) == "deepseek":
         # 补丁任务在 high 下推理约 1.3~2 万 token，输出上限需相应放宽（--patch-max-tokens 默认 64000）
-        extra = {"reasoning_effort": EFFORT}
+        extra = {"reasoning_effort": effort}
     elif getattr(client, "is_local", False):
         extra = None
     else:
-        extra = {"usage": {"include": True}, "reasoning": {"effort": EFFORT, "exclude": True}}
+        extra = {"usage": {"include": True}, "reasoning": {"effort": effort, "exclude": True}}
     res = client.chat(
         model,
         [{"role": "user", "content": prompt}],
@@ -210,18 +212,23 @@ def patch_prompt(pipe: Pipeline, r: dict) -> str:
     return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES, question)
 
 
-def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str) -> None:
-    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True, audit_rules=RULES)
+def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str,
+                 term: dict | None = None) -> None:
+    term = term or {}
+    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True, audit_rules=RULES, term_reject=term.get("raw"))
     rec = {
         "sample_id": r["sample_id"], "scenario": r["scenario"], "combo": r["combo"], "host": host,
         "raw_patches": raw, "patches": fin.patches, "applied": fin.applied, "rejected": fin.rejected,
         "final_text": fin.final_text, "fallback": fin.fallback, "fallback_reason": fin.fallback_reason,
         "host_latency_s": round(lat, 2), "host_cost_usd": usage.get("cost"), "host_usage": usage,
         "prompt_chars": len(prompt), "effort": EFFORT, "rules": RULES,
+        "term_pairs": term.get("pairs"), "term_raw": term.get("raw"), "term_suspects": fin.term_suspects,
+        "term_rejected": fin.term_rejected, "term_latency_s": term.get("latency_s"), "term_effort": term.get("effort"),
     }
     append_jsonl(out, rec)
     print(f"  {r['sample_id']:15} {r['combo']:9} patches={len(fin.patches)} applied={fin.applied} "
-          f"rejected={fin.rejected} {lat:.1f}s{' ' + fin.fallback_reason if fin.fallback_reason else ''}", flush=True)
+          f"rejected={fin.rejected} term={fin.term_rejected}/{fin.term_suspects} {lat:.1f}s"
+          f"{' ' + fin.fallback_reason if fin.fallback_reason else ''}", flush=True)
 
 
 def stage_patch(args) -> None:
@@ -236,7 +243,18 @@ def stage_patch(args) -> None:
         except Exception as e:  # noqa: BLE001 —— 调用失败不落盘，下次重跑会补上
             print(f"  {r['sample_id']} {r['combo']} HOST FAILED {e}", flush=True)
             return
-        record_patch(pipe, out, r, args.host, raw, usage, lat, prompt)
+        term = None
+        tr = pipe.term_review(r["draft_id"], raw, RULES)
+        if tr:
+            # 词对微筛：脱离上下文的小请求，用同一个宿主模型，推理强度单独设置（不改全局，避免并发线程串味）
+            try:
+                t_raw, _t_usage, t_lat = chat_json(client, args.host, tr[0], max_tokens=16000, effort=args.term_effort)
+            except Exception as e:  # noqa: BLE001
+                print(f"  {r['sample_id']} {r['combo']} TERM REVIEW FAILED {e}", flush=True)
+                t_raw, t_lat = None, 0.0
+            term = {"pairs": [{"no": i, "left": sp.left, "right": sp.right} for i, sp in enumerate(tr[1], 1)],
+                    "raw": t_raw, "latency_s": round(t_lat, 2), "prompt": tr[0], "effort": args.term_effort}
+        record_patch(pipe, out, r, args.host, raw, usage, lat, prompt, term)
 
     with ThreadPoolExecutor(args.workers) as pool:
         list(pool.map(run, jobs))
@@ -258,7 +276,7 @@ def stage_refinalize(args) -> None:
     before = after = 0
     for r in rows:
         fin = pipe.finalize(rtt[(r["sample_id"], r["combo"])]["draft_id"], r["raw_patches"], keep_draft=True,
-                            audit_rules=r.get("rules") or "v2")
+                            audit_rules=r.get("rules") or "v2", term_reject=r.get("term_raw"))
         before += r["applied"]
         after += fin.applied
         if fin.final_text != r["final_text"]:
@@ -626,7 +644,9 @@ def main() -> None:
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
     ap.add_argument("--patch-max-tokens", type=int, default=64000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
-    ap.add_argument("--rules", default="v4", choices=["v1", "v2", "v3", "v4"],
+    ap.add_argument("--term-effort", default="high", choices=["low", "medium", "high"],
+                    help="v5 词对微筛的推理强度（脱离上下文的小请求）")
+    ap.add_argument("--rules", default="v5", choices=["v1", "v2", "v3", "v4", "v5"],
                     help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],

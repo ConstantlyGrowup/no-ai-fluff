@@ -29,8 +29,11 @@ from .cleanup import clean_punctuation
 from .patcher import (
     DEFAULT_AUDIT_RULES,
     MAX_FIND_BY_RULES,
+    FIDELITY_MAX_FIND,
     REQUIRE_MISREAD,
     REVERT_MIN_CHARS,
+    TERM_REVIEW_RULES,
+    Patch,
     PatchFormatError,
     apply_patches,
     build_audit_prompt,
@@ -38,6 +41,7 @@ from .patcher import (
     results_to_dicts,
 )
 from .radar import scan, scan_single
+from .reversion import Suspect, build_term_review_prompt, find_suspects, parse_term_review
 from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult
 
 EXITS = ("terminal", "file")
@@ -226,6 +230,8 @@ class FinalizeResult:
     fallback: bool
     fallback_reason: str | None
     cleanups: int = 0  # 定稿前确定性标点清理的处数
+    term_suspects: int = 0  # 词对微筛的嫌疑补丁数
+    term_rejected: int = 0  # 被微筛判为“改回行话”而撤销的补丁数
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -406,10 +412,44 @@ class Pipeline:
         )
 
     # -- 握手 2 ---------------------------------------------------------------
+    def _apply(self, draft: "Draft", plist: list, rules: str, rejected: dict[int, str] | None = None):
+        return apply_patches(
+            draft.doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
+            rules in REQUIRE_MISREAD, FIDELITY_MAX_FIND.get(rules), rejected)
+
+    def term_review(
+        self, draft_id: str, patches: Any, audit_rules: str | None = None
+    ) -> tuple[str, list[Suspect]] | None:
+        """词对微筛的第一步：返回 (微筛提示, 嫌疑列表)；没有嫌疑或规则未启用时返回 None。
+
+        只在“本来会生效”的补丁里找嫌疑，避免把会被其他守卫拒收的补丁也送去复核。
+        """
+        draft = self.store.get(draft_id)
+        rules = audit_rules or draft.meta.get("audit_rules") or "v2"
+        if rules not in TERM_REVIEW_RULES:
+            return None
+        if isinstance(patches, list) and all(isinstance(x, Patch) for x in patches):
+            plist = patches  # finalize 内部调用时已经解析过
+        else:
+            try:
+                plist = parse_patches(patches if patches is not None else [])
+            except PatchFormatError:
+                return None
+        _, results = self._apply(draft, plist, rules)
+        applied = [k for k, r in enumerate(results) if r.applied]
+        suspects = find_suspects([plist[k] for k in applied], draft.original_text, draft.rtt_text())
+        for sp in suspects:
+            sp.patch_index = applied[sp.patch_index]
+        return (build_term_review_prompt(suspects), suspects) if suspects else None
+
     def finalize(
-        self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None
+        self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None,
+        term_reject: Any = None,
     ) -> FinalizeResult:
-        """audit_rules 决定补丁允许的改写范围；默认取 prepare 时记录的规则版本。"""
+        """audit_rules 决定补丁允许的改写范围；默认取 prepare 时记录的规则版本。
+
+        term_reject：词对微筛的结果（1 起始的编号列表，或模型原始输出），对应的嫌疑补丁会被撤销。
+        """
         draft = self.store.get(draft_id)
         rules = audit_rules or draft.meta.get("audit_rules") or "v2"  # 旧草稿没有记录，按 v2 处理
         doc = draft.doc
@@ -419,9 +459,17 @@ class Pipeline:
         except PatchFormatError as e:
             plist, format_error = [], f"补丁格式错误，已忽略全部补丁：{e}"
 
-        new_slots, results = apply_patches(
-            doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
-            rules in REQUIRE_MISREAD)
+        term_rejected: dict[int, str] = {}
+        n_suspects = 0
+        if term_reject is not None and rules in TERM_REVIEW_RULES:
+            tr = self.term_review(draft_id, plist, rules)
+            if tr:
+                suspects = tr[1]
+                n_suspects = len(suspects)
+                for num in parse_term_review(term_reject, len(suspects)):
+                    sp = suspects[num - 1]
+                    term_rejected[sp.patch_index] = f"词对微筛：把直白说法改回了行话（{sp.left} -> {sp.right}）"
+        new_slots, results = self._apply(draft, plist, rules, term_rejected)
         cleanups = 0
         for i, slot in enumerate(doc.slots):  # 只清理被改写过的槽位（往返翻译或补丁）；原样未动的不碰
             if new_slots[i] != slot.masked:
@@ -448,6 +496,8 @@ class Pipeline:
                 "patches_rejected": rejected,
                 "patch_format_error": format_error is not None,
                 "punctuation_cleanups": cleanups,
+                "term_suspects": n_suspects,
+                "term_rejected": len(term_rejected),
                 "fallback": fallback_reason is not None,
                 "radar_original": scan_single([doc.slots[i].masked for i in only]).counts,
                 "radar_rtt": scan_single([draft.rtt_slots[i] for i in only]).counts,
@@ -464,6 +514,8 @@ class Pipeline:
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason or format_error,
             cleanups=cleanups,
+            term_suspects=n_suspects,
+            term_rejected=len(term_rejected),
         )
 
     # -- 便捷：单进程一次跑完（DeepSeek Harness / 评测台） --------------------
@@ -485,7 +537,15 @@ class Pipeline:
                 patches = reviewer(prep.audit_prompt)
             except Exception as e:  # noqa: BLE001 —— 审校失败按空补丁出初稿，但必须如实告知调用方
                 patches, reviewer_error = [], f"reviewer error: {type(e).__name__}: {e}"
-        fin = self.finalize(prep.draft_id, patches)
+        term_reject: Any = None
+        if reviewer is not None and not reviewer_error:
+            tr = self.term_review(prep.draft_id, patches)
+            if tr:
+                try:
+                    term_reject = reviewer(tr[0])
+                except Exception as e:  # noqa: BLE001 —— 微筛失败不撤销任何补丁，但如实记录
+                    reviewer_error = f"term review error: {type(e).__name__}: {e}"
+        fin = self.finalize(prep.draft_id, patches, term_reject=term_reject)
         if reviewer_error:
             fin.fallback_reason = "; ".join(x for x in (reviewer_error, fin.fallback_reason) if x)
             if self.config.telemetry:

@@ -54,6 +54,8 @@ TOOLS = [
             "提交对 RTT 初稿的局部替换补丁，返回定稿。patches 为 "
             '[{"find": "初稿原片段", "replace": "修改后片段", "reason": "原因"}]，无需修改时传 []。'
             "破坏代码/公式/路径等受保护内容的补丁会被自动拒收；最终校验失败时整体回退原文。"
+            "若有补丁把初稿的直白说法改回了原文用词，第一次调用会返回一份词对复核清单：请判断后带上 term_review "
+            "（要撤销的编号数组，可为 []）用同样的 patches 再调用一次。"
         ),
         "inputSchema": {
             "type": "object",
@@ -78,6 +80,11 @@ TOOLS = [
                         },
                         {"type": "string"},
                     ],
+                },
+                "term_review": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "词对复核结果：要撤销的编号（1 起始）。第一次调用不传；收到复核清单后再传",
                 },
             },
             "required": ["draft_id", "patches"],
@@ -136,7 +143,16 @@ class MCPServer:
                 if not isinstance(draft_id, str):
                     return _tool_error("缺少 draft_id")
                 try:
-                    res = self.pipeline.finalize(draft_id, args.get("patches", []))
+                    if args.get("term_review") is None:
+                        tr = self.pipeline.term_review(draft_id, args.get("patches", []))
+                        if tr:
+                            prompt, suspects = tr
+                            text = (f"还差一步：有 {len(suspects)} 处补丁把初稿的说法改回了原文用词，请单独复核。\n\n{prompt}\n\n"
+                                    f"判断后用同样的 patches 再调用 finalize_patched_delivery，并带上 term_review=上面的编号数组。")
+                            return {"content": [{"type": "text", "text": text}], "structuredContent": {
+                                "status": "needs_term_review", "draft_id": draft_id,
+                                "pairs": [{"no": i, "left": sp.left, "right": sp.right} for i, sp in enumerate(suspects, 1)]}}
+                    res = self.pipeline.finalize(draft_id, args.get("patches", []), term_reject=args.get("term_review"))
                 except DraftNotFound:
                     return _tool_error(f"找不到草稿 {draft_id}（可能已定稿或过期），请重新调用 prepare_rtt_draft")
                 return {"content": [{"type": "text", "text": format_finalize(res)}], "structuredContent": res.to_dict()}

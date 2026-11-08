@@ -115,18 +115,67 @@ AUDIT_INSTRUCTIONS_V4 = """你是中文编辑。【RTT 初稿】由【原文】�
 - 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
 - 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
 
+# v5（2026-11-08）：拔掉 v4 的三个“回抄诱导源”——删除“原文说法照用”、初稿在前底稿在后、保真补丁 ≤20 字；
+# 配合 reversion.py 的词对微筛拦截短词行话倒退。
+AUDIT_INSTRUCTIONS_V5 = """你是中文编辑。【RTT 初稿】由【AI 原始底稿】经机器往返翻译得到，句子已经被拆松，很多行话和套话也随之被洗成了直白说法。请以初稿为底本交付一份“说人话”的定稿：读者读完得到的认识与读底稿完全相同，读起来像有经验的人当面讲给同事听。
+【AI 原始底稿】只用来核对事实，它本身就带着要去掉的行话和套话，不要抄回它的用词。
+
+一、保真：只防“读者会被误导”。
+判断标准只有一个：读者读了初稿，会不会得出与底稿不同的错误认识，或者据此做错事？会，才算保真问题；不会，就不是。
+以下情况会误导读者，必须修：
+- 数字、单位、量级变了；
+- 语气强弱变了：“尽量、通常、可能、建议、很”被说成硬性要求，或者反过来；
+- 条件边界变了：“以内、之间、仅当、至少、除非”等；
+- 因果方向、主体与客体颠倒；
+- 专业术语变成了另一个东西（例如 compaction 被说成“集约化战略”），或工程内部的专有名词、代号被改得认不出来；
+- 底稿的关键信息丢了，或者凭空多出底稿没有的说法。
+以下情况**不是**保真问题，不准以“保真”为由修改：
+- 用词、语体、句子结构和底稿不同；把书面词换成了口语词；
+- 句子被拆短、语序调整、多用了几个字把话说清楚；
+- 底稿里的套话、口号、空洞修饰被去掉了（这本来就是我们要的）。
+外延判据：只有初稿说法和底稿说法**指的不是同一个东西**时（例如“自动吸尘”与“自动集尘”、“侧刷”与“边刷”），才准把这个词改回底稿的词；
+只要指的是同一件事、初稿已经说直白了（例如“人员分析”与“人力盘点”、“降低成本、提高效率”与“降本增效”），无论以保真还是说人话为由，都不准改回底稿的行话或简称。
+修保真问题时，find 只框出错的那个最小词组（不超过 20 字），不要把整句连带换掉；超过 20 字的保真补丁会被代码拒收。严禁把整句改回底稿的写法。
+如果给了【用户问题】，用它判断哪些内容是回答问题必不可少的、有没有段落跑题；但事实细节仍以底稿为准。
+
+二、说人话（放宽改写）。读着累的地方可以改写到一两句话的范围，包括底稿遗留下来的 AI 腔。依据：
+1. 句子主谓完整，不用名词短语堆砌代替句子；
+2. 因果直说，不用“打通、闭环、下沉、赋能”这类空间动作充当逻辑连词；比喻要能对应到实物实量，否则删掉；
+3. 不用读者需要回溯才能看懂的自造代号和压缩短语；
+4. 非必要不夹英文，只保留没有通行中文译法的技术术语；
+5. 去掉翻译腔：长定语拆开，被动句改主动，“对……进行……”“享受……”这类直译搭配改成自然说法；
+6. 删掉空洞大词、口号式排比和没有度量的夸张修饰，能给具体事实或数量就给；
+7. 推理不跳步，必要的“因为、所以、这样”不省；
+8. 不扩写、不加背景、不升华，不加底稿没有的信息；
+9. 指代不清的“它、其、该”换成明确的名词；
+10. 改写时用你自己的直白说法，不要从【AI 原始底稿】里搬词；底稿里的专业术语只在初稿把它译错时才按外延判据改回。
+好读不等于字数少：为了说清楚多用几个字可以，但不要把句子压成名词短语。
+
+输出格式：
+- 只输出 JSON 数组；初稿已经准确又好读就输出 []。每条补丁：
+  {"find": "初稿原片段", "replace": "修改后片段", "type": "保真|说人话", "misread": "读者读初稿会误以为什么（type 为保真时必填，写具体的错误认识）", "reason": "原因"}
+- misread 要写读者的错误认识，例如“读者会以为通勤必须在 45~60 分钟之间”；不能写“与原文不一致”“原文是 xx”这类话——写不出具体误解，就说明不是保真问题。
+- 改回底稿用词的短词补丁会再被单独复核，凡是把直白说法换回行话的都会被撤销。
+- 仍然是局部补丁：find 逐字摘自【RTT 初稿】，在全文中唯一，不跨行，范围是一个词、一个短语或一两句话（不超过 300 字），不要整段重写。
+- 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
+- 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
+
 AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3,
-               "v4": AUDIT_INSTRUCTIONS_V4}
-DEFAULT_AUDIT_RULES = "v4"
+               "v4": AUDIT_INSTRUCTIONS_V4, "v5": AUDIT_INSTRUCTIONS_V5}
+DEFAULT_AUDIT_RULES = "v5"
 AUDIT_INSTRUCTIONS = AUDIT_RULES[DEFAULT_AUDIT_RULES]  # 向后兼容
 # 单条补丁 find 的长度上限，按规则版本区分：v1/v2 只修局部，超过 200 字视为整段重写而拒收；
 # v3 允许整段改写，上限放宽到一个段落的量级（仍不得跨行，结构由原文决定）
-MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300}
+MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300, "v5": 300}
+# v5：保真补丁只准框选出错的最小词组，避免“真修复 + 整句回抄”连坐
+FIDELITY_MAX_FIND = {"v5": 20}
+# v5：启用词对微筛（见 reversion.py）
+TERM_REVIEW_RULES = {"v5"}
 # v3 冒烟发现：宿主以“保真”为名把整句复制回原文，往返解压被完全抵消（三篇与原文差异降到 0%）。
 # replace 中与原文逐字相同的连续片段达到这个长度，就视为“改回原文”并拒收；短术语不受影响。
-REVERT_MIN_CHARS = {"v3": 25, "v4": 25}
+REVERT_MIN_CHARS = {"v3": 25, "v4": 25, "v5": 25}
 # v4：保真补丁必须写出读者的具体误解；空着或只是“与原文不一致 / 原文是…”之类的套话，一律拒收
-REQUIRE_MISREAD = {"v4"}
+REQUIRE_MISREAD = {"v4", "v5"}
 _TAUTOLOGY_RE = re.compile(r"^(?:与|和|跟)?原文(?:不一致|不同|有出入|不符|有差异)|^原文(?:是|为|写的是|说的是)|^(?:与|和)原文表述")
 MAX_FIND_CHARS = MAX_FIND_BY_RULES["v2"]
 
@@ -136,7 +185,14 @@ def build_audit_prompt(
 ) -> str:
     if rules not in AUDIT_RULES:
         raise ValueError(f"未知审校规则 {rules}，可选：{', '.join(AUDIT_RULES)}")
-    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules == "v4" else ""
+    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules in ("v4", "v5") else ""
+    if rules == "v5":
+        # 初稿在前、底稿在后：先读满篇公文腔会把注意力锚定在原文词汇上
+        return (
+            f"{AUDIT_RULES[rules]}\n\n{q}【RTT 初稿】\n{rtt_draft}\n\n"
+            f"【AI 原始底稿（含行话套话，仅供核对事实，严禁抄回其用词）】\n{original}\n\n"
+            f"【雷达提示】\n{radar_text}\n\n只输出 JSON 数组："
+        )
     return (
         f"{AUDIT_RULES[rules]}\n\n{q}【原文】\n{original}\n\n【RTT 初稿】\n{rtt_draft}\n\n"
         f"【雷达提示】\n{radar_text}\n\n只输出 JSON 数组："
@@ -321,6 +377,8 @@ def apply_patches(
     doc: Document, slot_texts: list[str], patches: list[Patch], max_find: int = MAX_FIND_CHARS,
     revert_min: int | None = None,
     require_misread: bool = False,
+    fidelity_max_find: int | None = None,
+    rejected: dict[int, str] | None = None,
 ) -> tuple[list[str], list[PatchResult]]:
     """把补丁逐条合并进掩码槽位文本。返回 (新槽位文本, 每条补丁的处理结果)。
 
@@ -330,7 +388,13 @@ def apply_patches(
     texts = list(slot_texts)
     results: list[PatchResult] = []
     original = doc.render([s.masked for s in doc.slots]) if revert_min else ""
-    for p in patches:
+    for idx, p in enumerate(patches):
+        if rejected and idx in rejected:
+            results.append(PatchResult(p, False, rejected[idx]))
+            continue
+        if fidelity_max_find and p.type.startswith("保真") and len(p.find) > fidelity_max_find:
+            results.append(PatchResult(p, False, f"保真补丁只能框选出错的最小词组（不超过 {fidelity_max_find} 字）"))
+            continue
         if require_misread:
             why = misread_problem(p)
             if why:

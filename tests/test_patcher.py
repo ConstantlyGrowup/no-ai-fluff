@@ -106,7 +106,7 @@ def test_sequential_patches_see_previous_results():
 def test_audit_prompt_contains_all_parts():
     p = build_audit_prompt("原文X", "初稿Y", "雷达Z")
     assert "原文X" in p and "初稿Y" in p and "雷达Z" in p and "JSON" in p and "[]" in p
-    assert len(p) < 1600  # 提示词保持在甜点区
+    assert len(p) < 2200  # v5 规则含外延判据与保真粒度约束，仍控制在约 2k 字以内
 
 
 def test_salvage_extra_brace_between_objects():
@@ -162,7 +162,7 @@ def test_patch_changing_structure_prefix_is_rejected():
 def test_audit_rules_versions():
     from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
 
-    assert DEFAULT_AUDIT_RULES == "v4"
+    assert DEFAULT_AUDIT_RULES == "v5"
     v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
     v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v2")
     assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
@@ -320,3 +320,30 @@ def test_patch_misread_roundtrips_in_results():
     doc = parse("这里有 a 字。")
     _, res = apply_patches(doc, [s.masked for s in doc.slots], ps)
     assert results_to_dicts(res)[0]["misread"] == "读者会以为 a 是 b"
+
+
+def test_v5_removes_copy_inducing_rule_and_puts_draft_first():
+    from no_ai_fluff.patcher import AUDIT_RULES
+
+    v5 = AUDIT_RULES["v5"]
+    assert "原文作者明确使用的说法" not in v5
+    for kw in ("外延判据", "指的不是同一个东西", "人员分析", "不超过 20 字", "不要从【AI 原始底稿】里搬词"):
+        assert kw in v5, kw
+    p = build_audit_prompt("底稿X", "初稿Y", "雷达Z", rules="v5", question="问题Q")
+    assert p.rindex("【用户问题】") < p.rindex("【RTT 初稿】") < p.rindex("【AI 原始底稿（含行话套话")
+    assert p.index("初稿Y") < p.index("底稿X")
+
+
+def test_v5_fidelity_patch_limited_to_minimal_phrase():
+    from no_ai_fluff.patcher import FIDELITY_MAX_FIND
+
+    doc = parse("预算三千左右，家里有猫，地板是木地板，最好选带自动集尘的型号。")
+    rtt = ["预算大约三千，家中养猫，地面为木地板，最好选择带有自动吸尘功能的型号。"]
+    short = Patch("自动吸尘", "自动集尘", "术语", "保真", "读者会以为是吸尘功能而不是集尘座")
+    long_ = Patch("地面为木地板，最好选择带有自动吸尘功能的型号", "地面为木地板，最好选带自动集尘的型号", "术语", "保真",
+                  "读者会以为是吸尘功能")
+    assert len(long_.find) > FIDELITY_MAX_FIND["v5"]
+    _, res = apply_patches(doc, rtt, [short], 300, 25, True, FIDELITY_MAX_FIND["v5"])
+    assert res[0].applied
+    _, res = apply_patches(doc, rtt, [long_], 300, 25, True, FIDELITY_MAX_FIND["v5"])
+    assert not res[0].applied and "最小词组" in res[0].reason
