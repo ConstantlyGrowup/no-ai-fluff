@@ -1,0 +1,28 @@
+{
+  "purpose": "M3 定稿的双轴复核（重点是保真度），确认俄语桥接能否作为默认；日语已按人工盲测结果剔除",
+  "samples": [
+    "coding-003",
+    "coding-005",
+    "teaching-002",
+    "teaching-004",
+    "writing-002",
+    "writing-003",
+    "discussion-004",
+    "discussion-005",
+    "daily-002",
+    "daily-007"
+  ],
+  "sampling": "与 m3 人工盲测相同的 10 篇",
+  "candidates": {
+    "original": "原文",
+    "patched:hymt-fr": "hy-mt2 法语往返 + v2 补丁（DeepSeek high）+ 标点清理",
+    "patched:hymt-ru": "hy-mt2 俄语往返 + v2 补丁（DeepSeek high）+ 标点清理"
+  },
+  "judge_variants": [
+    "original",
+    "patched:hymt-fr",
+    "patched:hymt-ru"
+  ],
+  "rubric": "v2",
+  "rubric_note": "v2 在评审包里加入“人味/可读性”正反例，强调好读不等于信息密度高；与此前轮次的易读度分数不可直接比较"
+}
