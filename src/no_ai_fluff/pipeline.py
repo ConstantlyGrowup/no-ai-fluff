@@ -29,6 +29,7 @@ from .cleanup import clean_punctuation
 from .patcher import (
     DEFAULT_AUDIT_RULES,
     MAX_FIND_BY_RULES,
+    REQUIRE_MISREAD,
     REVERT_MIN_CHARS,
     PatchFormatError,
     apply_patches,
@@ -315,7 +316,10 @@ class Pipeline:
         self.store = store or DraftStore(self.config.store_dir, self.config.draft_ttl_s)
 
     # -- 握手 1 ---------------------------------------------------------------
-    def prepare(self, text: str, fmt: str = "auto", exit: str = "terminal", mode: str = "auto") -> PrepareResult:
+    def prepare(
+        self, text: str, fmt: str = "auto", exit: str = "terminal", mode: str = "auto", question: str | None = None
+    ) -> PrepareResult:
+        """question：可选，用户的原始问题。v4 审校规则会用它判断轻重和是否跑题。"""
         cfg = self.config
         t0 = time.monotonic()
         doc = parse(text, fmt, cfg.extra_terms)
@@ -395,7 +399,7 @@ class Pipeline:
             rtt_draft=rtt_text,
             radar_hints=report.to_prompt(),
             radar=report.to_dict(),
-            audit_prompt=build_audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules),
+            audit_prompt=build_audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules, question),
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason,
             stats=stats,
@@ -416,7 +420,8 @@ class Pipeline:
             plist, format_error = [], f"补丁格式错误，已忽略全部补丁：{e}"
 
         new_slots, results = apply_patches(
-            doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules))
+            doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
+            rules in REQUIRE_MISREAD)
         cleanups = 0
         for i, slot in enumerate(doc.slots):  # 只清理被改写过的槽位（往返翻译或补丁）；原样未动的不碰
             if new_slots[i] != slot.masked:
@@ -469,9 +474,10 @@ class Pipeline:
         fmt: str = "auto",
         exit: str = "terminal",
         mode: str = "auto",
+        question: str | None = None,
     ) -> tuple[PrepareResult, FinalizeResult]:
         """reviewer(audit_prompt) -> JSON 补丁（字符串或列表）。不传 reviewer 时等价于纯 RTT。"""
-        prep = self.prepare(text, fmt=fmt, exit=exit, mode=mode)
+        prep = self.prepare(text, fmt=fmt, exit=exit, mode=mode, question=question)
         patches: Any = []
         reviewer_error: str | None = None
         if reviewer is not None:

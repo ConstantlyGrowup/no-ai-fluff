@@ -1,0 +1,16 @@
+{
+  "purpose": "审校规则 v4（保真以读者是否被误导为准）冒烟测试，与 v3smoke 同样本对比",
+  "samples": [
+    "coding-003",
+    "writing-002",
+    "daily-007"
+  ],
+  "bridge": "ru",
+  "rules": "v4",
+  "host": "deepseek-flash",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:"
+  ]
+}

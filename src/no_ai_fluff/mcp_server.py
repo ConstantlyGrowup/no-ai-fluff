@@ -33,6 +33,10 @@ TOOLS = [
             "properties": {
                 "text": {"type": "string", "description": "待净化的草稿全文"},
                 "format": {"type": "string", "enum": ["auto", "markdown", "html", "text"], "default": "auto"},
+                "question": {
+                    "type": "string",
+                    "description": "可选：用户的原始问题。审校时用来判断哪些内容是回答问题必不可少的、有没有跑题",
+                },
                 "exit": {
                     "type": "string",
                     "enum": ["terminal", "file"],
@@ -65,6 +69,8 @@ TOOLS = [
                                 "properties": {
                                     "find": {"type": "string"},
                                     "replace": {"type": "string"},
+                                    "type": {"type": "string"},
+                                    "misread": {"type": "string"},
                                     "reason": {"type": "string"},
                                 },
                                 "required": ["find", "replace"],
@@ -121,7 +127,8 @@ class MCPServer:
                 text = args.get("text")
                 if not isinstance(text, str) or not text.strip():
                     return _tool_error("text 不能为空")
-                res = self.pipeline.prepare(text, fmt=args.get("format", "auto"), exit=args.get("exit", "terminal"))
+                res = self.pipeline.prepare(text, fmt=args.get("format", "auto"), exit=args.get("exit", "terminal"),
+                                            question=args.get("question"))
                 payload = {k: v for k, v in res.to_dict().items() if k != "audit_prompt"}
                 return {"content": [{"type": "text", "text": format_prepare(res)}], "structuredContent": payload}
             if name == "finalize_patched_delivery":

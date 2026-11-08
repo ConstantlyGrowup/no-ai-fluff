@@ -149,3 +149,13 @@ def test_dotenv_concurrent_first_load(tmp_path, monkeypatch):
     [t.start() for t in ths]
     [t.join() for t in ths]
     assert seen == ["yes"] * 4
+
+
+def test_mcp_prepare_accepts_question(fake_translator, tmp_path):
+    srv = server(fake_translator, tmp_path)
+    r = rpc(srv, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "prepare_rtt_draft", "arguments": {
+                "text": "这个方案的 overhead 很大。", "question": "这个方案值得用吗？"}}})
+    tool = next(t for t in r[0]["result"]["tools"] if t["name"] == "prepare_rtt_draft")
+    assert "question" in tool["inputSchema"]["properties"]
+    assert "【用户问题】\n这个方案值得用吗？" in r[1]["result"]["content"][0]["text"]

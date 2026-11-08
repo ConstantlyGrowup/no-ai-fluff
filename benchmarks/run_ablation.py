@@ -108,7 +108,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
-RULES = "v3"  # 宿主审校规则版本，main() 里按 --rules 覆盖
+RULES = "v4"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
@@ -206,7 +206,8 @@ def patch_prompt(pipe: Pipeline, r: dict) -> str:
     draft = pipe.store.get(r["draft_id"])
     # 用当前版本的雷达重新生成提示（阶段 1 记录的提示可能来自旧口径）
     hints = scan([s.masked for s in draft.doc.slots], draft.rtt_slots, only=draft.translated).to_prompt()
-    return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES)
+    question = next((x.get("prompt") for x in samples() if x["id"] == r["sample_id"]), None)
+    return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES, question)
 
 
 def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str) -> None:
@@ -625,7 +626,8 @@ def main() -> None:
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
     ap.add_argument("--patch-max-tokens", type=int, default=64000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
-    ap.add_argument("--rules", default="v3", choices=["v1", "v2", "v3"], help="宿主审校规则版本（v3：按 SKILL 原则整句 / 整段改写）")
+    ap.add_argument("--rules", default="v4", choices=["v1", "v2", "v3", "v4"],
+                    help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],
                     help="宿主/评委模型的推理强度。默认 high：m2v2hi 中 low 的漏修率明显更高")

@@ -162,7 +162,7 @@ def test_patch_changing_structure_prefix_is_rejected():
 def test_audit_rules_versions():
     from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
 
-    assert DEFAULT_AUDIT_RULES == "v3"
+    assert DEFAULT_AUDIT_RULES == "v4"
     v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
     v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v2")
     assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
@@ -271,3 +271,52 @@ def test_v3_rejects_reverting_sentence_to_original_but_allows_term_restore():
     new, res = apply_patches(doc, rtt, [revert, term], 300, REVERT_MIN_CHARS["v3"])
     assert not res[0].applied and "改回了原文" in res[0].reason
     assert res[1].applied and "三个方向" in new[0]
+
+
+def _v4_apply(text, rtt, *patches):
+    from no_ai_fluff.patcher import MAX_FIND_BY_RULES, REVERT_MIN_CHARS
+
+    doc = parse(text)
+    return apply_patches(doc, rtt or [s.masked for s in doc.slots], list(patches),
+                         MAX_FIND_BY_RULES["v4"], REVERT_MIN_CHARS["v4"], require_misread=True)
+
+
+@pytest.mark.parametrize("misread,ok", [
+    ("", False),
+    ("不一致", False),
+    ("与原文不一致", False),
+    ("原文是“尽量不超过”，所以要改", False),
+    ("和原文表述有差异", False),
+    ("读者会以为周末起床时间必须严格控制在 1 小时以内", True),
+])
+def test_v4_fidelity_patch_requires_concrete_misread(misread, ok):
+    _, res = _v4_apply("周末起床时间尽量不超过平时 1 小时。", ["周末起床时间不超过平时 1 小时。"],
+                       Patch("不超过平时", "尽量不超过平时", "语气", "保真", misread))
+    assert res[0].applied is ok, res[0].reason
+
+
+def test_v4_plain_language_patch_needs_no_misread():
+    _, res = _v4_apply("我们重点攻坚了三大核心战役。", ["我们重点推进了三个关键方向。"],
+                       Patch("重点推进了三个关键方向", "主要做了三件事", "去口号", "说人话"))
+    assert res[0].applied
+
+
+def test_v4_prompt_defines_reader_centric_fidelity_and_includes_question():
+    from no_ai_fluff.patcher import AUDIT_RULES
+
+    v4 = AUDIT_RULES["v4"]
+    for kw in ("会不会得出与原文不同的错误认识", "不是**保真问题", "misread", "严禁把整句改回原文", "仍然是局部补丁"):
+        assert kw in v4, kw
+    p = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v4", question="怎么调作息？")
+    assert "【用户问题】\n怎么调作息？" in p and p.index("【用户问题】") < p.rindex("【原文】")
+    assert "\n\n【用户问题】\n" not in build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v3", question="怎么调作息？")
+    assert "\n\n【用户问题】\n" not in build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v4", question="  ")
+
+
+def test_patch_misread_roundtrips_in_results():
+    from no_ai_fluff.patcher import results_to_dicts
+
+    ps = parse_patches('[{"find":"a","replace":"b","type":"保真","misread":"读者会以为 a 是 b"}]')
+    doc = parse("这里有 a 字。")
+    _, res = apply_patches(doc, [s.masked for s in doc.slots], ps)
+    assert results_to_dicts(res)[0]["misread"] == "读者会以为 a 是 b"

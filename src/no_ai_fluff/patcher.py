@@ -72,25 +72,87 @@ AUDIT_INSTRUCTIONS_V3 = """你是中文编辑。【RTT 初稿】由【原文】�
 - 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
 - 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
 
-AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3}
-DEFAULT_AUDIT_RULES = "v3"
+# v4（2026-11-08）：v3 冒烟里宿主大量以“原文是 xx，所以改成 xx”为由把句子抄回原文。
+# 原因是“保真 = 与原文一致”的定义本身：原文就在手边，照抄是最省事、最不会错的做法。
+# v4 把保真改为以读者为中心的判据——只有读者会因此产生错误认识时才算保真问题，
+# 保真补丁必须写明 misread（读者会误以为什么），说不出就不准改；措辞、语体、句式差异一律不算。
+AUDIT_INSTRUCTIONS_V4 = """你是中文编辑。【RTT 初稿】由【原文】经机器往返翻译得到，句子已经被拆松。请交付一份“说人话”的定稿：读者读完得到的认识与读原文完全相同，读起来像有经验的人当面讲给同事听。
+
+一、保真：只防“读者会被误导”。
+判断标准只有一个：读者读了初稿，会不会得出与原文不同的错误认识，或者据此做错事？会，才算保真问题；不会，就不是。
+以下情况会误导读者，必须修：
+- 数字、单位、量级变了；
+- 语气强弱变了：“尽量、通常、可能、建议、很”被说成硬性要求，或者反过来；
+- 条件边界变了：“以内、之间、仅当、至少、除非”等；
+- 因果方向、主体与客体颠倒；
+- 专业术语变成了另一个东西（例如 compaction 被说成“集约化战略”），或工程内部的专有名词、代号被改得认不出来；
+- 原文的关键信息丢了，或者凭空多出原文没有的说法。
+以下情况**不是**保真问题，不准以“保真”为由修改：
+- 用词、语体、句子结构和原文不同；把书面词换成了口语词；
+- 句子被拆短、语序调整、多用了几个字把话说清楚；
+- 原文里的套话、口号、空洞修饰被去掉了（这本来就是我们要的）。
+修保真问题时，只改出错的那个词或短语，保留初稿拆松的句式。严禁把整句改回原文的写法（这类补丁会被代码拒收）。
+如果给了【用户问题】，用它判断哪些内容是回答问题必不可少的、有没有段落跑题；但事实细节仍以原文为准。
+
+二、说人话（放宽改写）。读着累的地方可以改写到一两句话的范围，包括原文本身就有的 AI 腔。依据：
+1. 句子主谓完整，不用名词短语堆砌代替句子；
+2. 因果直说，不用“打通、闭环、下沉、赋能”这类空间动作充当逻辑连词；比喻要能对应到实物实量，否则删掉；
+3. 不用读者需要回溯才能看懂的自造代号和压缩短语；
+4. 非必要不夹英文，只保留没有通行中文译法的技术术语；
+5. 去掉翻译腔：长定语拆开，被动句改主动，“对……进行……”“享受……”这类直译搭配改成自然说法；
+6. 删掉空洞大词、口号式排比和没有度量的夸张修饰，能给具体事实或数量就给；
+7. 推理不跳步，必要的“因为、所以、这样”不省；
+8. 不扩写、不加背景、不升华，不加原文没有的信息；
+9. 指代不清的“它、其、该”换成明确的名词；
+10. 原文作者明确使用的说法、比喻和术语照用。
+好读不等于字数少：为了说清楚多用几个字可以，但不要把句子压成名词短语。
+
+输出格式：
+- 只输出 JSON 数组；初稿已经准确又好读就输出 []。每条补丁：
+  {"find": "初稿原片段", "replace": "修改后片段", "type": "保真|说人话", "misread": "读者读初稿会误以为什么（type 为保真时必填，写具体的错误认识）", "reason": "原因"}
+- misread 要写读者的错误认识，例如“读者会以为通勤必须在 45~60 分钟之间”；不能写“与原文不一致”“原文是 xx”这类话——写不出具体误解，就说明不是保真问题。
+- 仍然是局部补丁：find 逐字摘自【RTT 初稿】，在全文中唯一，不跨行，范围是一个词、一个短语或一两句话（不超过 300 字），不要整段重写。
+- 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
+- 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
+
+AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3,
+               "v4": AUDIT_INSTRUCTIONS_V4}
+DEFAULT_AUDIT_RULES = "v4"
 AUDIT_INSTRUCTIONS = AUDIT_RULES[DEFAULT_AUDIT_RULES]  # 向后兼容
 # 单条补丁 find 的长度上限，按规则版本区分：v1/v2 只修局部，超过 200 字视为整段重写而拒收；
 # v3 允许整段改写，上限放宽到一个段落的量级（仍不得跨行，结构由原文决定）
-MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300}
+MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300}
 # v3 冒烟发现：宿主以“保真”为名把整句复制回原文，往返解压被完全抵消（三篇与原文差异降到 0%）。
 # replace 中与原文逐字相同的连续片段达到这个长度，就视为“改回原文”并拒收；短术语不受影响。
-REVERT_MIN_CHARS = {"v3": 25}
+REVERT_MIN_CHARS = {"v3": 25, "v4": 25}
+# v4：保真补丁必须写出读者的具体误解；空着或只是“与原文不一致 / 原文是…”之类的套话，一律拒收
+REQUIRE_MISREAD = {"v4"}
+_TAUTOLOGY_RE = re.compile(r"^(?:与|和|跟)?原文(?:不一致|不同|有出入|不符|有差异)|^原文(?:是|为|写的是|说的是)|^(?:与|和)原文表述")
 MAX_FIND_CHARS = MAX_FIND_BY_RULES["v2"]
 
 
-def build_audit_prompt(original: str, rtt_draft: str, radar_text: str, rules: str = DEFAULT_AUDIT_RULES) -> str:
+def build_audit_prompt(
+    original: str, rtt_draft: str, radar_text: str, rules: str = DEFAULT_AUDIT_RULES, question: str | None = None
+) -> str:
     if rules not in AUDIT_RULES:
         raise ValueError(f"未知审校规则 {rules}，可选：{', '.join(AUDIT_RULES)}")
+    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules == "v4" else ""
     return (
-        f"{AUDIT_RULES[rules]}\n\n【原文】\n{original}\n\n【RTT 初稿】\n{rtt_draft}\n\n"
+        f"{AUDIT_RULES[rules]}\n\n{q}【原文】\n{original}\n\n【RTT 初稿】\n{rtt_draft}\n\n"
         f"【雷达提示】\n{radar_text}\n\n只输出 JSON 数组："
     )
+
+
+def misread_problem(p: "Patch") -> str:
+    """v4：保真补丁的 misread 检查。返回拒收原因，合格返回空串。"""
+    if not p.type.startswith("保真"):
+        return ""
+    m = p.misread.strip()
+    if len(m) < 6:
+        return "保真补丁没有写出读者会误以为什么（misread），不是保真问题就不应修改"
+    if _TAUTOLOGY_RE.search(m):
+        return "保真补丁的 misread 只是“与原文不一致”之类的说法，没有说明读者的具体误解"
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +191,7 @@ class Patch:
     replace: str
     reason: str = ""
     type: str = ""
+    misread: str = ""
 
 
 def parse_patches(raw) -> list[Patch]:
@@ -169,7 +232,8 @@ def parse_patches(raw) -> list[Patch]:
         find, replace = item.get("find"), item.get("replace")
         if not isinstance(find, str) or not isinstance(replace, str):
             raise PatchFormatError(f"补丁项缺少字符串 find/replace：{item!r}")
-        out.append(Patch(find, replace, str(item.get("reason", "")), str(item.get("type", "") or "")))
+        out.append(Patch(find, replace, str(item.get("reason", "")), str(item.get("type", "") or ""),
+                         str(item.get("misread", "") or "")))
     return out
 
 
@@ -256,6 +320,7 @@ def _longest_common_run(a: str, b: str) -> int:
 def apply_patches(
     doc: Document, slot_texts: list[str], patches: list[Patch], max_find: int = MAX_FIND_CHARS,
     revert_min: int | None = None,
+    require_misread: bool = False,
 ) -> tuple[list[str], list[PatchResult]]:
     """把补丁逐条合并进掩码槽位文本。返回 (新槽位文本, 每条补丁的处理结果)。
 
@@ -266,6 +331,11 @@ def apply_patches(
     results: list[PatchResult] = []
     original = doc.render([s.masked for s in doc.slots]) if revert_min else ""
     for p in patches:
+        if require_misread:
+            why = misread_problem(p)
+            if why:
+                results.append(PatchResult(p, False, why))
+                continue
         if revert_min:
             run = _longest_common_run(p.replace, original)
             if run >= revert_min and run > _longest_common_run(p.find, original):
@@ -289,7 +359,7 @@ def _strip_structure_prefix(p: Patch) -> tuple[Patch | None, str]:
         return None, ""
     if not p.replace.startswith(prefix):
         return None, f"补丁改动了行首结构标记「{prefix.strip()}」"
-    return Patch(p.find[len(prefix):], p.replace[len(prefix):], p.reason, p.type), ""
+    return Patch(p.find[len(prefix):], p.replace[len(prefix):], p.reason, p.type, p.misread), ""
 
 
 _CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
@@ -315,7 +385,7 @@ def _apply_table_row(doc: Document, texts: list[str], p: Patch, max_find: int = 
             continue
         if not f:
             return PatchResult(p, False, "补丁向空单元格填写内容")
-        sub = _apply_core(doc, trial, Patch(f, r, p.reason, p.type), max_find)
+        sub = _apply_core(doc, trial, Patch(f, r, p.reason, p.type, p.misread), max_find)
         if not sub.applied:
             return PatchResult(p, False, f"表格单元格「{f[:20]}」：{sub.reason}")
     texts[:] = trial
