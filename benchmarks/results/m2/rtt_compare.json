@@ -1,0 +1,1153 @@
+{
+  "docs": {
+    "hymt-fr": {
+      "all": {
+        "latency_s": 12.7041,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0565,
+        "unchanged_rate": 0.0758,
+        "number_mismatch_doc": 0.1875,
+        "number_mismatch_count_per_kchar": 0.5532,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 0.9649,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.0479,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.2611,
+        "spacing_kept": 0.1875,
+        "length_ratio": 1.0979,
+        "latency_p50": 11.04,
+        "latency_p90": 17.21,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 12.8366,
+        "cost_per_kchar": 0.0007,
+        "segment_fallback": 0.0213,
+        "unchanged_rate": 0.0301,
+        "number_mismatch_doc": 0.4,
+        "number_mismatch_count_per_kchar": 0.1662,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 1.818,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.226,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 0.2123,
+        "length_ratio": 1.0573,
+        "latency_p50": 13.93,
+        "latency_p90": 14.19,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 12.6028,
+        "cost_per_kchar": 0.0007,
+        "segment_fallback": 0.0299,
+        "unchanged_rate": 0.0519,
+        "number_mismatch_doc": 0.0,
+        "number_mismatch_count_per_kchar": 0.0,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 0.888,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.0803,
+        "cliche_before": 0.406,
+        "cliche_after": 0.4995,
+        "spacing_kept": 0.2537,
+        "length_ratio": 1.0363,
+        "latency_p50": 12.38,
+        "latency_p90": 13.8,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 17.5466,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0305,
+        "unchanged_rate": 0.0933,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0726,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.3089,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.4603,
+        "spacing_kept": 0.1724,
+        "length_ratio": 1.046,
+        "latency_p50": 16.35,
+        "latency_p90": 19.64,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 12.5684,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0457,
+        "unchanged_rate": 0.0508,
+        "number_mismatch_doc": 0.0,
+        "number_mismatch_count_per_kchar": 0.0,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 1.663,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.575,
+        "spacing_kept": 0.0674,
+        "length_ratio": 1.0387,
+        "latency_p50": 11.69,
+        "latency_p90": 13.67,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 10.73,
+        "cost_per_kchar": 0.0009,
+        "segment_fallback": 0.0976,
+        "unchanged_rate": 0.1081,
+        "number_mismatch_doc": 0.25,
+        "number_mismatch_count_per_kchar": 1.3758,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 0.2072,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0568,
+        "length_ratio": 1.1948,
+        "spacing_kept": 0.2727,
+        "latency_p50": 9.71,
+        "latency_p90": 10.66,
+        "n": 12
+      }
+    },
+    "hymt-ja": {
+      "all": {
+        "latency_s": 11.3545,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0085,
+        "unchanged_rate": 0.0306,
+        "number_mismatch_doc": 0.1875,
+        "number_mismatch_count_per_kchar": 0.275,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 1.4575,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.1628,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.3741,
+        "spacing_kept": 0.2989,
+        "length_ratio": 1.1228,
+        "latency_p50": 10.78,
+        "latency_p90": 14.46,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 11.566,
+        "cost_per_kchar": 0.0007,
+        "segment_fallback": 0.0036,
+        "unchanged_rate": 0.0168,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0936,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 3.6718,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.7187,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 0.2868,
+        "length_ratio": 1.0951,
+        "latency_p50": 9.54,
+        "latency_p90": 12.91,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 9.9872,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0,
+        "unchanged_rate": 0.0367,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0803,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 1.5004,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.2866,
+        "cliche_before": 0.406,
+        "cliche_after": 0.6189,
+        "spacing_kept": 0.2418,
+        "length_ratio": 1.0541,
+        "latency_p50": 11.74,
+        "latency_p90": 11.85,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 15.4194,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0039,
+        "unchanged_rate": 0.0741,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0726,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.527,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0363,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.4604,
+        "spacing_kept": 0.1529,
+        "length_ratio": 1.0487,
+        "latency_p50": 12.02,
+        "latency_p90": 12.04,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 12.8812,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0248,
+        "unchanged_rate": 0.0367,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.131,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 2.6288,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.6506,
+        "spacing_kept": 0.3786,
+        "length_ratio": 1.0559,
+        "latency_p50": 12.36,
+        "latency_p90": 13.28,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 9.5062,
+        "cost_per_kchar": 0.0009,
+        "segment_fallback": 0.0092,
+        "unchanged_rate": 0.0132,
+        "number_mismatch_doc": 0.1667,
+        "number_mismatch_count_per_kchar": 0.576,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 0.0,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.0,
+        "cliche_after": 0.2767,
+        "length_ratio": 1.2216,
+        "spacing_kept": 0.9091,
+        "latency_p50": 8.81,
+        "latency_p90": 12.67,
+        "n": 12
+      }
+    },
+    "hymt-ru": {
+      "all": {
+        "latency_s": 12.034,
+        "cost_per_kchar": 0.0009,
+        "segment_fallback": 0.0108,
+        "unchanged_rate": 0.0278,
+        "number_mismatch_doc": 0.2188,
+        "number_mismatch_count_per_kchar": 0.6549,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 1.2356,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.0857,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.2194,
+        "spacing_kept": 0.1957,
+        "length_ratio": 1.1122,
+        "latency_p50": 10.95,
+        "latency_p90": 16.95,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 12.902,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0213,
+        "unchanged_rate": 0.0301,
+        "number_mismatch_doc": 0.0,
+        "number_mismatch_count_per_kchar": 0.0,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 2.8053,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.2388,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 0.2577,
+        "length_ratio": 1.0801,
+        "latency_p50": 10.87,
+        "latency_p90": 15.82,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 11.9388,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0168,
+        "unchanged_rate": 0.0335,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0803,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 1.485,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.1194,
+        "cliche_before": 0.406,
+        "cliche_after": 0.2866,
+        "spacing_kept": 0.2875,
+        "length_ratio": 1.0458,
+        "latency_p50": 11.22,
+        "latency_p90": 12.89,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 16.906,
+        "cost_per_kchar": 0.001,
+        "segment_fallback": 0.0188,
+        "unchanged_rate": 0.0834,
+        "number_mismatch_doc": 0.4,
+        "number_mismatch_count_per_kchar": 0.1818,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.5134,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0364,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.34,
+        "spacing_kept": 0.2019,
+        "length_ratio": 1.0637,
+        "latency_p50": 12.28,
+        "latency_p90": 16.95,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 11.6984,
+        "cost_per_kchar": 0.0008,
+        "segment_fallback": 0.0125,
+        "unchanged_rate": 0.0177,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.1985,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 1.6951,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.3957,
+        "spacing_kept": 0.0461,
+        "length_ratio": 1.0473,
+        "latency_p50": 11.89,
+        "latency_p90": 12.38,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 9.8217,
+        "cost_per_kchar": 0.001,
+        "segment_fallback": 0.0,
+        "unchanged_rate": 0.0054,
+        "number_mismatch_doc": 0.25,
+        "number_mismatch_count_per_kchar": 1.5546,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 0.1704,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0642,
+        "cliche_before": 0.0,
+        "cliche_after": 0.1592,
+        "length_ratio": 1.2005,
+        "spacing_kept": 0.0,
+        "latency_p50": 9.13,
+        "latency_p90": 11.59,
+        "n": 12
+      }
+    },
+    "gemma-fr": {
+      "all": {
+        "latency_s": 24.1578,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1211,
+        "unchanged_rate": 0.1336,
+        "number_mismatch_doc": 0.3438,
+        "number_mismatch_count_per_kchar": 0.9808,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 1.3979,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.1013,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.2429,
+        "spacing_kept": 0.9466,
+        "length_ratio": 1.0812,
+        "latency_p50": 23.66,
+        "latency_p90": 40.04,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 30.5078,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1109,
+        "unchanged_rate": 0.1154,
+        "number_mismatch_doc": 0.0,
+        "number_mismatch_count_per_kchar": 0.0,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 2.1427,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.2777,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 0.9649,
+        "length_ratio": 1.0368,
+        "latency_p50": 28.9,
+        "latency_p90": 34.72,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 26.7732,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.1206,
+        "unchanged_rate": 0.1422,
+        "number_mismatch_doc": 0.6,
+        "number_mismatch_count_per_kchar": 0.4471,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 1.9476,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.3705,
+        "cliche_before": 0.406,
+        "cliche_after": 0.4735,
+        "spacing_kept": 0.8978,
+        "length_ratio": 1.042,
+        "latency_p50": 20.43,
+        "latency_p90": 31.54,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 42.2562,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.099,
+        "unchanged_rate": 0.132,
+        "number_mismatch_doc": 0.6,
+        "number_mismatch_count_per_kchar": 0.4224,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.4662,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.2883,
+        "spacing_kept": 0.9614,
+        "length_ratio": 1.0321,
+        "latency_p50": 30.35,
+        "latency_p90": 51.34,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 33.528,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.0876,
+        "unchanged_rate": 0.1086,
+        "number_mismatch_doc": 0.4,
+        "number_mismatch_count_per_kchar": 0.2302,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 2.3421,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.4204,
+        "spacing_kept": 0.9793,
+        "length_ratio": 1.037,
+        "latency_p50": 33.15,
+        "latency_p90": 36.8,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 8.9769,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.1488,
+        "unchanged_rate": 0.1488,
+        "number_mismatch_doc": 0.25,
+        "number_mismatch_count_per_kchar": 2.1572,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 0.4367,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.0,
+        "cliche_after": 0.1552,
+        "length_ratio": 1.155,
+        "spacing_kept": 0.9091,
+        "latency_p50": 8.75,
+        "latency_p90": 9.4,
+        "n": 12
+      }
+    },
+    "gemma-ru": {
+      "all": {
+        "latency_s": 24.214,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1034,
+        "unchanged_rate": 0.1191,
+        "number_mismatch_doc": 0.3438,
+        "number_mismatch_count_per_kchar": 0.4204,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 1.6088,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.2637,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.2672,
+        "spacing_kept": 1.0011,
+        "length_ratio": 1.1129,
+        "latency_p50": 23.57,
+        "latency_p90": 40.34,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 32.0226,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1098,
+        "unchanged_rate": 0.1098,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0936,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 2.537,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.2388,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 1.0038,
+        "length_ratio": 1.0696,
+        "latency_p50": 33.33,
+        "latency_p90": 40.16,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 26.9086,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1078,
+        "unchanged_rate": 0.1309,
+        "number_mismatch_doc": 0.0,
+        "number_mismatch_count_per_kchar": 0.0,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 1.2071,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.2902,
+        "cliche_before": 0.406,
+        "cliche_after": 0.9252,
+        "spacing_kept": 1.1216,
+        "length_ratio": 1.0512,
+        "latency_p50": 23.86,
+        "latency_p90": 24.59,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 41.7118,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.052,
+        "unchanged_rate": 0.1034,
+        "number_mismatch_doc": 1.0,
+        "number_mismatch_count_per_kchar": 0.569,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.5744,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.1199,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.1567,
+        "spacing_kept": 0.8898,
+        "length_ratio": 1.0613,
+        "latency_p50": 36.92,
+        "latency_p90": 61.71,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 33.9112,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.0848,
+        "unchanged_rate": 0.1006,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0993,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 2.5121,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.1908,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.4281,
+        "spacing_kept": 1.027,
+        "length_ratio": 1.0437,
+        "latency_p50": 31.99,
+        "latency_p90": 32.09,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 8.5063,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1281,
+        "unchanged_rate": 0.1323,
+        "number_mismatch_doc": 0.3333,
+        "number_mismatch_count_per_kchar": 0.8037,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 1.0274,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.3534,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0833,
+        "length_ratio": 1.2069,
+        "spacing_kept": 0.7273,
+        "latency_p50": 8.18,
+        "latency_p90": 9.57,
+        "n": 12
+      }
+    },
+    "gemma-ja": {
+      "all": {
+        "latency_s": 24.3369,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1182,
+        "unchanged_rate": 0.1399,
+        "number_mismatch_doc": 0.2812,
+        "number_mismatch_count_per_kchar": 0.3179,
+        "loose_english_before": 2.6517,
+        "loose_english_after": 1.174,
+        "long_clause_before": 0.0945,
+        "long_clause_after": 0.31,
+        "cliche_before": 0.3544,
+        "cliche_after": 0.313,
+        "spacing_kept": 0.7937,
+        "length_ratio": 1.0839,
+        "latency_p50": 20.28,
+        "latency_p90": 41.15,
+        "n": 32
+      },
+      "coding": {
+        "latency_s": 31.4354,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.0851,
+        "unchanged_rate": 0.1058,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0936,
+        "loose_english_before": 5.0079,
+        "loose_english_after": 3.0861,
+        "long_clause_before": 0.3657,
+        "long_clause_after": 0.2859,
+        "cliche_before": 0.0,
+        "cliche_after": 0.0,
+        "spacing_kept": 0.8253,
+        "length_ratio": 1.044,
+        "latency_p50": 31.05,
+        "latency_p90": 32.65,
+        "n": 5
+      },
+      "teaching": {
+        "latency_s": 26.2052,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.1021,
+        "unchanged_rate": 0.1391,
+        "number_mismatch_doc": 0.4,
+        "number_mismatch_count_per_kchar": 0.408,
+        "loose_english_before": 2.9238,
+        "loose_english_after": 1.0074,
+        "long_clause_before": 0.2388,
+        "long_clause_after": 0.3191,
+        "cliche_before": 0.406,
+        "cliche_after": 0.5473,
+        "spacing_kept": 0.726,
+        "length_ratio": 1.0085,
+        "latency_p50": 19.12,
+        "latency_p90": 20.79,
+        "n": 5
+      },
+      "writing": {
+        "latency_s": 45.988,
+        "cost_per_kchar": 0.0004,
+        "segment_fallback": 0.1157,
+        "unchanged_rate": 0.1618,
+        "number_mismatch_doc": 0.4,
+        "number_mismatch_count_per_kchar": 0.1455,
+        "loose_english_before": 2.3021,
+        "loose_english_after": 1.4182,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 1.4342,
+        "cliche_after": 0.6171,
+        "spacing_kept": 0.8238,
+        "length_ratio": 1.0334,
+        "latency_p50": 41.15,
+        "latency_p90": 52.79,
+        "n": 5
+      },
+      "discussion": {
+        "latency_s": 31.6182,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1508,
+        "unchanged_rate": 0.1591,
+        "number_mismatch_doc": 0.2,
+        "number_mismatch_count_per_kchar": 0.0993,
+        "loose_english_before": 6.5835,
+        "loose_english_after": 1.8476,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.0,
+        "cliche_before": 0.4281,
+        "cliche_after": 0.4204,
+        "spacing_kept": 0.7795,
+        "length_ratio": 1.0359,
+        "latency_p50": 31.08,
+        "latency_p90": 31.34,
+        "n": 5
+      },
+      "daily": {
+        "latency_s": 8.5457,
+        "cost_per_kchar": 0.0003,
+        "segment_fallback": 0.1261,
+        "unchanged_rate": 0.1374,
+        "number_mismatch_doc": 0.25,
+        "number_mismatch_count_per_kchar": 0.5366,
+        "loose_english_before": 0.0642,
+        "loose_english_after": 0.0642,
+        "long_clause_before": 0.0,
+        "long_clause_after": 0.5747,
+        "cliche_before": 0.0,
+        "cliche_after": 0.1743,
+        "length_ratio": 1.1729,
+        "spacing_kept": 0.9091,
+        "latency_p50": 7.7,
+        "latency_p90": 10.1,
+        "n": 12
+      }
+    }
+  },
+  "probes": {
+    "hymt-fr": {
+      "probe_pass": 0.7647,
+      "probe_pass_by_category": {
+        "term": 0.6875,
+        "condition": 0.75,
+        "number": 1.0,
+        "daily": 0.8333
+      },
+      "probe_unchanged": 0.0,
+      "probe_failures": [
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "当下游超时率过高时，会触发断路器，暂停调用十秒钟。"
+        },
+        {
+          "id": "probe-010",
+          "missing": [
+            "背压"
+          ],
+          "back": "当消费者处理速度跟不上时，反压机制会减慢生产者的速度。"
+        },
+        {
+          "id": "probe-013",
+          "missing": [
+            "最终一致"
+          ],
+          "back": "只有最终的一致性在地理副本之间得到保证。"
+        },
+        {
+          "id": "probe-015",
+          "missing": [
+            "分片"
+          ],
+          "back": "按用户进行水平分区ID后，单个表的数据量降至初始值的八分之一。"
+        },
+        {
+          "id": "probe-016",
+          "missing": [
+            "门控"
+          ],
+          "back": "搜索仅按相似度排序，不引入控制信号。"
+        },
+        {
+          "id": "probe-017",
+          "missing": [
+            "未命中/没有命中/不命中/未找到"
+          ],
+          "back": "只有在缓存中缺失时才会查询数据库。"
+        },
+        {
+          "id": "probe-024",
+          "missing": [
+            "关闭"
+          ],
+          "back": "该开关默认处于禁用状态；只有启用后才会记录完整的日志。"
+        },
+        {
+          "id": "probe-033",
+          "missing": [
+            "木地板/木质地板"
+          ],
+          "back": "我的预算大约是三千；家里养了一只猫，地板是木质的。"
+        }
+      ]
+    },
+    "hymt-ja": {
+      "probe_pass": 0.8529,
+      "probe_pass_by_category": {
+        "term": 0.8125,
+        "condition": 1.0,
+        "number": 1.0,
+        "daily": 0.6667
+      },
+      "probe_unchanged": 0.0,
+      "probe_failures": [
+        {
+          "id": "probe-001",
+          "missing": [
+            "竞态/竞争条件"
+          ],
+          "back": "当多个线程同时更新该计数器时，会产生竞争状态。"
+        },
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "当下游的超时率升高时，断路器会启动，暂停调用10秒钟。"
+        },
+        {
+          "id": "probe-011",
+          "missing": [
+            "梯度消失"
+          ],
+          "back": "层数过深时，反向传播过程中梯度会消失。"
+        },
+        {
+          "id": "probe-032",
+          "missing": [
+            "借"
+          ],
+          "back": "她不偿还债务，当我指出这一点时，她却说我“小气”。"
+        },
+        {
+          "id": "probe-033",
+          "missing": [
+            "木地板/木质地板"
+          ],
+          "back": "预算约为3,000元，家里有猫，地板是木质的。"
+        }
+      ]
+    },
+    "hymt-ru": {
+      "probe_pass": 0.7353,
+      "probe_pass_by_category": {
+        "term": 0.6875,
+        "condition": 0.625,
+        "number": 1.0,
+        "daily": 0.8333
+      },
+      "probe_unchanged": 0.0,
+      "probe_failures": [
+        {
+          "id": "probe-004",
+          "missing": [
+            "逃逸分析"
+          ],
+          "back": "编译器Go会分析变量的生命周期，以确定是将它们存储在栈中还是堆中。"
+        },
+        {
+          "id": "probe-007",
+          "missing": [
+            "主从切换/主从复制切换/主备切换"
+          ],
+          "back": "无法切换主数据库服务器和辅助数据库服务器，导致服务在两小时内无法使用。"
+        },
+        {
+          "id": "probe-008",
+          "missing": [
+            "灰度"
+          ],
+          "back": "新版本最初以渐进式部署模式发布，仅对5%的用户开放。"
+        },
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "当下层系统延迟较高时，会自动触发关闭机制，暂停调用十秒钟。"
+        },
+        {
+          "id": "probe-016",
+          "missing": [
+            "门控"
+          ],
+          "back": "搜索仅基于相似度进行，不使用控制信号。"
+        },
+        {
+          "id": "probe-017",
+          "missing": [
+            "未命中/没有命中/不命中/未找到"
+          ],
+          "back": "只有当缓存中不存在相应元素时，才会执行数据库查询。"
+        },
+        {
+          "id": "probe-018",
+          "missing": [
+            "必须"
+          ],
+          "back": "合并前需要手动检查；禁止自动合并。"
+        },
+        {
+          "id": "probe-020",
+          "missing": [
+            "除非/只有/未经"
+          ],
+          "back": "如果用户未给予明确许可，则不会读取通讯录。"
+        },
+        {
+          "id": "probe-033",
+          "missing": [
+            "木地板/木质地板"
+          ],
+          "back": "预算大约三千；家里有只猫，地板是木质的。"
+        }
+      ]
+    },
+    "gemma-fr": {
+      "probe_pass": 0.6765,
+      "probe_pass_by_category": {
+        "term": 0.625,
+        "condition": 0.625,
+        "number": 1.0,
+        "daily": 0.6667
+      },
+      "probe_unchanged": 0.0294,
+      "probe_failures": [
+        {
+          "id": "probe-007",
+          "missing": [
+            "主从切换/主从复制切换/主备切换"
+          ],
+          "back": "数据库迁移失败，导致服务中断两小时。"
+        },
+        {
+          "id": "probe-008",
+          "missing": [
+            "灰度"
+          ],
+          "back": "先部署一个粗糙版本，仅对5%的用户可用。"
+        },
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "当下游超时率过高时，会触发一个断路器，中断调用十秒。"
+        },
+        {
+          "id": "probe-010",
+          "missing": [
+            "背压"
+          ],
+          "back": "生产者延迟机制会在消费者未处理消息时应用生产者延迟。"
+        },
+        {
+          "id": "probe-014",
+          "missing": [
+            "回滚"
+          ],
+          "back": "此次发布存在问题，我们已在十分钟内回退。"
+        },
+        {
+          "id": "probe-015",
+          "missing": [
+            "分片"
+          ],
+          "back": "在用户ID进行水平分割后，表的存储数据大小减少到初始大小的八分之一。"
+        },
+        {
+          "id": "probe-017",
+          "missing": [
+            "未命中/没有命中/不命中/未找到"
+          ],
+          "back": "查询数据库仅在缓存失败时执行。"
+        },
+        {
+          "id": "probe-020",
+          "missing": [
+            "除非/只有/未经",
+            "不会/不得/不能"
+          ],
+          "back": "目录的读取仅在用户主动授权时进行。"
+        },
+        {
+          "id": "probe-024",
+          "missing": [
+            "关闭"
+          ],
+          "back": "此交换机默认已禁用，仅在记录完整日志时才会启用。"
+        },
+        {
+          "id": "probe-032",
+          "missing": [
+            "小气/吝啬/抠门"
+          ],
+          "back": "她借了钱却从未还清。当我指出这一点时，她指责我脾气不好。"
+        },
+        {
+          "id": "probe-033",
+          "missing": [
+            "木地板/木质地板"
+          ],
+          "back": "预算大约3000，我们有一只猫，地板是木制的。"
+        }
+      ]
+    },
+    "gemma-ja": {
+      "probe_pass": 0.7941,
+      "probe_pass_by_category": {
+        "term": 0.8125,
+        "condition": 0.75,
+        "number": 1.0,
+        "daily": 0.6667
+      },
+      "probe_unchanged": 0.0294,
+      "probe_failures": [
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "当下游超时率过高时，断路器会触发，并停止调用10秒。"
+        },
+        {
+          "id": "probe-015",
+          "missing": [
+            "分片"
+          ],
+          "back": "在水平分割用户ID后，单个表的存储量减少到原始的八分之一。"
+        },
+        {
+          "id": "probe-016",
+          "missing": [
+            "门控"
+          ],
+          "back": "搜索结果按相似度排序，未引入任何门信号。"
+        },
+        {
+          "id": "probe-019",
+          "missing": [
+            "最多/至多/不超过"
+          ],
+          "back": "最大限尝试3次。"
+        },
+        {
+          "id": "probe-022",
+          "missing": [
+            "至少"
+          ],
+          "back": "请求体必须包含两个字段：用户ID和时间戳。"
+        },
+        {
+          "id": "probe-029",
+          "missing": [
+            "房东"
+          ],
+          "back": "大家说，来月起房租预计会上涨500日元。我希望委婉地提出降价建议。"
+        },
+        {
+          "id": "probe-032",
+          "missing": [
+            "小气/吝啬/抠门"
+          ],
+          "back": "她因为没能还清借来的钱，只说了一句，就被我指责任性。"
+        }
+      ]
+    },
+    "gemma-ru": {
+      "probe_pass": 0.5882,
+      "probe_pass_by_category": {
+        "term": 0.4375,
+        "condition": 0.5,
+        "number": 1.0,
+        "daily": 0.8333
+      },
+      "probe_unchanged": 0.0294,
+      "probe_failures": [
+        {
+          "id": "probe-001",
+          "missing": [
+            "竞态/竞争条件"
+          ],
+          "back": "多个线程同时修改这个计数器会导致数据竞争。"
+        },
+        {
+          "id": "probe-002",
+          "missing": [
+            "幂等"
+          ],
+          "back": "这个接口是原子的，重复调用没有副作用。"
+        },
+        {
+          "id": "probe-007",
+          "missing": [
+            "主从切换/主从复制切换/主备切换"
+          ],
+          "back": "第一次和第二次数据库的切换失败，导致服务停机两小时。"
+        },
+        {
+          "id": "probe-008",
+          "missing": [
+            "灰度"
+          ],
+          "back": "新版本首先进行内测，仅对5%的用户可用。"
+        },
+        {
+          "id": "probe-009",
+          "missing": [
+            "熔断"
+          ],
+          "back": "在出现大量错误时，会触发断开连接，并暂停后续调用十秒。"
+        },
+        {
+          "id": "probe-010",
+          "missing": [
+            "背压"
+          ],
+          "back": "如果消费者无法处理消息，生产者会通过反压机制减速。"
+        },
+        {
+          "id": "probe-011",
+          "missing": [
+            "反向传播"
+          ],
+          "back": "过多的梯度层数可能导致梯度消失。"
+        },
+        {
+          "id": "probe-013",
+          "missing": [
+            "最终一致"
+          ],
+          "back": "区域之间的对话只保证最终的一致性。"
+        },
+        {
+          "id": "probe-016",
+          "missing": [
+            "门控"
+          ],
+          "back": "搜索仅按相似度排序，未添加过滤信号。"
+        },
+        {
+          "id": "probe-018",
+          "missing": [
+            "必须"
+          ],
+          "back": "合并需要手动检查，不能自动进行。"
+        },
+        {
+          "id": "probe-020",
+          "missing": [
+            "除非/只有/未经"
+          ],
+          "back": "联系人簿在用户明确授权的情况下不会被读取。"
+        },
+        {
+          "id": "probe-021",
+          "missing": [
+            "不一定/未必/不见得"
+          ],
+          "back": "这个选项可能不如前一个快，这取决于数据的大小。"
+        },
+        {
+          "id": "probe-024",
+          "missing": [
+            "关闭"
+          ],
+          "back": "此选项默认已禁用，只有启用后才会记录完整的日志。"
+        },
+        {
+          "id": "probe-033",
+          "missing": [
+            "木地板/木质地板"
+          ],
+          "back": "预算大概3000，家里有一只猫，房子主要是木头。"
+        }
+      ]
+    }
+  }
+}
