@@ -1,9 +1,9 @@
 # 让 Agent 用宿主内置模型做评审：可直接粘贴的提示词
 
 适用于 Codex、Antigravity、Cursor Agent 等能读写本地文件、能执行命令的 Agent。
-建议用**非 Claude 系列**的宿主模型，因为补丁阶段用的是 Claude Sonnet 5.5，同家模型当评委容易偏爱它的改写。
+建议用**非 DeepSeek 系列**的宿主模型（如 Codex 的 GPT、Antigravity 的 Gemini），因为补丁阶段的宿主是 DeepSeek（`deepseek-flash`），同家模型当评委容易偏爱它的改写。
 
-准备：在项目根目录执行过 `python benchmarks/agent_judge.py export`，已生成 34 个评审包。
+准备：在项目根目录执行过 `python benchmarks/agent_judge.py export`（补丁阶段全部完成后再导出）。
 
 把下面整段粘贴给 Agent：
 
@@ -44,6 +44,6 @@
 
 ## 用户侧检查
 
-- 跑完先看 `python benchmarks/run_ablation.py audit`：评委来源应该是 Agent 填写的模型名，数量 260/260，没有 ⚠。
+- 跑完先看 `python benchmarks/run_ablation.py audit`：评委来源应该是 Agent 填写的模型名，数量 416/416（32 篇 × 13 个版本），没有 ⚠。
 - 答卷 `answers/*.json` 会提交进仓库，作为评审证据。
 - 可以抽查几份答卷，看引文和理由是否言之有物。

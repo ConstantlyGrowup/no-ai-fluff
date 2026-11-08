@@ -44,12 +44,12 @@ from no_ai_fluff.config import load_dotenv  # noqa: E402
 from no_ai_fluff.masker import parse  # noqa: E402
 from no_ai_fluff.pipeline import DraftStore, Pipeline, PipelineConfig  # noqa: E402
 from no_ai_fluff.radar import KINDS, number_mismatch, scan, scan_document  # noqa: E402
-from no_ai_fluff.rtt import SUPPORTED_BRIDGES, SUPPORTED_MODELS, OpenRouterClient  # noqa: E402
+from no_ai_fluff.rtt import SUPPORTED_BRIDGES, SUPPORTED_MODELS, ChatClient, OpenRouterClient  # noqa: E402
 
 BENCH = ROOT / "benchmarks"
 CACHE = BENCH / ".cache"
 SAMPLES = BENCH / "corpus" / "samples.jsonl"
-DEFAULT_HOST = "anthropic/claude-sonnet-5.5"
+DEFAULT_HOST = "deepseek-flash"  # 中文场景下以 DeepSeek 作宿主更有代表性（2026-11-08 起）
 DEFAULT_JUDGE = "google/gemini-3.1-pro-preview"
 SHORT = {"tencent/hy-mt2-30b-a3b": "hymt", "google/gemma-3-4b-it": "gemma"}
 
@@ -84,7 +84,14 @@ def samples(only: list[str] | None = None) -> list[dict]:
 
 
 def make_client(args, timeout: float = 300) -> OpenRouterClient:
-    """默认走 OpenRouter；给了 --base-url 就走任意 OpenAI 兼容接口（本地模型不需要真实 Key）。"""
+    """--provider 选择大模型服务商（deepseek / openrouter）；给了 --base-url 就走任意 OpenAI 兼容接口。
+
+    约定：OpenRouter 只用于翻译小模型；宿主补丁默认走 DeepSeek 官方 API。
+    """
+    if not args.base_url and args.provider == "deepseek":
+        client = ChatClient(provider="deepseek", timeout=timeout, cache_dir=CACHE / "deepseek")
+        client.is_local = True  # 不发 OpenRouter 专有字段
+        return client
     if args.base_url:
         url = args.base_url.rstrip("/")
         if not url.endswith("/chat/completions"):
@@ -98,10 +105,18 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
     return client
 
 
-def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 4000) -> tuple[str, dict, float]:
-    # OpenRouter 专有字段（用量回传、推理预算）不发给本地服务，避免严格校验的服务端报错
-    extra = None if getattr(client, "is_local", False) else {
-        "usage": {"include": True}, "reasoning": {"effort": "low", "exclude": True}}
+EFFORT = "low"  # main() 里按 --effort 覆盖
+
+
+def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000) -> tuple[str, dict, float]:
+    # 各服务商的推理强度字段不同；本地服务不发任何专有字段，避免严格校验的服务端报错
+    if getattr(client, "provider", None) == "deepseek":
+        # DeepSeek 默认 high：补丁任务实测推理 1.1 万 token 以上、常超输出上限被截断
+        extra = {"reasoning_effort": EFFORT}
+    elif getattr(client, "is_local", False):
+        extra = None
+    else:
+        extra = {"usage": {"include": True}, "reasoning": {"effort": EFFORT, "exclude": True}}
     res = client.chat(
         model,
         [{"role": "user", "content": prompt}],
@@ -197,7 +212,7 @@ def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage:
         "raw_patches": raw, "patches": fin.patches, "applied": fin.applied, "rejected": fin.rejected,
         "final_text": fin.final_text, "fallback": fin.fallback, "fallback_reason": fin.fallback_reason,
         "host_latency_s": round(lat, 2), "host_cost_usd": usage.get("cost"), "host_usage": usage,
-        "prompt_chars": len(prompt),
+        "prompt_chars": len(prompt), "effort": EFFORT,
     }
     append_jsonl(out, rec)
     print(f"  {r['sample_id']:15} {r['combo']:9} patches={len(fin.patches)} applied={fin.applied} "
@@ -206,13 +221,13 @@ def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage:
 
 def stage_patch(args) -> None:
     jobs, out, pipe = _patch_env(args)
-    print(f"patch jobs: {len(jobs)} host={args.host} via={args.base_url or 'openrouter'}")
+    print(f"patch jobs: {len(jobs)} host={args.host} via={args.base_url or args.provider} effort={EFFORT}")
     client = make_client(args)
 
     def run(r):
         prompt = patch_prompt(pipe, r)
         try:
-            raw, usage, lat = chat_json(client, args.host, prompt)
+            raw, usage, lat = chat_json(client, args.host, prompt, max_tokens=args.patch_max_tokens)
         except Exception as e:  # noqa: BLE001 —— 调用失败不落盘，下次重跑会补上
             print(f"  {r['sample_id']} {r['combo']} HOST FAILED {e}", flush=True)
             return
@@ -351,7 +366,7 @@ def record_judge(out: Path, s: dict, name: str, judge: str, raw: str, usage: dic
 
 def stage_judge(args) -> None:
     jobs, out = _judge_env(args)
-    print(f"judge jobs: {len(jobs)} judge={args.judge} via={args.base_url or 'openrouter'}")
+    print(f"judge jobs: {len(jobs)} judge={args.judge} via={args.base_url or args.provider} effort={EFFORT}")
     client = make_client(args)
 
     def run(job):
@@ -583,10 +598,17 @@ def main() -> None:
     ap.add_argument("--host", default=DEFAULT_HOST)
     ap.add_argument("--judge", default=DEFAULT_JUDGE)
     ap.add_argument("--workers", type=int, default=3)
-    ap.add_argument("--base-url", help="OpenAI 兼容接口地址，如 http://localhost:11434/v1；不填走 OpenRouter")
+    ap.add_argument("--provider", default="deepseek", choices=["deepseek", "openrouter"],
+                    help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
+    ap.add_argument("--patch-max-tokens", type=int, default=32000,
+                    help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
+    ap.add_argument("--effort", default="low", choices=["low", "high", "max"], help="宿主/评委模型的推理强度")
+    ap.add_argument("--base-url", help="OpenAI 兼容接口地址，如 http://localhost:11434/v1；给出时覆盖 --provider")
     ap.add_argument("--api-key", help="--base-url 对应服务的 Key；本地服务通常不需要")
     ap.add_argument("--timeout", type=float, default=180.0, help="RTT 整体时限；MVP 阶段不设硬约束，只记录耗时")
     args = ap.parse_args()
+    global EFFORT
+    EFFORT = args.effort
     args.dir = BENCH / "results" / args.run
     args.dir.mkdir(parents=True, exist_ok=True)
     if args.stage.startswith("import-") and not args.file:

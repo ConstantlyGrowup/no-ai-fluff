@@ -2,20 +2,28 @@
 
 ## 语料
 
-`corpus/samples.jsonl`：4 个场景各 5 篇，共 20 篇，由 `corpus/build_samples.py` 合并生成。
+`corpus/samples.jsonl`：共 32 篇，coding / teaching / writing / discussion 各 5 篇，daily 12 篇，由 `corpus/build_samples.py` 合并生成。
 
 | 场景 | 来源 | 采集脚本 |
 |---|---|---|
 | coding | GitHub 公开仓库里 Claude Code 生成的真实中文 PR 总结，记录了 `source_url` | `corpus/collect_github_prs.py` |
 | teaching / writing / discussion | 只发用户问题、不加任何文风要求，轮流请 Claude / GPT / Gemini / DeepSeek 原生作答 | `corpus/collect_generated.py` |
+| daily | 生活建议、情感倾诉、消费决策、日常小写作四类日常问题，DeepSeek 官方 API（`deepseek-flash`）原生作答。没有找到 2026 年以后的合适现成语料 | `corpus/collect_daily.py` |
 
 被截断（`finish_reason=length`）或短于 300 字的样本会被 `build_samples.py` 剔除。
+
+## 服务商约定
+
+- OpenRouter **只用于**翻译小模型（`hy-mt2-30b-a3b`、`gemma-3-4b-it`），不调用大模型。
+- 宿主补丁用 DeepSeek 官方 API（`--provider deepseek`，Key 读 `.env` 里的 `Deepseek_OFFICIAL_API_KEY`）。DeepSeek 会按 `--patch-max-tokens` 预扣额度，余额低时需要调小。
+- 双轴评审由 Agent 宿主模型完成，见 `AGENT_JUDGE_PROMPT.md`。
+- 横评报告：`python benchmarks/rtt_compare.py` → `docs/rtt-model-comparison.md`。
 
 ## 实验阶段
 
 ```bash
 python benchmarks/run_ablation.py rtt      # 阶段 1：2 模型 × 3 桥接语往返翻译（已完成，results/m2/rtt.jsonl）
-python benchmarks/run_ablation.py patch    # 阶段 2：宿主模型对照原文审校 RTT 初稿，只开局部 JSON 补丁
+python benchmarks/run_ablation.py patch    # 阶段 2：宿主模型（默认 DeepSeek 官方 API）对照原文审校 RTT 初稿，只开局部 JSON 补丁
 python benchmarks/run_ablation.py judge    # 阶段 3：评委模型双轴盲评（保真度 × 易读度）
 python benchmarks/run_ablation.py report   # 汇总为 results/m2/summary.md
 ```
@@ -30,14 +38,14 @@ python benchmarks/run_ablation.py report   # 汇总为 results/m2/summary.md
 
 本地模型要做两件事，提示词都已写好，模型只需按要求输出 JSON。
 
-### 任务 A：补丁审校（阶段 2，共 120 条）
+### 任务 A：补丁审校（阶段 2，共 192 条）
 
 - **角色**：模拟生产环境里的宿主模型（Claude Code）。
 - **输入**：原文、往返翻译初稿、雷达提示和审校规则，见 `src/no_ai_fluff/patcher.py` 的 `AUDIT_INSTRUCTIONS`。
 - **输出**：只输出一个 JSON 数组 `[{"find": "初稿原片段", "replace": "修改后片段", "reason": "原因"}]`；初稿没问题就输出 `[]`。
 - **要点**：`find` 必须逐字摘自初稿且唯一；只修术语翻偏、逻辑失真、指代不明；不准重写全文。不合格的补丁会被代码自动拒收，拒收率本身就是评测指标。
 
-### 任务 B：双轴盲评（阶段 3，补丁导入后共 260 条）
+### 任务 B：双轴盲评（阶段 3，补丁全部完成后共 416 条）
 
 - **角色**：评委。每条任务只给参考原文和一个匿名候选版本，候选可能是原文、纯 RTT 版或补丁版。
 - **输出**：`{"fidelity": 1-5, "readability": 1-5, "errors": [...], "readability_issues": [...]}`。
