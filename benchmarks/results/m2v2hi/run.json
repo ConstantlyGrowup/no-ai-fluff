@@ -1,13 +1,13 @@
 {
   "purpose": "小批盲测：验证宿主推理强度是否是 v2 补丁漏修的原因",
   "samples": [
-    "coding-003",
-    "teaching-004",
-    "writing-002",
-    "discussion-003",
-    "daily-007"
+    "coding-002",
+    "coding-005",
+    "teaching-005",
+    "writing-001",
+    "discussion-003"
   ],
-  "sampling": "每场景 1 篇，random.Random(20261108).choice(sorted(ids))",
+  "sampling": "m2v2 中 patched:hymt-fr 被一票否决（fidelity<=2）的 9 篇里，每场景取错误数最多的 1 篇（同数取编号小的）；daily 无被否决样本，由 coding 次位补足",
   "bridge": "hymt-fr (OpenRouter tencent/hy-mt2-30b-a3b)",
   "rules": "v2",
   "host": "deepseek-flash",
