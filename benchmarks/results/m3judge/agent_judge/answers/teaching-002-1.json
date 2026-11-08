@@ -1,0 +1,30 @@
+{
+  "packet": "teaching-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "下面我们将借助几何直观来联系这些问题", "why": "将借助和联系问题的说法略显书面，开场不像当面讲解自然。"},
+        {"quote": "该优化问题的解就是对应于协方差矩阵最大特征值的特征向量", "why": "对应于结构拉长了定语，读到句末才看到核心对象。"}
+      ]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 5,
+      "errors": [],
+      "readability_issues": []
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [
+        {"quote": "我们将借助几何直觉来关联这些问题", "why": "借助和关联的搭配偏书面，开场稍有翻译腔。"},
+        {"quote": "特征向量指明了线性变换中方向保持不变的特定方向", "why": "方向在同一句里重复且修饰层次较多，读起来有些绕。"}
+      ]
+    }
+  }
+}

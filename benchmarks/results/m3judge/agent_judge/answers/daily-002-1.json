@@ -1,0 +1,24 @@
+{
+  "packet": "daily-002-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote": "即使周末也偏差不超过1小时", "why": "原文说周末也尽量不超过一小时，这里去掉了尽量，将建议加强成了硬性限制。"}],
+      "readability_issues": [{"quote": "遵循固定顺序", "why": "这个说法稍显书面，直接说每天按这个顺序做会更像当面交代。"}]
+    },
+    "B": {
+      "fidelity": 5,
+      "readability": 4,
+      "errors": [],
+      "readability_issues": [{"quote": "下午2点后不咖啡因", "why": "省掉了摄入之类的动词，读者要自己把句子补完整。"}]
+    },
+    "C": {
+      "fidelity": 4,
+      "readability": 4,
+      "errors": [{"quote": "白天休息得越多，夜晚的困意就越少", "why": "原文说的是白天补觉，这里改成休息，扩大到了不一定睡觉的休息活动。"}, {"quote": "睡前2到3小时内避免吃大餐", "why": "原文是这段时间少吃大餐，这里加强成了避免吃大餐。"}],
+      "readability_issues": [{"quote": "尤其要避免在下午进行长时间的午睡", "why": "进行长时间的午睡偏书面，简单说下午别睡太久会更顺口。"}]
+    }
+  }
+}

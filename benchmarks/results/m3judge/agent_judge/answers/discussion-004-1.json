@@ -1,0 +1,24 @@
+{
+  "packet": "discussion-004-1",
+  "judge_model": "gpt-6",
+  "candidates": {
+    "A": {
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [{"quote": "集约化战略", "why": "原文的 compaction 策略指存储引擎的数据合并整理策略，集约化战略把技术概念误译成了经营式表述。"}],
+      "readability_issues": [{"quote": "存储引擎并非普通的业务系统。其复杂性体现在以下几个方面", "why": "并非和其复杂性体现在的组合偏书面，像报告里的介绍语。"}, {"quote": "API将会更具“自描述性”", "why": "更具自描述性的表达较抽象，不如直接说接口让新人更容易看懂。"}]
+    },
+    "B": {
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [{"quote": "零拷贝分析", "why": "原文的 zero-copy 解析指不复制数据的解析操作，改成分析会让读者理解成另一类处理工作。"}, {"quote": "Rust就绝对值得", "why": "原文的很值得仍是价值判断，这里增加绝对，将建议说成了无保留的结论。"}],
+      "readability_issues": [{"quote": "团队愿意在Rust技能开发上投入资源", "why": "技能开发是生硬搭配，直接说团队愿意花时间学习和积累 Rust 经验会更自然。"}, {"quote": "当你们已经有", "why": "这个当字领起的条件隔着整段列表才接到接下来确定，句子衔接不完整。"}, {"quote": "存储引擎并非普通业务系统。其复杂性体现在", "why": "其复杂性体现在带有明显报告腔，读起来不像同事直接解释难在哪里。"}]
+    },
+    "C": {
+      "fidelity": 5,
+      "readability": 3,
+      "errors": [],
+      "readability_issues": [{"quote": "mutable access 必须经过 latch / guard", "why": "整句将动作和约束夹在英文短语里，读者要自行转成完整的中文意思。"}, {"quote": "至少有几个人能深入 Rust、unsafe、性能优化、FFI", "why": "深入后直接串接几种不同对象，省掉掌握和理解等动词，读起来有压缩感。"}, {"quote": "先建立 FFI、测试、benchmark、fault injection", "why": "建立统领四个不同层次的事项，没有展开谁要准备哪些接口和测试，像一串工作标签。"}]
+    }
+  }
+}
