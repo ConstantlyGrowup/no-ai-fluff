@@ -169,146 +169,146 @@
       "host_cost_usd_mean": null
     },
     "patched:gemma-fr": {
-      "n": 26,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.0769,
+      "number_mismatch_rate": 0.0625,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 3.0514,
+      "radar_per_kchar": 2.4792,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.1372,
+        "long_clause": 0.1115,
         "number": 0.0,
-        "cliche": 0.2858,
-        "loose_english": 2.5051,
-        "pronoun": 0.1233
+        "cliche": 0.2322,
+        "loose_english": 2.0354,
+        "pronoun": 0.1002
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 46.4231,
-      "patch_reject_rate": 0.018,
+      "patches_mean": 40.9688,
+      "patch_reject_rate": 0.017,
       "host_cost_usd_mean": null
     },
     "patched:gemma-ja": {
-      "n": 26,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.0769,
+      "number_mismatch_rate": 0.0625,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 2.8919,
+      "radar_per_kchar": 2.3497,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.1214,
+        "long_clause": 0.0986,
         "number": 0.0,
-        "cliche": 0.2886,
-        "loose_english": 2.4736,
-        "pronoun": 0.0083
+        "cliche": 0.2345,
+        "loose_english": 2.0098,
+        "pronoun": 0.0068
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 40.3077,
+      "patches_mean": 36.0938,
       "patch_reject_rate": 0.01,
       "host_cost_usd_mean": null
     },
     "patched:gemma-ru": {
-      "n": 24,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
       "number_mismatch_rate": 0.0,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 3.1685,
+      "radar_per_kchar": 2.3764,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.1098,
+        "long_clause": 0.0824,
         "number": 0.0,
-        "cliche": 0.2781,
-        "loose_english": 2.7631,
-        "pronoun": 0.0175
+        "cliche": 0.2085,
+        "loose_english": 2.0723,
+        "pronoun": 0.0132
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 45.875,
-      "patch_reject_rate": 0.014,
+      "patches_mean": 38.875,
+      "patch_reject_rate": 0.012,
       "host_cost_usd_mean": null
     },
     "patched:hymt-fr": {
-      "n": 26,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
       "number_mismatch_rate": 0.0,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 2.3147,
+      "radar_per_kchar": 1.8807,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.1163,
+        "long_clause": 0.0945,
         "number": 0.0,
-        "cliche": 0.091,
-        "loose_english": 2.1075,
+        "cliche": 0.0739,
+        "loose_english": 1.7123,
         "pronoun": 0.0
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 34.1923,
-      "patch_reject_rate": 0.002,
+      "patches_mean": 30.9062,
+      "patch_reject_rate": 0.004,
       "host_cost_usd_mean": null
     },
     "patched:hymt-ja": {
-      "n": 26,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.0769,
+      "number_mismatch_rate": 0.0625,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 2.3889,
+      "radar_per_kchar": 1.941,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.0925,
+        "long_clause": 0.0752,
         "number": 0.0,
-        "cliche": 0.1542,
-        "loose_english": 2.1422,
+        "cliche": 0.1252,
+        "loose_english": 1.7406,
         "pronoun": 0.0
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 26.1538,
-      "patch_reject_rate": 0.025,
+      "patches_mean": 24.9062,
+      "patch_reject_rate": 0.023,
       "host_cost_usd_mean": null
     },
     "patched:hymt-ru": {
-      "n": 25,
+      "n": 32,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.04,
+      "number_mismatch_rate": 0.0312,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 2.5677,
+      "radar_per_kchar": 2.006,
       "radar_kinds_per_kchar": {
-        "long_clause": 0.0829,
+        "long_clause": 0.0648,
         "number": 0.0,
-        "cliche": 0.1988,
-        "loose_english": 2.286,
+        "cliche": 0.1553,
+        "loose_english": 1.7859,
         "pronoun": 0.0
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 37.4,
+      "patches_mean": 32.4062,
       "patch_reject_rate": 0.004,
       "host_cost_usd_mean": null
     }
@@ -459,26 +459,26 @@
       "host_cost_usd_mean": null
     },
     "patched:gemma-fr|daily": {
-      "n": 6,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
       "number_mismatch_rate": 0.0,
       "fence_ok_rate": 1.0,
-      "radar_per_kchar": 0.6446,
+      "radar_per_kchar": 0.3223,
       "radar_kinds_per_kchar": {
         "long_clause": 0.0,
         "number": 0.0,
         "cliche": 0.0,
-        "loose_english": 0.1104,
-        "pronoun": 0.5342
+        "loose_english": 0.0552,
+        "pronoun": 0.2671
       },
       "latency_p50_s": null,
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 28,
+      "patches_mean": 22.6667,
       "patch_reject_rate": 0.0,
       "host_cost_usd_mean": null
     },
@@ -579,12 +579,12 @@
       "host_cost_usd_mean": null
     },
     "patched:gemma-ja|daily": {
-      "n": 6,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.1667,
+      "number_mismatch_rate": 0.0833,
       "fence_ok_rate": 1.0,
       "radar_per_kchar": 0.0,
       "radar_kinds_per_kchar": {
@@ -598,8 +598,8 @@
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 27.5,
-      "patch_reject_rate": 0.006,
+      "patches_mean": 22.6667,
+      "patch_reject_rate": 0.007,
       "host_cost_usd_mean": null
     },
     "patched:gemma-ja|discussion": {
@@ -699,7 +699,7 @@
       "host_cost_usd_mean": null
     },
     "patched:gemma-ru|daily": {
-      "n": 4,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
@@ -718,7 +718,7 @@
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 37.5,
+      "patches_mean": 24.4167,
       "patch_reject_rate": 0.0,
       "host_cost_usd_mean": null
     },
@@ -819,7 +819,7 @@
       "host_cost_usd_mean": null
     },
     "patched:hymt-fr|daily": {
-      "n": 6,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
@@ -838,8 +838,8 @@
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 20.1667,
-      "patch_reject_rate": 0.0,
+      "patches_mean": 18.4167,
+      "patch_reject_rate": 0.009,
       "host_cost_usd_mean": null
     },
     "patched:hymt-fr|discussion": {
@@ -939,12 +939,12 @@
       "host_cost_usd_mean": null
     },
     "patched:hymt-ja|daily": {
-      "n": 6,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.1667,
+      "number_mismatch_rate": 0.0833,
       "fence_ok_rate": 1.0,
       "radar_per_kchar": 0.0,
       "radar_kinds_per_kchar": {
@@ -958,8 +958,8 @@
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 17,
-      "patch_reject_rate": 0.0,
+      "patches_mean": 18.25,
+      "patch_reject_rate": 0.005,
       "host_cost_usd_mean": null
     },
     "patched:hymt-ja|discussion": {
@@ -1059,12 +1059,12 @@
       "host_cost_usd_mean": null
     },
     "patched:hymt-ru|daily": {
-      "n": 5,
+      "n": 12,
       "fidelity": null,
       "readability": null,
       "veto_rate": null,
       "placeholder_survival": 1.0,
-      "number_mismatch_rate": 0.2,
+      "number_mismatch_rate": 0.0833,
       "fence_ok_rate": 1.0,
       "radar_per_kchar": 0.0,
       "radar_kinds_per_kchar": {
@@ -1078,7 +1078,7 @@
       "cost_usd_mean": null,
       "segment_fallback_rate": null,
       "fallback_rate": null,
-      "patches_mean": 26.6,
+      "patches_mean": 19.5833,
       "patch_reject_rate": 0.0,
       "host_cost_usd_mean": null
     },
@@ -1876,5 +1876,5 @@
     }
   },
   "samples": 32,
-  "generated_at": "2026-11-08 00:46"
+  "generated_at": "2026-11-08 01:01"
 }
