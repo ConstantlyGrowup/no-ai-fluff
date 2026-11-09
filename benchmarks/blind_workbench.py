@@ -54,10 +54,15 @@ def build(args) -> None:
             elif (s["id"], v) in base:
                 variants.append((v, base[(s["id"], v)]["final_text"]))
         rng.shuffle(variants)
-        cands = []
+        cands, by_text = [], {}
         for v, text in variants:
+            if text in by_text:
+                # 两个版本逐字相同（例如 v6 零补丁 = 原文）：页面只展示一次，代号同时对应两个版本
+                key[by_text[text]].setdefault("same_as", []).append(v)
+                continue
             code = secrets.token_hex(3)
             key[code] = {"sample_id": s["id"], "variant": v}
+            by_text[text] = code
             cands.append({"code": code, "text": text})
         items.append({"sid": s["id"], "title": s["title"], "scenario": s["scenario"],
                       "prompt": s.get("prompt"), "cands": cands})
@@ -85,18 +90,24 @@ def analyze(args) -> None:
         for c in (v.get("best"), v.get("worst")):
             if c and c not in key:
                 sys.exit(f"代号 {c}（{sid}）不在 {args.run} 的对照表里：投票文件和对照表不是同一轮")
-        b = key.get(v.get("best") or "", {}).get("variant")
-        w = key.get(v.get("worst") or "", {}).get("variant")
+        kb, kw = key.get(v.get("best") or "", {}), key.get(v.get("worst") or "", {})
+        b, w = kb.get("variant"), kw.get("variant")
         if v.get("tie"):
             ties += 1
-        if b:
-            best[b] += 1
-            by_scen[sid.split("-")[0]][b] += 1
-        if w:
-            worst[w] += 1
-        detail.append({"sample_id": sid, "best": b, "worst": w, "tie": bool(v.get("tie")), "note": v.get("note", ""),
-                       "seconds": v.get("seconds")})
-    n = sum(best.values())
+        # 同一代号对应多个逐字相同的版本时，每个版本各记一票
+        for x in ([b] + kb.get("same_as", [])) if b else []:
+            best[x] += 1
+            by_scen[sid.split("-")[0]][x] += 1
+        for x in ([w] + kw.get("same_as", [])) if w else []:
+            worst[x] += 1
+        rec = {"sample_id": sid, "best": b, "worst": w, "tie": bool(v.get("tie")), "note": v.get("note", ""),
+               "seconds": v.get("seconds")}
+        if kb.get("same_as"):
+            rec["best_same_as"] = kb["same_as"]
+        if kw.get("same_as"):
+            rec["worst_same_as"] = kw["same_as"]
+        detail.append(rec)
+    n = sum(1 for d in detail if d["best"])  # 有效投票篇数（same_as 会让 best 计数多于篇数）
     cfg = ra.load_run_config(args.dir)
     order = run_order(cfg)
     LABELS.update(cfg.get("labels") or {})

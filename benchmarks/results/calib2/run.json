@@ -1,0 +1,32 @@
+{
+  "purpose": "JEV 校准第 2 轮人工盲测：现役系统（v6 / Humanizer-zh）对原文，只用 Train 样本",
+  "samples": [
+    "coding-003",
+    "coding-005",
+    "teaching-004",
+    "writing-002",
+    "writing-003",
+    "discussion-004",
+    "discussion-005",
+    "daily-002",
+    "discussion-001",
+    "teaching-003",
+    "daily-001",
+    "writing-005"
+  ],
+  "split": "train",
+  "sampling": "M3 的 10 篇（每场景 2 篇、≤4500 字）+ M4 里最短的讨论、日常各 1 篇；teaching-002、daily-007、daily-012 的 v6 零补丁（与原文相同，盲测无法区分），换成 teaching-003、daily-001、writing-005",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v6"
+  },
+  "rules": "v6",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high"
+}

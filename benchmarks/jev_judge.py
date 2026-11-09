@@ -362,7 +362,9 @@ DIRTY = {("m4", "discussion-002"), ("hard1", "hard-001")}
 # 盲测页面里实际展示给测试者的文本（页面内嵌数据 + 对照表解码）。m3 的页面后来被 m4 覆盖，从 git 历史取回。
 BLIND_HTML = {"m3": ("023b2f5", "benchmarks/blind_test_workbench.html"),
               "m4": ("e9abac6", "benchmarks/blind_test_workbench.html"),
-              "hard1": (None, "benchmarks/results/hard1/blind_test_hard1.html")}
+              "hard1": (None, "benchmarks/results/hard1/blind_test_hard1.html"),
+              "calib2": (None, "benchmarks/results/calib2/blind_test_calib2.html")}
+HUMAN_RUNS = ("m3", "m4", "hard1", "calib2")
 
 
 def blind_texts(run: str) -> dict[tuple[str, str], str]:
@@ -380,15 +382,19 @@ def blind_texts(run: str) -> dict[tuple[str, str], str]:
     for it in data["items"]:
         for c in it["cands"]:
             k = key[c["code"]]
-            out[(k["sample_id"], k["variant"])] = c["text"].replace("<\\/", "</")
+            for var in [k["variant"]] + k.get("same_as", []):
+                out[(k["sample_id"], var)] = c["text"].replace("<\\/", "</")
     return out
 
 
 def human_pairs() -> list[dict]:
     """把人工盲测展开成两两偏好：最好读 > 其余版本 > 最难读。文本取自盲测页面本身。"""
     pairs = []
-    for run in ("m3", "m4", "hard1"):
-        votes = json.loads((ra.BENCH / "results" / run / "blind_votes.json").read_text("utf-8"))["decoded"]
+    for run in HUMAN_RUNS:
+        vp = ra.BENCH / "results" / run / "blind_votes.json"
+        if not vp.exists():
+            continue
+        votes = json.loads(vp.read_text("utf-8"))["decoded"]
         texts = blind_texts(run)
         shown = defaultdict(list)
         for sid, var in texts:
@@ -401,18 +407,22 @@ def human_pairs() -> list[dict]:
             missing = [x for x in order if (sid, x) not in texts]
             if missing:
                 print(f"  警告：{run} {sid} 缺少文本 {missing}", file=sys.stderr)
-            others = [x for x in order if x != v["best"] and (sid, x) in texts]
+            # 逐字相同的版本（same_as）共用一个代号：它们之间不构成偏好对
+            best_g = {v["best"], *v.get("best_same_as", [])}
+            worst_g = {v["worst"], *v.get("worst_same_as", [])} if v.get("worst") else set()
             seen = set()
-            for o in others:
-                seen.add((v["best"], o))
-            if v.get("worst"):
+            for b in best_g:
                 for o in order:
-                    if o not in (v["best"], v["worst"]) and (sid, o) in texts:
-                        seen.add((o, v["worst"]))
+                    if o not in best_g and (sid, o) in texts:
+                        seen.add((b, o))
+            for wv in worst_g:
+                for o in order:
+                    if o not in best_g | worst_g and (sid, o) in texts:
+                        seen.add((o, wv))
             for w, l in sorted(seen):
                 pairs.append({"run": run, "sample_id": sid, "winner": w, "loser": l,
                               "winner_text": texts[(sid, w)], "loser_text": texts[(sid, l)],
-                              "kind": "best" if w == v["best"] else "worst",
+                              "kind": "best" if w in best_g else "worst",
                               "dirty": (run, sid) in DIRTY and "baseline:humanizer-zh" == l and l == v.get("worst")})
     return pairs
 
@@ -462,7 +472,11 @@ def calibrate(args) -> None:
                     "ai_w": rw["ai_tone"], "ai_l": rl["ai_tone"]}
         pr = pmap(do_pair, pairs, args.workers)
         res: dict = {}
-        for subset, rows in (("all", pr), ("clean", [r for r in pr if not r["dirty"]])):
+        for subset, rows in (("all", pr), ("clean", [r for r in pr if not r["dirty"]]),
+                             ("calib2", [r for r in pr if r["run"] == "calib2"]),
+                             ("legacy_clean", [r for r in pr if r["run"] != "calib2" and not r["dirty"]])):
+            if not rows:
+                continue
             n = len(rows)
             agree_pair = sum(1.0 if r["p_pair"] > 0.5 else 0.5 if r["p_pair"] == 0.5 else 0 for r in rows)
             agree_read = sum(1.0 if r["read_w"] > r["read_l"] else 0.5 if r["read_w"] == r["read_l"] else 0 for r in rows)
