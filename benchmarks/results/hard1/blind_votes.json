@@ -1,0 +1,42 @@
+{
+  "raw": {
+    "run": "hard1",
+    "exported_at": "2026-11-09T12:34:01.684Z",
+    "completed": 2,
+    "total": 2,
+    "votes": {
+      "hard-001": {
+        "best": "58217e",
+        "worst": "a7f670",
+        "tie": false,
+        "note": "数字序号都排版错了",
+        "seconds": 140
+      },
+      "hard-002": {
+        "best": "cfce95",
+        "worst": "7349e8",
+        "tie": false,
+        "note": "",
+        "seconds": 108
+      }
+    }
+  },
+  "decoded": [
+    {
+      "sample_id": "hard-001",
+      "best": "patched:hymt-ru",
+      "worst": "baseline:humanizer-zh",
+      "tie": false,
+      "note": "数字序号都排版错了",
+      "seconds": 140
+    },
+    {
+      "sample_id": "hard-002",
+      "best": "original",
+      "worst": "patched:hymt-ru",
+      "tie": false,
+      "note": "",
+      "seconds": 108
+    }
+  ]
+}
