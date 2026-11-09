@@ -160,13 +160,51 @@ AUDIT_INSTRUCTIONS_V5 = """你是中文编辑。【RTT 初稿】由【AI 原始�
 - 不改文档结构：标题层级、列表、表格、代码块保持原样，但其中的文字可以改。
 - 代码、路径、公式、URL、数字和反引号里的内容必须原样保留，每个只出现一次；可以调整它们在句中的位置。"""
 
+# v6（M4 盲测之后）：底本换回原文。v5 以往返初稿为底本，改动有八成落在本来没有问题的句子上，
+# 往返带进的错词（运维→运营）和中英混杂句也跟着进了定稿；人工盲测里 Humanizer-zh 以 6/10 胜出。
+# v6 只修原文里确实读着费劲的地方，往返稿降为“直白说法参考”；不设改写幅度预算。
+PROBLEM_TYPES_V6 = ("残句堆砌", "隐喻黑话", "自造代号", "中英混杂", "翻译腔", "空洞大词", "推理跳步", "冗余", "指代不清")
+
+AUDIT_INSTRUCTIONS_V6 = """你是中文编辑。请找出【原文】里晦涩、句式不符合中文阅读习惯、读着费劲的地方，用补丁把它们改成有经验的人当面讲给同事听的说法。
+没有问题的句子一个字都不要动；原文整体已经自然好读，就输出 []。需要大改的段落可以大改，改多少由问题决定，不设上限。
+
+【往返参考稿】是原文经机器翻译成外语再译回中文的结果。它的句子往往更松、更直白，可以借用它的说法；
+但它也会带进机翻错误：术语译错（例如“运维成本”被译成“运营成本”）、半中半英的句子、生硬的翻译腔。
+借用前逐词对照原文：术语、专有名词、数字和语气以原文为准，参考稿里的错误不准带进补丁。参考稿和原文一样好时，以原文为准，不要为改而改。
+
+找问题的依据（每条补丁的 type 必须是下面方括号里的名称之一，写不出属于哪一类，就说明不该改）：
+1. [残句堆砌] 句子主谓不全，或用名词短语堆砌代替句子；
+2. [隐喻黑话] 用“打通、闭环、下沉、赋能、抓手”这类空间动作或黑话充当逻辑，比喻对应不到实物实量；
+3. [自造代号] 读者需要回溯上下文才能猜出意思的自造代号或压缩短语；
+4. [中英混杂] 有通行中文说法的地方夹英文，或半中半英的句子；没有通行中文译法的技术术语、产品名、代码相关内容保留英文；
+5. [翻译腔] 长定语、被动堆叠、“对……进行……”“享受……”这类直译搭配；
+6. [空洞大词] 空洞大词、口号式排比、没有度量的夸张修饰；能给具体事实就给，给不出就删；
+7. [推理跳步] 推理跳步，读者要自己补“因为、所以、这样”才能跟上；
+8. [冗余] 重复说同一件事、只预告下文的铺垫、没有信息的收尾；
+9. [指代不清] “它、其、该”等指代不清，主体客体容易弄混。
+
+不变的底线：
+- 读者读完定稿得到的认识必须和读原文完全相同：数字、单位、条件边界、语气强弱、因果方向、主客体、专业术语都不能变，也不能增删信息；
+- 如果给了【用户问题】，问题里出现的术语、比喻和简称照用；
+- 不改文档结构：标题层级、列表、表格、代码块保持原样，其中的文字可以改；
+- 代码、路径、公式、URL、数字和反引号里的内容原样保留，每个只出现一次，可以调整它们在句中的位置。
+
+输出格式：只输出 JSON 数组，每条补丁：
+{"find": "原文片段", "replace": "修改后片段", "type": "上面九类之一", "reason": "这里读着费劲的具体原因"}
+- find 逐字摘自【原文】，在全文中唯一，不跨行；可以是一个词、一句话或同一行内的整段（不超过 400 字）；
+- 同一处问题只出一条补丁，补丁之间不要重叠。"""
+
 AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3,
-               "v4": AUDIT_INSTRUCTIONS_V4, "v5": AUDIT_INSTRUCTIONS_V5}
-DEFAULT_AUDIT_RULES = "v5"
+               "v4": AUDIT_INSTRUCTIONS_V4, "v5": AUDIT_INSTRUCTIONS_V5, "v6": AUDIT_INSTRUCTIONS_V6}
+DEFAULT_AUDIT_RULES = "v6"
+# v6：补丁打在原文上（往返稿只作参考）
+ORIGINAL_BASE_RULES = {"v6"}
+# v6：每条补丁必须写明修的是哪一类问题
+PROBLEM_TYPES = {"v6": PROBLEM_TYPES_V6}
 AUDIT_INSTRUCTIONS = AUDIT_RULES[DEFAULT_AUDIT_RULES]  # 向后兼容
 # 单条补丁 find 的长度上限，按规则版本区分：v1/v2 只修局部，超过 200 字视为整段重写而拒收；
 # v3 允许整段改写，上限放宽到一个段落的量级（仍不得跨行，结构由原文决定）
-MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300, "v5": 300}
+MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300, "v5": 300, "v6": 400}
 # v5：保真补丁只准框选出错的最小词组，避免“真修复 + 整句回抄”连坐
 FIDELITY_MAX_FIND = {"v5": 20}
 # v5：启用词对微筛（见 reversion.py）
@@ -185,7 +223,13 @@ def build_audit_prompt(
 ) -> str:
     if rules not in AUDIT_RULES:
         raise ValueError(f"未知审校规则 {rules}，可选：{', '.join(AUDIT_RULES)}")
-    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules in ("v4", "v5") else ""
+    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules in ("v4", "v5", "v6") else ""
+    if rules in ORIGINAL_BASE_RULES:
+        return (
+            f"{AUDIT_RULES[rules]}\n\n{q}【原文】\n{original}\n\n"
+            f"【往返参考稿（可借用直白说法，但含机翻错误，借用前对照原文）】\n{rtt_draft}\n\n"
+            f"【雷达提示（原文里机器扫出的疑点，仅供参考）】\n{radar_text}\n\n只输出 JSON 数组："
+        )
     if rules == "v5":
         # 初稿在前、底稿在后：先读满篇公文腔会把注意力锚定在原文词汇上
         return (
@@ -379,6 +423,7 @@ def apply_patches(
     require_misread: bool = False,
     fidelity_max_find: int | None = None,
     rejected: dict[int, str] | None = None,
+    problem_types: tuple[str, ...] | None = None,
 ) -> tuple[list[str], list[PatchResult]]:
     """把补丁逐条合并进掩码槽位文本。返回 (新槽位文本, 每条补丁的处理结果)。
 
@@ -387,10 +432,14 @@ def apply_patches(
     """
     texts = list(slot_texts)
     results: list[PatchResult] = []
+    doc.dropped = set()  # 每次合并重新计算被译掉的软占位符
     original = doc.render([s.masked for s in doc.slots]) if revert_min else ""
     for idx, p in enumerate(patches):
         if rejected and idx in rejected:
             results.append(PatchResult(p, False, rejected[idx]))
+            continue
+        if problem_types and p.type.strip("[]【】 ") not in problem_types:
+            results.append(PatchResult(p, False, f"补丁没有写明修的是哪类问题（type 须为 {'、'.join(problem_types)} 之一）"))
             continue
         if fidelity_max_find and p.type.startswith("保真") and len(p.find) > fidelity_max_find:
             results.append(PatchResult(p, False, f"保真补丁只能框选出错的最小词组（不超过 {fidelity_max_find} 字）"))
@@ -444,6 +493,7 @@ def _apply_table_row(doc: Document, texts: list[str], p: Patch, max_find: int = 
     if len(fc) != len(rc):
         return PatchResult(p, False, "补丁改变了表格列数")
     trial = list(texts)
+    dropped_before = set(doc.dropped)
     for f, r in zip(fc, rc):
         if f == r:
             continue
@@ -451,6 +501,7 @@ def _apply_table_row(doc: Document, texts: list[str], p: Patch, max_find: int = 
             return PatchResult(p, False, "补丁向空单元格填写内容")
         sub = _apply_core(doc, trial, Patch(f, r, p.reason, p.type, p.misread), max_find)
         if not sub.applied:
+            doc.dropped = dropped_before  # 整行拒收：前面单元格译掉的软占位符一并撤销
             return PatchResult(p, False, f"表格单元格「{f[:20]}」：{sub.reason}")
     texts[:] = trial
     return PatchResult(p, True, "")
@@ -463,6 +514,11 @@ def _apply_one(doc: Document, texts: list[str], p: Patch, max_find: int = MAX_FI
     t = _apply_table_row(doc, texts, p, max_find)
     if t is not None:
         return t
+    if p.find != p.find.strip() and p.find.strip():
+        # 宿主常把行尾空格一起摘进 find（原文行尾的空格不属于正文槽位）；去掉首尾空白再试一次
+        r3 = _apply_core(doc, texts, Patch(p.find.strip(), p.replace.strip(), p.reason, p.type, p.misread), max_find)
+        if r3.applied:
+            return PatchResult(p, True, "", r3.slot)
     stripped, why = _strip_structure_prefix(p)
     if why:
         return PatchResult(p, False, why)
@@ -505,22 +561,28 @@ def _apply_core(doc: Document, texts: list[str], p: Patch, max_find: int = MAX_F
 
     # 把 replace 中的受保护原文重新掩码回原占位符；每个受保护片段必须恰好保留一次
     rep = p.replace
+    drop: list[int] = []
     for sp in sorted(inner, key=lambda x: -len(doc.placeholders[x.pid])):
         val = doc.placeholders[sp.pid]
         k = _find_outside_placeholders(rep, val)
         if k == -1:
+            if sp.pid in doc.soft and p.type.strip("[]【】 ") == "中英混杂":
+                drop.append(sp.pid)  # 散装英文被换成中文：占位符留在原处、渲染为空，校验照常通过
+                continue
             return PatchResult(p, False, f"补丁丢失了受保护内容「{val}」", i)
         rep = rep[:k] + PLACEHOLDER.format(sp.pid) + rep[k + len(val):]
     for sp in inner:
         val = doc.placeholders[sp.pid]
-        if _find_outside_placeholders(rep, val) != -1:
+        if sp.pid not in drop and _find_outside_placeholders(rep, val) != -1:
             return PatchResult(p, False, f"补丁复制了受保护内容「{val}」", i)
+    rep += "".join(PLACEHOLDER.format(pid) for pid in drop)
 
     ms, me = _u2m(s, spans), _u2m(e, spans)
     new = texts[i][:ms] + rep + texts[i][me:]
     if not check_placeholders(new, doc.slots[i].ids).ok:
         return PatchResult(p, False, "合并后占位符校验失败", i)
     texts[i] = new
+    doc.dropped.update(drop)
     return PatchResult(p, True, "", i)
 
 

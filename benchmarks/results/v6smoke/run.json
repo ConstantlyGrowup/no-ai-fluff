@@ -1,0 +1,20 @@
+{
+  "purpose": "v6 冒烟：底本换回原文 + 往返翻译带中文上文 + 整句英文冻结；用 M4 里输掉的 4 篇和 daily-012 调参",
+  "samples": [
+    "daily-001",
+    "discussion-001",
+    "teaching-001",
+    "writing-004",
+    "daily-012"
+  ],
+  "bridge": "ru",
+  "rules": "v6",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ]
+}

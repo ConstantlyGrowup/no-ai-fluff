@@ -7,7 +7,7 @@ from no_ai_fluff.pipeline import Pipeline, PipelineConfig
 
 
 def server(fake_translator, tmp_path, fn=lambda s: s.replace(" overhead ", "开销")):
-    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path / "d")), translator_factory=lambda c: fake_translator(fn))
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path / "d"), audit_rules="v5"), translator_factory=lambda c: fake_translator(fn))
     return MCPServer(pipe)
 
 
@@ -99,7 +99,7 @@ def test_cli_prepare_finalize_without_key(tmp_path, capsys):
     cap = capsys.readouterr()
     prep = json.loads(cap.out)
     assert prep["fallback"] and "RTT 回退" in cap.err
-    assert cli.main(["finalize", prep["draft_id"], "--patches", '[{"find":"overhead","replace":"开销"}]']) == 0
+    assert cli.main(["finalize", prep["draft_id"], "--patches", '[{"find":"overhead","replace":"开销","type":"中英混杂"}]']) == 0
     assert capsys.readouterr().out.strip() == "这个方案的 开销 很大。"
     assert cli.main(["finalize", prep["draft_id"]]) == 2  # 已定稿
 

@@ -258,14 +258,20 @@ _MARK = "⟦{}⟧"
 _MARK_RE = re.compile(r"⟦\s*(\d+)\s*⟧")
 
 
-def build_prompt(text: str, target: str, batched: bool = False) -> str:
+def build_prompt(text: str, target: str, batched: bool = False, context: str | None = None) -> str:
     """纯翻译提示词：逐字沿用混元 MT 官方中外互译模板，不含任何文风要求。
 
     实测（2026-11，hy-mt2-30b-a3b）：在模板里追加“保留 ⟦数字⟧ 标记、逐行对应”之类的规则说明，
     约 30% 的批次会返回“生成了 token 但 content 为空”；只用官方模板时空响应为 0，
     分界符与 {{Pn}} 占位符的保留率反而更高。分界符是否对齐、占位符是否齐全统一由代码校验兜底。
     batched 参数保留只为兼容调用方，不影响提示词。
+
+    context：给出时改用官方“上下文翻译”模板（上文只作参考、不翻译），让分块翻译时术语按语境选词，
+    例如机房语境下的“运维”不被译回成“运营”。
     """
+    if context and context.strip():
+        return (f"{context.strip()}\n参考上面的信息，把下面的文本翻译成{LANG_NAMES_ZH.get(target, target)}，"
+                f"注意不需要翻译上文，也不要额外解释：\n{text}")
     return f"将以下文本翻译为{LANG_NAMES_ZH.get(target, target)}，注意只需要输出翻译后的结果，不要额外解释：\n\n{text}"
 
 
@@ -385,7 +391,18 @@ class RoundTripTranslator:
         self._lock = threading.Lock()
 
     # -- 底层单次调用 ---------------------------------------------------------
-    def _call(self, text: str, target: str, batched: bool, deadline: Deadline) -> str:
+    def _call(self, text: str, target: str, batched: bool, deadline: Deadline, context: str | None = None) -> str:
+        if not context:
+            return self._call_raw(text, target, batched, deadline, None)
+        try:
+            return self._call_raw(text, target, batched, deadline, context)
+        except OpenRouterError as e:
+            # v6 冒烟：短段落（如列表项、短标题）配上下文模板时偶发空响应，去掉上下文重试一次
+            if "空响应" not in str(e):
+                raise
+            return self._call_raw(text, target, batched, deadline, None)
+
+    def _call_raw(self, text: str, target: str, batched: bool, deadline: Deadline, context: str | None) -> str:
         rem = deadline.remaining()
         timeout = min(self.client.timeout, rem) if rem else self.client.timeout
         kwargs = {}
@@ -393,7 +410,7 @@ class RoundTripTranslator:
             kwargs["max_retries"] = 0  # 合批失败直接二分拆小，比原地重试快得多
         res = self.client.chat(
             self.model,
-            [{"role": "user", "content": build_prompt(text, target, batched)}],
+            [{"role": "user", "content": build_prompt(text, target, batched, context)}],
             temperature=self.temperature,
             max_tokens=min(self.max_output_tokens, 200 + len(text) * 4),
             timeout=timeout,
@@ -408,22 +425,22 @@ class RoundTripTranslator:
             self._cost += float(u.get("cost") or 0.0)
         return normalize_placeholders(_strip_wrapping(res.text))
 
-    def _call_safe(self, text: str, target: str, deadline: Deadline) -> "str | _Failed":
+    def _call_safe(self, text: str, target: str, deadline: Deadline, context: str | None = None) -> "str | _Failed":
         """单段调用：失败（内容过滤 / 接口错误）只影响这一段，超时照常向上抛。"""
         try:
-            return self._call(text, target, False, deadline)
+            return self._call(text, target, False, deadline, context)
         except TimeoutError:
             raise
         except Exception as e:  # noqa: BLE001
             return _Failed(f"{type(e).__name__}: {e}")
 
-    def _translate_batch(self, segs: list[str], target: str, deadline: Deadline) -> list:
+    def _translate_batch(self, segs: list[str], target: str, deadline: Deadline, context: str | None = None) -> list:
         """返回与 segs 等长的列表，元素为译文或 _Failed。"""
         if len(segs) == 1:
-            return [self._call_safe(segs[0], target, deadline)]
+            return [self._call_safe(segs[0], target, deadline, context)]
         joined = "\n".join(f"{_MARK.format(i)} {s}" for i, s in enumerate(segs))
         try:
-            out = split_batched(self._call(joined, target, True, deadline), len(segs))
+            out = split_batched(self._call(joined, target, True, deadline, context), len(segs))
         except TimeoutError:
             raise
         except Exception:  # noqa: BLE001 —— 整批被过滤或出错：拆小重试，把问题收敛到具体段落
@@ -433,11 +450,11 @@ class RoundTripTranslator:
         # 分界符对不上（常见于模型把相邻短行合并）：少量段落直接并行逐段翻译，
         # 否则二分成两半并行重试合批，调用次数随失败深度对数增长，而不是逐段串行
         if len(segs) <= 3:
-            return _parallel([lambda s=s: self._call_safe(s, target, deadline) for s in segs])
+            return _parallel([lambda s=s: self._call_safe(s, target, deadline, context) for s in segs])
         mid = len(segs) // 2
         left, right = _parallel([
-            lambda: self._translate_batch(segs[:mid], target, deadline),
-            lambda: self._translate_batch(segs[mid:], target, deadline),
+            lambda: self._translate_batch(segs[:mid], target, deadline, context),
+            lambda: self._translate_batch(segs[mid:], target, deadline, context),
         ])
         return left + right
 
@@ -457,12 +474,14 @@ class RoundTripTranslator:
             return f"length ratio {lb / ls:.2f} out of range"
         return ""
 
-    def _round_trip_batch(self, segs: list[str], ids: list[list[int]], deadline: Deadline) -> list[SegmentOutcome]:
-        fwd = self._translate_batch(segs, self.bridge, deadline)
+    def _round_trip_batch(self, segs: list[str], ids: list[list[int]], deadline: Deadline,
+                          context: str | None = None) -> list[SegmentOutcome]:
+        # 去程和回程用同一段中文上文作参考：上文不含本批内容，只提供语境，不会让回程照抄本批原文
+        fwd = self._translate_batch(segs, self.bridge, deadline, context)
         ok_idx = [k for k, f in enumerate(fwd) if not isinstance(f, _Failed)]
         back: list = [None] * len(segs)
         if ok_idx:
-            for k, b in zip(ok_idx, self._translate_batch([fwd[k] for k in ok_idx], self.source, deadline)):
+            for k, b in zip(ok_idx, self._translate_batch([fwd[k] for k in ok_idx], self.source, deadline, context)):
                 back[k] = b
         reasons: list[str] = []
         for k, (s, i) in enumerate(zip(segs, ids)):
@@ -474,8 +493,8 @@ class RoundTripTranslator:
         def retry(k: int) -> SegmentOutcome:
             s, i = segs[k], ids[k]
             try:
-                f2 = self._call(s, self.bridge, False, deadline)
-                b2 = self._call(f2, self.source, False, deadline)
+                f2 = self._call(s, self.bridge, False, deadline, context)
+                b2 = self._call(f2, self.source, False, deadline, context)
                 r2 = self.validate(s, b2, i)
                 if not r2:
                     return SegmentOutcome(b2, f2, True)
@@ -511,10 +530,12 @@ class RoundTripTranslator:
             batches.append(cur)
         return batches
 
-    def round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None) -> RTTResult:
+    def round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None,
+                   contexts: list[str | None] | None = None) -> RTTResult:
         """对掩码后的槽位文本做 中 -> 桥接语 -> 中 往返翻译。
 
         超过 max_segment_chars 的段落先按句切块分别翻译，再拼回原段；任一块失败只回退该块。
+        contexts：与 segs 等长，每段的中文上文（可为 None）；每批取首段的上文作参考。
         """
         pieces: list[str] = []
         owner: list[int] = []
@@ -523,9 +544,10 @@ class RoundTripTranslator:
                 pieces.append(piece)
                 owner.append(i)
         if len(pieces) == len(segs):
-            return self._round_trip(segs, ids, timeout_s)
+            return self._round_trip(segs, ids, timeout_s, contexts)
         piece_ids = [[int(x) for x in PLACEHOLDER_RE.findall(p)] for p in pieces]
-        res = self._round_trip(pieces, piece_ids, timeout_s)
+        piece_ctx = [contexts[i] for i in owner] if contexts else None
+        res = self._round_trip(pieces, piece_ids, timeout_s, piece_ctx)
         texts = ["" for _ in segs]
         bridges = ["" for _ in segs]
         reasons: dict[int, str] = {}
@@ -539,7 +561,8 @@ class RoundTripTranslator:
         res.fallbacks = sorted(reasons)
         return res
 
-    def _round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None) -> RTTResult:
+    def _round_trip(self, segs: list[str], ids: list[list[int]], timeout_s: float | None = None,
+                    contexts: list[str | None] | None = None) -> RTTResult:
         t0 = time.monotonic()
         deadline = Deadline(timeout_s)
         self._calls = self._ptok = self._ctok = 0
@@ -555,7 +578,8 @@ class RoundTripTranslator:
         pool = ThreadPoolExecutor(max_workers=max(1, self.max_workers))
         try:
             futs = [
-                (b, pool.submit(self._round_trip_batch, [clean[i] for i in b], [ids[i] for i in b], deadline))
+                (b, pool.submit(self._round_trip_batch, [clean[i] for i in b], [ids[i] for i in b], deadline,
+                                contexts[b[0]] if contexts else None))
                 for b in batches
             ]
             for b, fut in futs:

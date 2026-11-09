@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import re
@@ -32,6 +33,8 @@ from .patcher import (
     FIDELITY_MAX_FIND,
     REQUIRE_MISREAD,
     REVERT_MIN_CHARS,
+    ORIGINAL_BASE_RULES,
+    PROBLEM_TYPES,
     TERM_REVIEW_RULES,
     Patch,
     PatchFormatError,
@@ -67,6 +70,7 @@ class PipelineConfig:
     store_dir: str | None = None  # 草稿存放目录，默认 ~/.no-ai-fluff/drafts
     draft_ttl_s: float = 6 * 3600
     audit_rules: str = DEFAULT_AUDIT_RULES  # 宿主审校规则版本，见 patcher.AUDIT_RULES
+    rtt_context_chars: int = 300  # 往返翻译时附带的中文上文长度（官方上下文模板）；0 关闭
     min_rtt_chars: int = 8  # 短于该长度且不含英文的槽位（表头、短标题）不送往返翻译
     telemetry: bool = True
 
@@ -81,6 +85,7 @@ class PipelineConfig:
             doc_timeout_s=env_float("NO_AI_FLUFF_DOC_TIMEOUT", 60.0),
             extra_terms=[t.strip() for t in os.environ.get("NO_AI_FLUFF_TERMS", "").split(",") if t.strip()],
             cache_dir=os.environ.get("NO_AI_FLUFF_CACHE_DIR") or None,
+            audit_rules=os.environ.get("NO_AI_FLUFF_AUDIT_RULES") or DEFAULT_AUDIT_RULES,
         )
         # 覆盖项必须在构造前合并：__post_init__ 会按最终的 provider 补全默认模型与批次参数
         values.update({k: v for k, v in overrides.items() if v is not None})
@@ -126,6 +131,7 @@ class Draft:
                 "template": self.doc.template,
                 "slots": [asdict(s) for s in self.doc.slots],
                 "placeholders": self.doc.placeholders,
+                "soft": self.doc.soft,
             },
             "rtt_slots": self.rtt_slots,
             "translated": self.translated,
@@ -135,7 +141,8 @@ class Draft:
     @classmethod
     def from_json(cls, d: dict) -> "Draft":
         doc = Document(
-            d["doc"]["fmt"], d["doc"]["template"], [Slot(**s) for s in d["doc"]["slots"]], d["doc"]["placeholders"]
+            d["doc"]["fmt"], d["doc"]["template"], [Slot(**s) for s in d["doc"]["slots"]], d["doc"]["placeholders"],
+            d["doc"].get("soft", []),
         )
         return cls(d["draft_id"], d["created"], doc, d["rtt_slots"], d["translated"], d["meta"])
 
@@ -265,6 +272,27 @@ _MARKUP_STRIP_RE = re.compile(r"\*\*|~~|[*_`\[\]]")
 _ASCII_WORD_RE = re.compile(r"[A-Za-z]{2,}")
 
 
+def rtt_contexts(doc, translated: list[int], max_chars: int, question: str | None = None) -> list[str | None]:
+    """每个待翻译槽位的中文上文：用户问题（截短）+ 紧邻的前文，供翻译模型按语境选词。
+
+    只取本槽位之前的内容，不含本槽位自身，回程翻译不会因此照抄原句。
+    """
+    if max_chars <= 0:
+        return [None] * len(translated)
+    q = (question or "").strip()[:150]
+    out: list[str | None] = []
+    for i in translated:
+        prev = "\n".join(s.original.strip() for s in doc.slots[:i] if s.original.strip())
+        if len(prev) > max_chars:
+            prev = prev[-max_chars:]
+            cuts = [k for k in (prev.find(c) for c in "\n。！？；") if k >= 0]
+            if cuts and min(cuts) < max_chars // 2:  # 去掉被截断的半句
+                prev = prev[min(cuts) + 1:]
+        ctx = "\n".join(x for x in (q, prev.strip()) if x)
+        out.append(ctx or None)
+    return out
+
+
 def needs_rtt(slot: Slot, min_chars: int = 8) -> bool:
     """是否值得送去往返翻译：必须含中文；过短的纯中文槽位没有可解压的句法，送进去只会增加合批失败风险。"""
     if not slot.translatable:
@@ -302,8 +330,8 @@ def verify_final(doc: Document, slot_texts: list[str]) -> str:
         if not chk.ok:
             return f"槽位 {i} 占位符校验失败 missing={chk.missing} extra={chk.extra} dup={chk.duplicated}"
     rendered = doc.render(slot_texts)
-    for val in doc.placeholders:
-        if val not in rendered:
+    for pid, val in enumerate(doc.placeholders):
+        if pid not in doc.dropped and val not in rendered:
             return f"受保护内容丢失：{val[:40]}"
     if "\x00" in rendered:
         return "模板标记残留"
@@ -343,8 +371,11 @@ class Pipeline:
                 translator = self.translator_factory(cfg)
                 segs = [doc.slots[i].masked for i in translated]
                 ids = [doc.slots[i].ids for i in translated]
+                kw = {}
+                if "contexts" in inspect.signature(translator.round_trip).parameters:
+                    kw["contexts"] = rtt_contexts(doc, translated, cfg.rtt_context_chars, question)
                 rtt = _run_with_hard_timeout(
-                    lambda: translator.round_trip(segs, ids, timeout_s=timeout_s), timeout_s + 1.0
+                    lambda: translator.round_trip(segs, ids, timeout_s=timeout_s, **kw), timeout_s + 1.0
                 )
                 for i, t in zip(translated, rtt.texts):
                     if check_placeholders(t, doc.slots[i].ids).ok:
@@ -355,7 +386,10 @@ class Pipeline:
                 fallback_reason = f"{type(e).__name__}: {e}"
 
         orig_masked = [s.masked for s in doc.slots]
-        report = scan(orig_masked, rtt_slots, only=translated)
+        if cfg.audit_rules in ORIGINAL_BASE_RULES:
+            report = scan_single(orig_masked)  # v6 补丁打在原文上：雷达报原文自己的疑点
+        else:
+            report = scan(orig_masked, rtt_slots, only=translated)
         draft_id = time.strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(4)
         meta = {
             "original_text": original_text,
@@ -413,9 +447,10 @@ class Pipeline:
 
     # -- 握手 2 ---------------------------------------------------------------
     def _apply(self, draft: "Draft", plist: list, rules: str, rejected: dict[int, str] | None = None):
+        base = [s.masked for s in draft.doc.slots] if rules in ORIGINAL_BASE_RULES else draft.rtt_slots
         return apply_patches(
-            draft.doc, draft.rtt_slots, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
-            rules in REQUIRE_MISREAD, FIDELITY_MAX_FIND.get(rules), rejected)
+            draft.doc, base, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
+            rules in REQUIRE_MISREAD, FIDELITY_MAX_FIND.get(rules), rejected, PROBLEM_TYPES.get(rules))
 
     def term_review(
         self, draft_id: str, patches: Any, audit_rules: str | None = None

@@ -20,6 +20,7 @@ print("代码块不动")
 
 
 def make(fake, tmp_path, **cfg):
+    cfg.setdefault("audit_rules", "v5")  # 这些用例验证以往返初稿为底本的行为；v6 另有用例
     return Pipeline(PipelineConfig(store_dir=str(tmp_path / "drafts"), **cfg), translator_factory=lambda c: fake)
 
 

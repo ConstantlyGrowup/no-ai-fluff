@@ -49,12 +49,17 @@ class Document:
     template: str  # 结构骨架，正文位置用 \x00n\x00 标记
     slots: list[Slot]
     placeholders: list[str]  # 全局占位符表：编号 -> 冻结的原文
+    # “软”占位符：整句英文、首字母大写的英文词。冻结它们只为防止往返翻译弄坏，
+    # 宿主以“中英混杂”为由把它们改成中文时允许去掉（见 patcher._apply_core）
+    soft: list[int] = field(default_factory=list)
+    dropped: set[int] = field(default_factory=set, repr=False, compare=False)  # 本次定稿中被译掉的软占位符
 
     def render(self, slot_texts: list[str] | None = None, unmask_text: bool = True) -> str:
         """把槽位文本回填进模板。slot_texts 为掩码文本（默认取各槽位的 masked）。"""
         texts = slot_texts if slot_texts is not None else [s.masked for s in self.slots]
         if unmask_text:
-            texts = [unmask(t, self.placeholders) for t in texts]
+            ph = [("" if i in self.dropped else v) for i, v in enumerate(self.placeholders)]
+            texts = [unmask(t, ph) for t in texts]
         return _SLOT_RE.sub(lambda m: texts[int(m.group(1))], self.template)
 
 
@@ -112,6 +117,9 @@ _PATTERNS: list[tuple[str, str]] = [
     ("file", _L + r"[A-Za-z0-9_.-]+\.(?:" + _FILE_EXT + r")" + _R),
     # 复杂度符号 O(n log n)、Θ(n)、Ω(1)
     ("bigo", r"(?<![A-Za-z0-9_])[OΘΩo]\((?:[^()\n]|\([^()\n]*\))*\)"),
+    # 整句英文（至少 4 个连续英文单词，如引用的口号、英文原句）：整体冻结。
+    # M4 发现逐词处理会把 “Build a solid Monolith, don't build …” 译成半中半英的怪句。
+    ("ensent", _L + r"[A-Za-z][A-Za-z'’]*(?:-[A-Za-z]+)*(?:,?[ \t]+[A-Za-z][A-Za-z'’]*(?:-[A-Za-z]+)*){3,}[.!?]?" + _R),
     # PR / Issue 编号
     ("issue", r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#\d+" + _R + r"|(?<![A-Za-z0-9_])!\d+" + _R),
     # 函数调用 / 点号成员访问：foo()、obj.method()、os.path.join
@@ -149,10 +157,15 @@ class Masker:
         self.placeholders: list[str] = []
         self._terms_re = _terms_regex(DEFAULT_TERMS + list(extra_terms or []))
         self.freeze_proper_nouns = freeze_proper_nouns
+        self.soft: list[int] = []
+        self._soft_spans: set[tuple[int, int]] = set()
 
     def _spans(self, text: str) -> list[tuple[int, int]]:
         spans: list[tuple[int, int]] = []
+        self._soft_spans = set()
         for m in _COMBINED.finditer(text):
+            if m.lastgroup == "ensent":
+                self._soft_spans.add(m.span())
             if m.lastgroup == "hash":
                 tok = m.group(0)
                 if not (re.search(r"\d", tok) and re.search(r"[a-f]", tok)):
@@ -165,6 +178,7 @@ class Masker:
             for m in _CAPWORD_RE.finditer(text):
                 if m.group(0).lower() not in LOOSE_CAPITALIZED:
                     extra.append(m.span())
+                    self._soft_spans.add(m.span())
         # 合并：主规则优先，补充规则只填补未被覆盖的区间
         for s, e in sorted(extra):
             if all(e <= a or s >= b for a, b in spans):
@@ -181,6 +195,8 @@ class Masker:
                 continue
             out.append(text[pos:s])
             pid = len(self.placeholders)
+            if (s, e) in self._soft_spans:
+                self.soft.append(pid)
             self.placeholders.append(text[s:e])
             ids.append(pid)
             out.append(PLACEHOLDER.format(pid))
@@ -335,7 +351,7 @@ def parse_markdown(text: str, extra_terms: list[str] | None = None) -> Document:
         prefix = pm.group(1) if pm else ""
         tpl.append(prefix + add_slot(line[len(prefix):]))
 
-    return Document("markdown", "\n".join(tpl), slots, masker.placeholders)
+    return Document("markdown", "\n".join(tpl), slots, masker.placeholders, masker.soft)
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +396,7 @@ def parse_html(text: str, extra_terms: list[str] | None = None) -> Document:
             continue
         slots.append(masker.slot(core))
         tpl.append(lead + SLOT_TOKEN.format(len(slots) - 1) + trail)
-    return Document("html", "".join(tpl), slots, masker.placeholders)
+    return Document("html", "".join(tpl), slots, masker.placeholders, masker.soft)
 
 
 # ---------------------------------------------------------------------------
@@ -399,7 +415,7 @@ def parse_text(text: str, extra_terms: list[str] | None = None) -> Document:
             continue
         slots.append(masker.slot(core))
         tpl.append(lead + SLOT_TOKEN.format(len(slots) - 1) + trail)
-    return Document("text", "\n".join(tpl), slots, masker.placeholders)
+    return Document("text", "\n".join(tpl), slots, masker.placeholders, masker.soft)
 
 
 _HTML_SNIFF_RE = re.compile(r"^\s*(?:<!DOCTYPE html|<html|<body|<div|<section|<article|<p[\s>])", re.IGNORECASE)

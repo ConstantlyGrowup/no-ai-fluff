@@ -109,7 +109,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
-RULES = "v5"  # 宿主审校规则版本，main() 里按 --rules 覆盖
+RULES = "v6"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000,
@@ -166,9 +166,10 @@ def stage_rtt(args) -> None:
         cfg = PipelineConfig(
             model=model, bridge=bridge, chat_timeout_s=args.timeout, doc_timeout_s=args.timeout,
             cache_dir=str(CACHE / "openrouter"), store_dir=str(CACHE / "drafts"),
-            draft_ttl_s=365 * 86400, telemetry=False,
+            draft_ttl_s=365 * 86400, telemetry=False, audit_rules=RULES,
+            rtt_context_chars=args.rtt_context,
         )
-        prep = Pipeline(cfg).prepare(s["text"])
+        prep = Pipeline(cfg).prepare(s["text"], question=s.get("prompt"))
         rec = {
             "sample_id": s["id"], "scenario": s["scenario"], "combo": combo_key(model, bridge),
             "model": model, "bridge": bridge, "draft_id": prep.draft_id, "rtt_draft": prep.rtt_draft,
@@ -204,11 +205,15 @@ def _patch_env(args):
 
 
 def patch_prompt(pipe: Pipeline, r: dict) -> str:
-    from no_ai_fluff.patcher import build_audit_prompt
+    from no_ai_fluff.patcher import ORIGINAL_BASE_RULES, build_audit_prompt
+    from no_ai_fluff.radar import scan_single
 
     draft = pipe.store.get(r["draft_id"])
     # 用当前版本的雷达重新生成提示（阶段 1 记录的提示可能来自旧口径）
-    hints = scan([s.masked for s in draft.doc.slots], draft.rtt_slots, only=draft.translated).to_prompt()
+    if RULES in ORIGINAL_BASE_RULES:  # v6：补丁打在原文上，雷达报原文自己的疑点
+        hints = scan_single([s.masked for s in draft.doc.slots]).to_prompt()
+    else:
+        hints = scan([s.masked for s in draft.doc.slots], draft.rtt_slots, only=draft.translated).to_prompt()
     question = next((x.get("prompt") for x in samples() if x["id"] == r["sample_id"]), None)
     return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES, question)
 
@@ -670,7 +675,8 @@ def main() -> None:
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
     ap.add_argument("--term-effort", default="high", choices=["low", "medium", "high"],
                     help="v5 词对微筛的推理强度（脱离上下文的小请求）")
-    ap.add_argument("--rules", default="v5", choices=["v1", "v2", "v3", "v4", "v5"],
+    ap.add_argument("--rtt-context", type=int, default=300, help="往返翻译附带的中文上文长度；0 关闭（v6 之前的轮次均为 0）")
+    ap.add_argument("--rules", default="v6", choices=["v1", "v2", "v3", "v4", "v5", "v6"],
                     help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],

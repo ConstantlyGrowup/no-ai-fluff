@@ -1,0 +1,18 @@
+{
+  "purpose": "宿主强弱对照：同一篇（discussion-001）用 Claude Sonnet 5.5 当宿主，比较原文 / v6 / Humanizer-zh；往返稿与 v6smoke 相同",
+  "samples": [
+    "discussion-001"
+  ],
+  "bridge": "ru",
+  "rules": "v6",
+  "host": "anthropic/claude-sonnet-5.5",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v6"
+  }
+}

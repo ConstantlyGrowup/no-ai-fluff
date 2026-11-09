@@ -69,8 +69,9 @@ def build(args) -> None:
     kp.write_text(json.dumps({"run": args.run, "seed": args.seed, "codes": key}, ensure_ascii=False, indent=2), "utf-8")
     data = json.dumps({"run": args.run, "items": items}, ensure_ascii=False).replace("</", "<\\/")
     tpl = (Path(__file__).resolve().parent / "blind_workbench_template.html").read_text("utf-8")
-    OUT_HTML.write_text(tpl.replace("/*__DATA__*/null", data), "utf-8")
-    print(f"{len(items)} 篇、{sum(len(i['cands']) for i in items)} 个版本 -> {OUT_HTML}\n对照表 -> {kp}（测完前不要打开）")
+    out = Path(args.out) if args.out else OUT_HTML
+    out.write_text(tpl.replace("/*__DATA__*/null", data), "utf-8")
+    print(f"{len(items)} 篇、{sum(len(i['cands']) for i in items)} 个版本 -> {out}\n对照表 -> {kp}（测完前不要打开）")
 
 
 def analyze(args) -> None:
@@ -123,6 +124,7 @@ def main() -> None:
     ap.add_argument("file", nargs="?")
     ap.add_argument("--run", help="build 必填；analyze 默认取投票文件里记录的轮次")
     ap.add_argument("--seed", type=int, default=20261108)
+    ap.add_argument("--out", help="build 输出的 HTML 路径，默认 benchmarks/blind_test_workbench.html")
     ap.add_argument("--force", action="store_true", help="对照表已存在时仍然重建（会使已导出的投票无法解码）")
     args = ap.parse_args()
     if args.stage == "analyze":
