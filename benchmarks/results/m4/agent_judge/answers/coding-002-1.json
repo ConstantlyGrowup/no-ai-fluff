@@ -1,24 +1,40 @@
 {
   "packet": "coding-002-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "其余 ranker 共享 deployed feedback 轨迹", "why": "一句话混入多个未解释的英文名词，读者要自己补出哪些排序方法共用什么反馈记录。"},
+        {"quote": "150 条 L1、45 条中文标注查询、5 个场景、3 轮", "why": "把评测设置压成没有主语和动词的名词清单，听起来不像完整讲述。"},
+        {"quote": "3 repeats，228 对/arm", "why": "中英缩写和数量单位挤在一起，读者需要自己展开重复次数与每组样本量的关系。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [
+        {"quote": "它仅针对实际选中的Agent ID记录使用数据", "why": "读者会误以为使用记录按 Agent 的身份标识写回，原文是对 Agent 实际选用的记忆 id 写回。"},
+        {"quote": "deployed的ALL值从regressed 4→0变为rescued 8→15", "why": "读者会误以为 ALL 指标从退化数变成挽救数，原文同时报告 regressed 与 rescued 两项各自的变化。"},
+        {"quote": "尚未实现：存储库`touchL1Usage`的行为会保留原有的排序顺序", "why": "读者会误以为 touchL1Usage 是一个尚未实现的存储库，原文说的是未实现该方法的 store 才保持原有排序。"}
+      ],
+      "readability_issues": [
+        {"quote": "同一模型对10组未标注候选记录执行单步选择实际应用的ID操作query/", "why": "词序和句尾的 query/ 混乱，需要重读才能拼出模型具体做了什么。"},
+        {"quote": "提交描述中的+11.8分d5d55ed正是指这一严格控制版本", "why": "提交号挤在数字后面，修饰关系不清，读者要自己重新组织句子。"},
+        {"quote": "Self-测试 Checklist", "why": "把同一个标题拆成中英文混拼，读起来生硬。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "其余 ranker 共享 deployed feedback 轨迹", "why": "多个英文名词连用且没有解释，读者要自己补出排序方法与反馈记录的关系。"},
+        {"quote": "150 条 L1、45 条中文标注查询、5 个场景、3 轮", "why": "评测设置压成名词清单，缺少把这些数量连成完整说明的主语和动作。"},
+        {"quote": "同模型对 10 组未暴露标注的 query/候选记忆做单步实际采用 id 选择", "why": "中英名词和修饰语叠在一起，读者需要回头拆解实际执行的选择动作。"}
+      ]
     }
   }
 }

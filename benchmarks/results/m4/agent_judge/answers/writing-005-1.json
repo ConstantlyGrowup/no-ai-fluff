@@ -1,24 +1,38 @@
 {
   "packet": "writing-005-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "API v1 下线 | 发布后的6个月 | API v1 停止服务", "why": "时间表把停服时间写成发布后的六个月这一期间，会使读者误以为过渡期内 v1 已停止服务，而原文为发布六个月后才停服。"}
+      ],
+      "readability_issues": [
+        {"quote": "监控成功呼叫百分比、延迟以及流量限制情况", "why": "成功呼叫百分比是生硬的翻译搭配，读者要重新对应到接口调用成功率。"},
+        {"quote": "此次更新包含了关于安全性、事件通知功能以及调用管理的重要变更。", "why": "包含了关于和重要变更叠在一起，句子绕了一层才说到更新了什么。"},
+        {"quote": "支持验证事件签名，以确保回调的安全性", "why": "省掉执行者又用抽象的安全性作结，读者要自行补出谁验证以及验证能防止什么。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "支持事件签名校验，保障回调安全", "why": "把动作压成无主语的能力描述，没有直接解释谁会校验以及为什么这样做。"},
+        {"quote": "本次版本升级围绕安全性、事件通知能力和调用治理进行了重要调整", "why": "围绕和重要调整是方案式套话，调用治理也比较抽象，开头读起来不够直接。"},
+        {"quote": "做好事件幂等处理", "why": "把操作要求压成术语短语，读者需要自己补出重复事件应如何处理。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "校验事件签名，保障回调安全", "why": "省略了执行者和验证的具体作用，仍然像能力清单而不像同事在解释。"},
+        {"quote": "按应用维度限流有助于提升调用管理的一致性，也便于开发者基于应用规划容量。", "why": "应用维度、调用管理的一致性和基于应用连续堆叠，句子带有明显的公文和抽象名词感。"},
+        {"quote": "做好事件幂等处理", "why": "用术语短语代替完整的操作说明，读者需要自行补出重复事件到来时要怎样处理。"}
+      ]
     }
   }
 }

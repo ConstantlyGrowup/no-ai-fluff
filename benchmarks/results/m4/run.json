@@ -27,5 +27,8 @@
   "bridge": "ru",
   "rules": "v5",
   "host": "deepseek-flash",
-  "effort": "high"
+  "effort": "high",
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff"
+  }
 }

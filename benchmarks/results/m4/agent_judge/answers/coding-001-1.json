@@ -1,24 +1,32 @@
 {
   "packet": "coding-001-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [{"quote": "按登录 token 识别本人，条件更新防并发", "why": "后半句把操作和目的压成短语，读者要自己补出更新时加条件以防并发冲突的关系。"}]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [{"quote": "按登录 token 识别本人，条件更新防并发", "why": "后半句省略了动作间的连接，读者要自己补出如何更新以及为什么能防并发。"}]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "下单时间不足5分钟且尚未收到支付回调的订单", "why": "读者会误以为限制取消的五分钟从下单开始计算，原文指五分钟内发起过支付且尚未收到回调。"},
+        {"quote": "24个季节时段", "why": "读者会误以为新增卡片和页面采用这个名称，原文的专有名称是二十四节气。"},
+        {"quote": "如果需要加强验证，只需修改前端的一些调用，使其包含token即可", "why": "读者会误以为仅修改前端就足以收紧酒店订单详情权限，原文只是说明收紧接口权限还需要前端调用一起改为带 token。"}
+      ],
+      "readability_issues": [
+        {"quote": "变更列表中会显示它们的修改内容Files", "why": "Files 生硬地接在句尾，读者要重新判断它与变更列表的关系。"},
+        {"quote": "通过微信支付的真实支付：本地层面缺少支付证书", "why": "真实支付和本地层面的搭配有明显翻译腔，读起来绕。"},
+        {"quote": "按照“每个订单最多2间房；如需更多房间请联系管家”的原则实施", "why": "按照原则实施的书面套法让简单的预订限制显得生硬。"}
+      ]
     }
   }
 }

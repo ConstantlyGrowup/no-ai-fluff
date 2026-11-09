@@ -1,24 +1,31 @@
 {
   "packet": "daily-012-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "如果续签一年、按时交租这些都没问题，我也愿意配合。", "why": "这些都没问题的条件和愿意配合的对象含混，读者要补出双方究竟在商量什么。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 5,
       "errors": [],
       "readability_issues": []
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "先表示同意，再提出请求", "why": "原文建议先认可房东的考虑，这里会让读者误以为应先同意涨租再请求少涨。"}
+      ],
+      "readability_issues": [
+        {"quote": "您好，房东！我收到了关于提高租金的通知", "why": "称呼的顺序和关于提高租金的通知都像直译，微信协商时说起来生硬。"},
+        {"quote": "如果我续签一年合同并按时交租——没问题，我愿意配合。", "why": "条件句没有接上结果，突然插入没问题，读者要回头理清这句话。"}
+      ]
     }
   }
 }

@@ -1,24 +1,30 @@
 {
   "packet": "teaching-001-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 5,
       "errors": [],
       "readability_issues": []
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [{"quote": "关键区分是两个维度", "why": "把要区分的对象说成区分本身，搭配略生硬，需要在脑中改成关键是区分两个维度。"}]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [
+        {"quote": "如果依次改变这些因素，在图像空间中就会形成平滑的曲面", "why": "读者会误以为只要按顺序改变因素就能形成平滑曲面，原文强调的是这些因素连续变化。"},
+        {"quote": "利用了“数据的内在维度很低”这一事实", "why": "读者会误以为数据内在维度很低已是确定事实，原文把它作为流形假设下的一种理解。"}
+      ],
+      "readability_issues": [
+        {"quote": "模型所学习的去噪网络实际上是在学习如何确定", "why": "所学习和在学习重复叠加，让一个简单动作读起来拖沓。"},
+        {"quote": "因此，这句话的含义如下", "why": "含义如下是介绍性书面套语，削弱了当面解释的自然感。"}
+      ]
     }
   }
 }

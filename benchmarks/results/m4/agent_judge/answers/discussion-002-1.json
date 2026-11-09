@@ -1,24 +1,39 @@
 {
   "packet": "discussion-002-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "这是一个非常好的问题，触及了当前LLM应用架构的核心矛盾。", "why": "先用泛泛的夸赞和核心矛盾铺垫，像模板化的答题开场。"},
+        {"quote": "可控的优", "why": "把评价压成不自然的短语，需要读者补成准确性较好而且能够控制。"},
+        {"quote": "成本效益是商业应用的命脉", "why": "用命脉式口号强调重要性，显得郑重而空泛。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 4,
+      "errors": [
+        {"quote": "成本会随调用量迅速增加", "why": "原文明说成本指数级上升，这里只说迅速增加，会让读者误以为原文并未声称具体的指数增长关系。"}
+      ],
+      "readability_issues": [
+        {"quote": "可控的优", "why": "把较好而且可控压成了不自然的评价短语。"},
+        {"quote": "需要搭建和维护向量数据库、检索 pipeline", "why": "普通的检索流程保留英文 pipeline，中文技术说明读到这里要切换语言。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "数百万甚至数十亿份文档", "why": "原文只说百万甚至亿级文档，这里明确扩到数十亿，会让读者误以为原文给出了更大的检索处理规模。"}
+      ],
+      "readability_issues": [
+        {"quote": "为什么路线RAG更具前景", "why": "路线和 RAG 的顺序倒置，读起来有明显翻译感。"},
+        {"quote": "对搜索RAG时找到的", "why": "搜索 RAG 的说法让人不清楚是在查找技术还是检索文档，需要重读。"},
+        {"quote": "具有长上下文的模型则像是一个“黑箱”", "why": "具有长上下文的模型这种反复绕写比直接说长上下文模型更生硬。"}
+      ]
     }
   }
 }

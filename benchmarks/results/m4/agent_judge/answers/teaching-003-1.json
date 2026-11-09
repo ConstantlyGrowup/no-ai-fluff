@@ -1,24 +1,32 @@
 {
   "packet": "teaching-003-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [{"quote": "生成器（保存状态/暂停/恢复） + 操作系统 I/O 多路复用（epoll，监听事件） + 一个死循环（调度中心）", "why": "用加号和括号堆起三个名词组件，读者要自己补出它们如何配合完成调度。"}]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [
+        {"quote": "自愿将控制权交给CPU", "why": "读者会误以为 CPU 是协程交接控制权的接收者，原文是协程交出 CPU 控制权后由事件循环继续调度。"},
+        {"quote": "网卡从Task A处接收到数据", "why": "读者会误以为数据由 Task A 发给网卡，原文是网卡收到了 Task A 正在等待的数据。"},
+        {"quote": "随后从Ready中取出Queue以供执行Task B", "why": "读者会误以为 Ready 内取出的是 Queue，原文是从 Ready Queue 中取出 Task B 执行。"}
+      ],
+      "readability_issues": [
+        {"quote": "随后从Ready中取出Queue以供执行Task B", "why": "把一个队列名称拆开用作两个对象，句子需要重新拼接才能理解。"},
+        {"quote": "线程**是强制切换的 OS", "why": "主语和表语搭配颠倒，需要读者自行还原操作系统切换线程的意思。"},
+        {"quote": "本质上就是调用一个作为有限状态机的生成器函数", "why": "作为有限状态机的生成器函数这一长串修饰语生硬，动作与对象关系不易一遍读清。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [{"quote": "需要切换内核态/用户态，保存寄存器、独立栈等", "why": "斜线和并列名词压缩了动作，保存寄存器与独立栈的搭配也略显生硬。"}]
     }
   }
 }

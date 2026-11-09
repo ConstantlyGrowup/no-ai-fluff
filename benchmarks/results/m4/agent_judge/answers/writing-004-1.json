@@ -1,24 +1,41 @@
 {
   "packet": "writing-004-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "能力沉淀：形成可复用的规则库、提示词库、最佳实践和内部 Champion 网络。", "why": "用抽象名词给一串产物贴标签，没有像同事说话那样说明谁会整理和使用这些材料。"},
+        {"quote": "安全先行，让工程师“有路可走”，而不是“禁而不止”。", "why": "口号和比喻没有展开成具体动作，读者要自己补出怎样提供可用又安全的工具。"},
+        {"quote": "企业版 + 隐私模式；仓库分级；DLP；网关审计；培训", "why": "把应对办法压成名词清单，读者需要自己补出各项要做的事和它们的关系。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 2,
+      "errors": [
+        {"quote": "Cursor、Claude、Code等（可扩展至Copilot、Codex、CLI等）", "why": "把 Claude Code 和 Codex CLI 拆成多个名字，会使读者误以为 Claude、Code、Codex 和 CLI 是分别列出的工具。"},
+        {"quote": "供应商数据处理协议（培训、数据存储、数据托管、SOC2/ISO认证）", "why": "把是否用于模型训练和数据驻留改成培训与数据托管，会使读者误以为审查这些项目即可覆盖原文要求的数据处理风险。"},
+        {"quote": "场景化课程：前端、后端、测试、数据，各方向均设有针对SRE的实践课程", "why": "会使读者误以为各方向的课程都面向 SRE，而原文要求前端、后端、测试、数据和 SRE 分别开展各自的实战。"},
+        {"quote": "由AI生成的变更内容必须覆盖测试用例", "why": "会使读者误以为是代码变更需要覆盖测试用例，而原文要求这些变更本身得到测试覆盖。"}
+      ],
+      "readability_issues": [
+        {"quote": "进阶课程：工作流程Agent、上下文管理、集成MCP、规则编写", "why": "工作流程Agent的语序生硬，又把不同结构的名词和动作并列，读者要回头整理意思。"},
+        {"quote": "每位开发者的合并次数 PR / 需求吞吐量", "why": "PR悬在中文名词之后，读者需要自己重新排列词语才能理解这个指标。"},
+        {"quote": "关于限制和预算的警告；按角色划分；成本看板", "why": "翻译式名词和省略对象的短语连在一起，没有说清谁对什么设限和告警。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "能力沉淀", "why": "抽象标签带有方案套话感，没有直接说明团队要积累什么能力。"},
+        {"quote": "安全先行", "why": "口号式表达没有说明具体先做什么，读者需要借助后文自行理解。"},
+        {"quote": "企业版 + 隐私模式；仓库分级；DLP；网关审计；培训", "why": "把多项应对措施压成名词清单，省掉动作和衔接，读者需要自行补齐。"}
+      ]
     }
   }
 }

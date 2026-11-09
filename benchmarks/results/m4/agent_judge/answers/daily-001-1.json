@@ -1,24 +1,33 @@
 {
   "packet": "daily-001-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 5,
       "errors": [],
       "readability_issues": []
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "老小区注意：无电梯、隔音、楼道卫生、停车、快递外卖是否方便。", "why": "把需要检查的事情压成一串名词，读者得自己补出各项要问什么。"},
+        {"quote": "先带 essentials，安顿后再补。", "why": "必需品突然换成英文，打断了中文说明的顺畅感。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
-      "errors": [],
-      "readability_issues": []
+      "fidelity": 2,
+      "readability": 3,
+      "errors": [
+        {"quote": "入住时会列出家具和家电清单", "why": "原文要求租客入住时主动做清单，这里写成将会发生的事，会让读者误以为入住时自然有人提供清单。"}
+      ],
+      "readability_issues": [
+        {"quote": "六月是毕业生和换房季", "why": "把人和季节并列，搭配不顺，读者要自行理解为毕业季。"},
+        {"quote": "是否存在男女混住情况，以及房东或转租方来访的频率。", "why": "简单的合租询问写成存在情况和来访频率，显得像翻译后的书面调查。"},
+        {"quote": "我就能帮您在5000元人民币的预算范围内缩小具体租房板块的范围。", "why": "预算范围和缩小范围挤在同一句里，绕得比实际要说的事情更复杂。"}
+      ]
     }
   }
 }

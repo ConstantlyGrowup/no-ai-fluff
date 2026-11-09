@@ -81,6 +81,9 @@ def analyze(args) -> None:
     by_scen = defaultdict(Counter)
     detail = []
     for sid, v in rows.items():
+        for c in (v.get("best"), v.get("worst")):
+            if c and c not in key:
+                sys.exit(f"代号 {c}（{sid}）不在 {args.run} 的对照表里：投票文件和对照表不是同一轮")
         b = key.get(v.get("best") or "", {}).get("variant")
         w = key.get(v.get("worst") or "", {}).get("variant")
         if v.get("tie"):
@@ -93,7 +96,9 @@ def analyze(args) -> None:
         detail.append({"sample_id": sid, "best": b, "worst": w, "tie": bool(v.get("tie")), "note": v.get("note", ""),
                        "seconds": v.get("seconds")})
     n = sum(best.values())
-    order = run_order(ra.load_run_config(args.dir))
+    cfg = ra.load_run_config(args.dir)
+    order = run_order(cfg)
+    LABELS.update(cfg.get("labels") or {})
     lines = [f"# {args.run} 人工盲测结果（{n} 篇有效投票）", "", "| 版本 | 最好读（票） | 占比 | 最难读（票） |", "|---|---|---|---|"]
     for v in order:
         lines.append(f"| {LABELS[v]} | {best[v]} | {best[v] / n:.0%} | {worst[v]} |" if n else f"| {LABELS[v]} | 0 | - | {worst[v]} |")
@@ -105,7 +110,7 @@ def analyze(args) -> None:
     lines += ["", "## 逐篇", "", "| 样本 | 最好读 | 最难读 | 选不出 | 备注 |", "|---|---|---|---|---|"]
     for d in sorted(detail, key=lambda x: x["sample_id"]):
         lines.append(f"| {d['sample_id']} | {LABELS.get(d['best'], '-')} | {LABELS.get(d['worst'], '-')} | "
-                     f"{'是' if d['tie'] else ''} | {d['note'].replace('|', '/')} |")
+                     f"{'是' if d['tie'] else ''} | {d['note'].replace('|', '/').replace(chr(10), ' ')} |")
     out = args.dir / "blind_summary.md"
     out.write_text("\n".join(lines) + "\n", "utf-8")
     (args.dir / "blind_votes.json").write_text(json.dumps({"raw": votes, "decoded": detail}, ensure_ascii=False, indent=2), "utf-8")
@@ -116,13 +121,22 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("stage", choices=["build", "analyze"])
     ap.add_argument("file", nargs="?")
-    ap.add_argument("--run", default="m3")
+    ap.add_argument("--run", help="build 必填；analyze 默认取投票文件里记录的轮次")
     ap.add_argument("--seed", type=int, default=20261108)
     ap.add_argument("--force", action="store_true", help="对照表已存在时仍然重建（会使已导出的投票无法解码）")
     args = ap.parse_args()
+    if args.stage == "analyze":
+        if not args.file:
+            ap.error("analyze 需要导出的投票文件")
+        voted = json.loads(Path(args.file).read_text("utf-8-sig")).get("run")
+        if args.run and voted and args.run != voted:
+            ap.error(f"投票文件属于 {voted}，与 --run {args.run} 不符")
+        args.run = args.run or voted
+        if not args.run:
+            ap.error("投票文件里没有记录轮次，请用 --run 指定")
+    elif not args.run:
+        ap.error("build 需要 --run，例如 --run m4")
     args.dir = ra.BENCH / "results" / args.run
-    if args.stage == "analyze" and not args.file:
-        ap.error("analyze 需要导出的投票文件")
     {"build": build, "analyze": analyze}[args.stage](args)
 
 

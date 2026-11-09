@@ -1,24 +1,35 @@
 {
   "packet": "discussion-001-1",
-  "judge_model": null,
+  "judge_model": "gpt-6",
   "candidates": {
     "A": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "针对这个规模的团队，具体的 trade-off 如下", "why": "简单的怎么权衡突然换成英文，读起来不像连续的中文讲解。"},
+        {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "总结整句切成英文口号，需要读者额外转换语言。"}
+      ]
     },
     "B": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 3,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "Build是可靠的Monolith，切勿搭建Microservices平台。", "why": "英文动词和中文判断句拼在一起，句子不成立，要回头猜是在建议搭建什么。"},
+        {"quote": "模块按照业务领域划分（Domain）（例如，模块`User`、模块`Order`、模块`Payment`）。", "why": "英文释义放在动词后又接一组括号，几个模块称呼也倒装得生硬，打断了阅读。"},
+        {"quote": "一件值得高兴的麻烦", "why": "把事情说成值得高兴的麻烦，搭配有直译感。"}
+      ]
     },
     "C": {
-      "fidelity": null,
-      "readability": null,
+      "fidelity": 5,
+      "readability": 4,
       "errors": [],
-      "readability_issues": []
+      "readability_issues": [
+        {"quote": "以下是针对这个规模团队的具体 Trade-off 分析", "why": "普通的权衡分析夹入英文，没有让说明更清楚。"},
+        {"quote": "享受单体的开发速度和低运维成本", "why": "享受开发速度和成本的搭配生硬，像把好处套入固定句式。"},
+        {"quote": "Build a solid Monolith, don't build a Microservices platform.", "why": "总结整句改成英文口号，中文说明读到这里需要切换语言。"}
+      ]
     }
   }
 }

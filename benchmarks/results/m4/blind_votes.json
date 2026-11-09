@@ -1,0 +1,162 @@
+{
+  "raw": {
+    "run": "m4",
+    "exported_at": "2026-11-09T11:33:39.851Z",
+    "completed": 10,
+    "total": 10,
+    "votes": {
+      "daily-001": {
+        "best": "f0155b",
+        "worst": "d7a7a7",
+        "tie": false,
+        "note": "",
+        "seconds": 140
+      },
+      "writing-005": {
+        "best": "3cf3d7",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 144
+      },
+      "discussion-002": {
+        "best": "4738ae",
+        "worst": "ec8563",
+        "tie": false,
+        "note": "",
+        "seconds": 76
+      },
+      "teaching-003": {
+        "best": "03328d",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 154
+      },
+      "coding-002": {
+        "best": "960544",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 122
+      },
+      "teaching-001": {
+        "best": "999151",
+        "worst": "53a324",
+        "tie": false,
+        "note": "",
+        "seconds": 146
+      },
+      "writing-004": {
+        "best": "86c2b7",
+        "worst": "1168ee",
+        "tie": false,
+        "note": "",
+        "seconds": 150
+      },
+      "daily-012": {
+        "best": "f6c7ff",
+        "worst": "2dc923",
+        "tie": false,
+        "note": "",
+        "seconds": 64
+      },
+      "coding-001": {
+        "best": "e9615a",
+        "worst": null,
+        "tie": false,
+        "note": "",
+        "seconds": 87
+      },
+      "discussion-001": {
+        "best": "1ad7a0",
+        "worst": "95bcb2",
+        "tie": false,
+        "note": "B其实拆了很多晦涩的表达，但是有些词汇还是不能调整的，例如“运维”和“运营”；\n这个也很怪：：Build是可靠的Monolith，切勿搭建Microservices平台。",
+        "seconds": 291
+      }
+    }
+  },
+  "decoded": [
+    {
+      "sample_id": "daily-001",
+      "best": "baseline:humanizer-zh",
+      "worst": "patched:hymt-ru",
+      "tie": false,
+      "note": "",
+      "seconds": 140
+    },
+    {
+      "sample_id": "writing-005",
+      "best": "original",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 144
+    },
+    {
+      "sample_id": "discussion-002",
+      "best": "original",
+      "worst": "baseline:humanizer-zh",
+      "tie": false,
+      "note": "",
+      "seconds": 76
+    },
+    {
+      "sample_id": "teaching-003",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 154
+    },
+    {
+      "sample_id": "coding-002",
+      "best": "baseline:humanizer-zh",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 122
+    },
+    {
+      "sample_id": "teaching-001",
+      "best": "baseline:humanizer-zh",
+      "worst": "patched:hymt-ru",
+      "tie": false,
+      "note": "",
+      "seconds": 146
+    },
+    {
+      "sample_id": "writing-004",
+      "best": "baseline:humanizer-zh",
+      "worst": "patched:hymt-ru",
+      "tie": false,
+      "note": "",
+      "seconds": 150
+    },
+    {
+      "sample_id": "daily-012",
+      "best": "baseline:humanizer-zh",
+      "worst": "original",
+      "tie": false,
+      "note": "",
+      "seconds": 64
+    },
+    {
+      "sample_id": "coding-001",
+      "best": "patched:hymt-ru",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 87
+    },
+    {
+      "sample_id": "discussion-001",
+      "best": "baseline:humanizer-zh",
+      "worst": "patched:hymt-ru",
+      "tie": false,
+      "note": "B其实拆了很多晦涩的表达，但是有些词汇还是不能调整的，例如“运维”和“运营”；\n这个也很怪：：Build是可靠的Monolith，切勿搭建Microservices平台。",
+      "seconds": 291
+    }
+  ]
+}
