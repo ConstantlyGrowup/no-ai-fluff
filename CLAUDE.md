@@ -7,7 +7,7 @@
 - `.env` 里有密钥：不要打印，不要提交，也不要写进日志或账本。
 - 宿主补丁和 Humanizer-zh 基线只走 DeepSeek 官方 API。OpenRouter 只用于以下三项：
   - hy-mt2 往返翻译；
-  - `typesafe/jev-1.13` 评委；
+  - `typesafe/jev-1.14`（当前最新版）评委；
   - 已批准的一次性语料生成（每题只用一个模型）。
 - 绝不删除以下内容：
   - `benchmarks/.cache/openrouter`、`benchmarks/.cache/deepseek`、`benchmarks/.cache/drafts`；

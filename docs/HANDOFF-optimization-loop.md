@@ -45,7 +45,7 @@ v1~v5 规则仍在代码里，供复现历史实验；**v5 已淘汰**（见下�
 
 | # | 事项 | 决定 |
 |---|---|---|
-| 1 | JEV 当评委 | **明确同意**用 OpenRouter `typesafe/jev-1.13` 作评委（固定 1.13，不要用 `jev-latest`/1.14） |
+| 1 | JEV 当评委 | **明确同意**用 JEV 作评委，**用最新版**：目前是 `typesafe/jev-1.14`（快照 `jev-1.14-20261014`，`~typesafe/jev-latest` 也指向它）。整个闭环固定写 `typesafe/jev-1.14`，不用别名，避免中途升级导致分数尺度漂移；若开始前已有更新版本，就改用最新版、重新校准，并记入账本 |
 | 2 | 补充语料 | 可用 `benchmarks/corpus/collect_generated.py` 生成；**一个问题只用一个模型作答**（按问题轮换 Claude / GPT / Gemini / DeepSeek，不要同一问题多模型） |
 | 3 | 删除权限 | **同意**在项目目录内删除（清理、git 锁文件） |
 | 4 | 云端运行 | 同意可用云端；但接手后在本机 Claude Code 里跑，没有 3 分钟命令时限，**不再需要云端**，密钥留在本机 `.env` |
@@ -135,14 +135,14 @@ python benchmarks/blind_workbench.py analyze <导出的投票文件>
 ### 5.1 接口（已实测）
 
 - `POST https://openrouter.ai/api/alpha/decisions`，`Authorization: Bearer $OPENROUTER_API_KEY`。**不是**对话接口，chat SDK 不能用。
-- 请求：`{"model": "typesafe/jev-1.13", "state": <字符串/对象/数组>, "questions": {<名字>: <问题>}}`。
+- 请求：`{"model": "typesafe/jev-1.14", "state": <字符串/对象/数组>, "questions": {<名字>: <问题>}}`。
 - 问题类型：
   - `noul`：`instructions` + 可选 `criteria: {"true": "...", "false": "..."}` → 返回 `noul`（“是”的概率，0~1）；
   - `choice`：`criteria` 为“选项名 → 说明” → 返回 `choice`、`confidence`、`probabilities`；
   - `score`：`criteria` 为有序数组 → 返回 `score`（加权位置）、`probabilities`（按下标）、`legend`。
 - 同一请求内的问题并行作答、互相看不到答案；可能返回 `refusal`。
-- 响应带 `usage.cost`（美元）。探针实测：3 个问题、529 输入 token、0.000022 美元、0.77 秒。服务版本为 `typesafe/jev-1.13-20260917`。
-- 上下文：文档写 32K token，端点元数据写 262K。**按 32K 设计**，长文拆段评。
+- 响应带 `usage.cost`（美元）。探针实测：1.13 上 3 个问题、529 输入 token、0.000022 美元、0.77 秒；1.14 单题探针正常，服务快照 `typesafe/jev-1.14-20261014`，单价与 1.13 相同（输入每百万 token 0.042 美元，输出免费）。
+- 上下文：1.14 端点为 262,144 token（1.13 文档写的是 32K）。为稳妥起见，单次请求仍尽量控制在 32K 以内，长文拆段评。
 - JEV 不给理由、只给概率，所以不能再沿用 `agent_judge.py` 的“逐字引文”证据制。
 
 ### 5.2 评测设计（Phase 0 方案，用户已同意用 JEV）
