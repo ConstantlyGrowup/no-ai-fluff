@@ -134,3 +134,9 @@ def test_find_with_trailing_space_still_applies(tmp_path):
     p = {"find": "本方案旨在对系统进行全面赋能。 ", "replace": "这个方案要把系统整体改好。 ", "type": "空洞大词", "reason": "x"}
     fin = pipe.finalize(prep.draft_id, json.dumps([p], ensure_ascii=False))
     assert fin.applied == 1 and "这个方案要把系统整体改好。" in fin.final_text
+
+
+def test_acronyms_soft_but_term_list_hard():
+    doc = parse("这个 case 我们和 PM 侧同步过，ROI 不错，API 已经上线。")
+    soft = {doc.placeholders[i] for i in doc.soft}
+    assert {"PM", "ROI"} <= soft and "API" not in soft

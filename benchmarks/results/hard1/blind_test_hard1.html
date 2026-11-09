@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>盲测：哪一版更好读</title>
+<style>
+:root{
+  --paper:#F5F7F4; --sheet:#FCFDFB; --ink:#1E2422; --ink-soft:#4A5450; --muted:#87918C;
+  --rule:#6E9A80; --rule-faint:#D6E2DA; --red:#B3392F; --red-wash:#F6E3E0;
+  --serif:"Source Han Serif SC","Noto Serif SC","Noto Serif CJK SC","Songti SC","STSong","SimSun",serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--rule);outline-offset:2px}
+
+/* 顶栏 */
+.top{display:flex;align-items:center;gap:20px;padding:12px 24px;border-bottom:1px solid var(--rule-faint);background:var(--sheet)}
+.top h1{font-family:var(--serif);font-weight:600;font-size:19px;margin:0;letter-spacing:.02em}
+.progress{display:flex;gap:5px;align-items:center;flex:1;min-width:0}
+.dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--rule-faint);background:none;font-size:11px;color:var(--muted);display:grid;place-items:center;flex:none}
+.dot.done{border-color:var(--rule);color:var(--ink)}
+.dot.cur{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.top .tools{display:flex;gap:8px}
+.btn{border:1px solid var(--rule-faint);background:var(--sheet);border-radius:6px;padding:6px 12px;font-size:14px}
+.btn:hover{border-color:var(--rule)}
+.btn.primary{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* 主体 */
+.main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:0}
+.reader{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--rule-faint)}
+.brief{padding:16px 32px 0;color:var(--ink-soft);font-size:14px;line-height:1.7;max-width:46em}
+.brief b{color:var(--ink);font-weight:600}
+.tabs{display:flex;align-items:flex-end;gap:2px;padding:14px 32px 0;border-bottom:1.5px solid var(--rule)}
+.tab{position:relative;border:1.5px solid transparent;border-bottom:none;background:none;padding:6px 18px 8px;font-family:var(--serif);font-size:18px;color:var(--muted);border-radius:6px 6px 0 0;margin-bottom:-1.5px}
+.tab[aria-selected="true"]{border-color:var(--rule);background:var(--sheet);color:var(--ink)}
+.tab .seen{position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--rule-faint)}
+.tab .seen.on{background:var(--rule)}
+.tab.best{color:var(--red)}
+.tab.best::after{content:"";position:absolute;inset:3px 8px 5px;border:1.5px solid var(--red);border-radius:50%;transform:rotate(-6deg);pointer-events:none}
+.modes{margin-left:auto;display:flex;gap:4px;padding-bottom:6px}
+.modes .btn{padding:4px 10px;font-size:13px}
+.modes .btn[aria-pressed="true"]{border-color:var(--rule);background:var(--rule-faint)}
+
+.panes{flex:1;display:grid;grid-template-columns:1fr;min-height:0;background:var(--sheet)}
+.panes.split{grid-template-columns:1fr 1fr}
+.pane{overflow-y:auto;min-height:0;padding:28px 32px 80px}
+.panes.split .pane:first-child{border-right:1px solid var(--rule-faint)}
+.pane-head{display:none;align-items:center;gap:8px;margin:-12px 0 16px;color:var(--muted);font-size:13px}
+.panes.split .pane-head{display:flex}
+.pane-head select{font:inherit;border:1px solid var(--rule-faint);border-radius:4px;background:var(--sheet);padding:2px 6px}
+
+/* 正文排版：宋体、约 36 字一行 */
+.doc{font-family:var(--serif);font-size:17px;line-height:1.9;max-width:36em;margin:0 auto;color:var(--ink)}
+.panes.split .doc{font-size:16px}
+.doc h1,.doc h2,.doc h3,.doc h4{font-weight:600;line-height:1.5;margin:1.4em 0 .5em}
+.doc h1{font-size:1.35em}.doc h2{font-size:1.2em}.doc h3{font-size:1.08em}.doc h4{font-size:1em}
+.doc p{margin:0 0 .9em}
+.doc ul,.doc ol{margin:0 0 .9em;padding-left:1.6em}
+.doc li{margin:.2em 0}
+.doc blockquote{margin:0 0 .9em;padding:.1em 0 .1em 1em;border-left:3px solid var(--rule-faint);color:var(--ink-soft)}
+.doc code{font-family:var(--mono);font-size:.86em;background:#EEF2EF;padding:.05em .3em;border-radius:3px}
+.doc pre{background:#EEF2EF;padding:12px 14px;border-radius:6px;overflow-x:auto;line-height:1.55;font-size:13.5px}
+.doc pre code{background:none;padding:0;font-size:inherit}
+.doc table{border-collapse:collapse;margin:0 0 1em;font-size:.92em;line-height:1.6}
+.doc th,.doc td{border:1px solid var(--rule-faint);padding:4px 10px;text-align:left;vertical-align:top}
+.doc th{background:#EEF2EF;font-weight:600}
+.doc hr{border:none;border-top:1px dashed var(--rule-faint);margin:1.4em 0}
+.doc a{color:inherit;text-decoration:underline;text-decoration-color:var(--rule)}
+
+/* 投票栏 */
+.vote{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;background:var(--paper)}
+.vote h2{font-family:var(--serif);font-size:16px;font-weight:600;margin:0 0 8px}
+.vote p.hint{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6}
+.picks{display:flex;gap:8px}
+.pick{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--rule-faint);background:var(--sheet);font-family:var(--serif);font-size:18px;display:grid;place-items:center}
+.pick:hover{border-color:var(--ink-soft)}
+.pick[aria-pressed="true"].best{border-color:var(--red);color:var(--red);background:var(--red-wash)}
+.pick[aria-pressed="true"].worst{border-color:var(--ink);background:var(--ink);color:var(--sheet)}
+.pick:disabled{opacity:.3;cursor:default}
+label.tie{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-soft)}
+textarea{width:100%;min-height:90px;resize:vertical;font:inherit;font-size:14px;line-height:1.6;border:1px solid var(--rule-faint);border-radius:6px;padding:8px 10px;background:var(--sheet)}
+.nav{display:flex;gap:8px;margin-top:auto}
+.nav .btn{flex:1;padding:9px}
+.status{font-size:13px;color:var(--muted);line-height:1.6}
+.status.warn{color:var(--red)}
+.keys{font-size:12px;color:var(--muted);line-height:1.8}
+.keys kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--rule-faint);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--sheet)}
+
+/* 完成页 */
+.finish{max-width:34em;margin:60px auto;padding:0 24px;font-family:var(--serif);line-height:1.9}
+.finish h2{font-size:22px;font-weight:600}
+.hidden{display:none!important}
+
+@media (max-width:900px){
+  .main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .reader{border-right:none;border-bottom:1px solid var(--rule-faint)}
+  .modes{display:none}
+  .panes.split{grid-template-columns:1fr}.panes.split .pane:last-child{display:none}
+  .pane{padding:20px 18px 40px}.brief,.tabs{padding-left:18px;padding-right:18px}
+  .vote{max-height:46vh}
+  .progress{display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .pick,.tab,.btn{transition:border-color .15s,background-color .15s,color .15s}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>哪一版更好读</h1>
+  <nav class="progress" id="progress" aria-label="篇目进度"></nav>
+  <div class="tools">
+    <button class="btn" id="importBtn" title="载入之前导出的进度">载入进度</button>
+    <button class="btn primary" id="exportBtn">导出结果</button>
+    <input type="file" id="importFile" accept="application/json" class="hidden">
+  </div>
+</header>
+
+<main class="main" id="main">
+  <section class="reader" aria-label="阅读区">
+    <div class="brief" id="brief"></div>
+    <div class="tabs" role="tablist" id="tabs">
+      <div class="modes">
+        <button class="btn" id="modeSingle" aria-pressed="true">逐个读</button>
+        <button class="btn" id="modeSplit" aria-pressed="false">并排对照</button>
+      </div>
+    </div>
+    <div class="panes" id="panes">
+      <article class="pane" id="paneL"><div class="pane-head">左侧：<select id="selL"></select></div><div class="doc" id="docL"></div></article>
+      <article class="pane hidden" id="paneR"><div class="pane-head">右侧：<select id="selR"></select></div><div class="doc" id="docR"></div></article>
+    </div>
+  </section>
+
+  <aside class="vote" aria-label="投票">
+    <div>
+      <h2>最好读的一版</h2>
+      <p class="hint">凭读起来的感觉选：哪一版最像人话、读着最不累。不用逐字找错。</p>
+      <div class="picks" id="bestPicks"></div>
+    </div>
+    <div>
+      <h2>最难读的一版（可选）</h2>
+      <div class="picks" id="worstPicks"></div>
+    </div>
+    <label class="tie"><input type="checkbox" id="tie"> 几版差不多，很难分出高下</label>
+    <div>
+      <h2>想说的话（可选）</h2>
+      <textarea id="note" placeholder="比如：B 的第二段很别扭；A 和 C 几乎一样"></textarea>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="nav">
+      <button class="btn" id="prevBtn">上一篇</button>
+      <button class="btn primary" id="nextBtn">下一篇</button>
+    </div>
+    <div class="keys"><kbd>1</kbd>–<kbd>4</kbd> 切换版本　<kbd>←</kbd><kbd>→</kbd> 换篇</div>
+  </aside>
+</main>
+
+<section class="finish hidden" id="finish">
+  <h2>全部投完了</h2>
+  <p>点右上角的“导出结果”，保存 <b>blind_votes.json</b>，然后在项目根目录运行：</p>
+  <p><code>python benchmarks/blind_workbench.py analyze blind_votes.json</code></p>
+  <p>脚本会解码每个代号对应的版本，并给出统计。想改某一篇的投票，可以点上方进度圆点回去修改。</p>
+  <p><button class="btn" id="backBtn">回到最后一篇</button></p>
+</section>
+
+<script>
+const DATA = {"run": "hard1", "items": [{"sid": "hard-001", "title": "Q3 智能推荐项目复盘（极端黑话 + 中英混杂）", "scenario": "hard", "prompt": "帮我写一份 Q3 智能推荐项目的复盘，灰度只在 iOS 20%，DAU 120 万到 138 万，点击转化率 3.2% 到 4.1%，投入 6 人月，Android 埋点没对齐，新用户次日留存 31%，Q4 目标 DAU 150 万。", "cands": [{"code": "93c298", "text": "# Q3 智能推荐项目复盘：以数据驱动为抓手，打造增长新引擎\n\n## 一、项目背景与顶层设计\n\n在当前存量竞争日趋白热化的大背景下，用户心智的争夺已经进入深水区。为了进一步夯实我们在内容分发赛道的护城河，团队在 Q3 围绕“精细化运营”这一核心战略，对推荐链路进行了一次全方位、多维度、深层次的重构升级，旨在通过打通数据孤岛、沉淀算法能力、拉通产研协同，形成从用户触达到价值转化的完整闭环，最终实现业务的高质量可持续增长。\n\n## 二、核心举措与落地抓手\n\n1. **底层逻辑重塑**：我们对召回、粗排、精排三个环节进行了颗粒度更细的拆解，以 `feature_flag.smart_rec` 为开关，在 iOS 端以 20% 的流量进行灰度，Android 端暂不上线。这一举措有效赋能了推荐系统的个性化能力，实现了千人千面的极致体验。\n2. **组合拳打法**：通过“冷启动兜底 + 实时兴趣捕捉 + 多样性打散”的三位一体策略，我们构建了一套可复用、可扩展、可迭代的方法论体系，为后续业务的规模化复制奠定了坚实基础。\n3. **协同机制对齐**：这个 case 我们和 PM 侧 sync 了很多轮，最终 align 了一个 roadmap，owner 明确到人，每周 review 一次 action item 的 progress，确保整体 timeline 不 delay。\n\n## 三、阶段性成果与价值输出\n\n经过一个季度的持续深耕，项目取得了里程碑式的突破：\n\n- 灰度组 DAU 从 120 万提升至 138 万，环比增长 15%；\n- 推荐位点击转化率由 3.2% 提升至 4.1%；\n- 整体投入为 6 人月，ROI 显著优于预期。\n\n值得一提的是，上述成果充分彰显了团队强大的执行力和战斗力，标志着我们在智能化道路上迈出了坚实的一步，为公司整体战略目标的达成注入了强劲动能。\n\n## 四、问题反思与未来展望\n\n当然，我们也清醒地认识到，在高速发展的过程中仍然存在一些痛点和卡点：一是 Android 端的数据埋点口径尚未拉齐，导致两端指标无法横向对比；二是冷启动阶段的新用户留存仍有较大提升空间，次日留存仅为 31%。\n\n展望 Q4，我们将继续坚持长期主义，以用户价值为锚点，持续打磨产品体验，全面推进 Android 端灰度（计划不超过 10% 流量起步），力争在年底前实现 DAU 突破 150 万的目标，以更加饱满的热情和更加务实的作风，奋力谱写智能推荐业务高质量发展的新篇章！\n"}, {"code": "a7f670", "text": "# Q3 智能推荐项目复盘：推荐链路重构与阶段性增长\n\n## 一、项目背景与目标\n\n当前，内容分发赛道的存量竞争日趋激烈。Q3，团队围绕“精细化运营”战略，对推荐链路做了一次重构升级，目标是打通数据孤岛、沉淀算法能力、拉通产研协同，形成从用户触达到价值转化的完整闭环，实现业务的高质量、可持续增长。\n\n## 二、核心举措\n\n1. **推荐链路重构**：我们对召回、粗排、精排三个环节做了更细的拆解，以 `feature_flag.smart_rec` 为开关，在 iOS 端以 20% 的流量灰度，Android 端暂不上线。这一调整提升了推荐系统的个性化能力。\n\n2. **策略组合**：我们通过“冷启动兜底 + 实时兴趣捕捉 + 多样性打散”的组合，形成了一套可复用、可扩展、可迭代的方法，为后续业务的规模化复制打下基础。\n\n3. **协同机制**：在这个项目上，我们和 PM 团队同步了多轮，最终对齐了一份路线图，责任明确到人，每周检查一次行动项的进展，确保整体时间表不延误。\n\n## 三、阶段性成果\n\n一个季度后，项目取得了以下阶段性结果：\n\n- 灰度组 DAU 从 120 万提升至 138 万，环比增长 15%；\n- 推荐位点击转化率由 3.2% 提升至 4.1%；\n- 整体投入为 6 人月，ROI 显著优于预期。\n\n## 四、问题与下一步计划\n\n目前有两个问题：一是 Android 端的数据埋点口径尚未统一，导致两端指标无法横向对比；二是冷启动阶段的新用户留存仍有较大提升空间，次日留存仅为 31%。\n\nQ4，我们将继续打磨产品体验，推进 Android 端灰度，计划从不超过 10% 的流量起步，并力争在年底前实现 DAU 突破 150 万。"}, {"code": "58217e", "text": "# Q3 智能推荐项目复盘：用数据驱动增长\n\n## 一、项目背景和总体思路\n\n现在存量竞争越来越激烈，争夺用户注意力也更难。为了巩固我们在内容分发上的优势，Q3 团队围绕“精细化运营”这个核心策略，对推荐链路做了一次全面重构：把分散的数据接起来，把算法能力积累下来，并让产品和研发协同起来，形成从用户触达到价值转化的完整链路，支撑业务持续增长。\n\n## 二、核心举措和落地方式\n\n1. **重做推荐链路**：我们把召回、粗排、精排三个环节拆得更细，用 `feature_flag.smart_rec` 做开关，在 iOS 端拿 20% 的流量做灰度，Android 端暂不上线。这样做提升了推荐系统的个性化能力，让不同用户看到更适合自己的内容。\n2. **三类策略一起用**：我们用“冷启动兜底 + 实时兴趣捕捉 + 多样性打散”这套策略，整理出一套能复用、能扩展、能迭代的方法，为后续业务规模化复制打好基础。\n3. **把协作方式定清楚**：这个项目我们和产品经理团队同步了很多轮，最终对齐了一份路线图，每项责任明确到人，每周复盘一次待办事项的进度，确保整体时间表不拖延。\n\n## 三、阶段性成果和价值\n\n经过一个季度推进，项目取得了阶段性突破：\n\n- 灰度组 DAU 从 120 万提升至 138 万，环比增长 15%；\n- 推荐位点击转化率由 3.2% 提升至 4.1%；\n- 整体投入为 6 人月，投资回报率显著好于预期。\n\n这些成果说明团队执行力强、战斗力强，也说明我们在智能化方向上扎实往前走了一步，给公司整体目标的达成加了把劲。\n\n## 四、问题反思和 Q4 计划\n\n当然，项目跑得快，也有两个问题需要说清楚：一是 Android 端的数据埋点口径还没统一，导致两端指标没法直接横向对比；二是冷启动阶段的新用户留存还有提升空间，次日留存只有 31%。\n\nQ4 我们继续按长期目标做，把用户价值放在前面，持续打磨产品体验，全面推进 Android 端灰度（计划从不超过 10% 的流量起步），争取年底前 DAU 突破 150 万。后面把智能推荐业务继续做扎实。\n"}]}, {"sid": "hard-002", "title": "订单服务事故根因分析（极端翻译腔）", "scenario": "hard", "prompt": "帮我写一份 10 月 14 日订单服务事故的根因分析：14:05-14:47，影响约 18% 下单请求，原因是 db/pool.go 里 QueryOrders() 错误路径没释放连接，连接池上限 50、超时 30 秒，P99 从 120ms 到 2.4s，错误率峰值 17.6%，支付独立没受影响。修复：defer conn.Release()、连接池使用率超 80% 持续 2 分钟告警、11 月底前排查其余 12 个函数。", "cands": [{"code": "f0b664", "text": "# 关于 10 月 14 日订单服务不可用事件的根因分析报告\n\n## 事件概述\n\n2026 年 10 月 14 日 14:05 至 14:47，订单服务可用性明显下降，持续 42 分钟。约 18% 的下单请求受到影响，表现为请求超时和错误率升高。\n\n## 根本原因\n\n分析日志和监控数据后，确认根本原因是数据库连接池耗尽。部分数据库连接在请求处理结束后没有被正确归还到连接池。高并发下，这些连接会持续累积，直到达到连接池配置的最大连接数（50）。此时，新请求只能等待可用连接释放；等待超过设定的 30 秒超时时间后，请求会以错误返回给调用方。\n\n具体而言，在 `db/pool.go` 的 `QueryOrders()` 函数中，连接在函数开头获取，但只在成功路径上释放，错误路径没有释放。因此，每次查询失败都会导致一个连接泄漏。当天 14:00 左右，上游库存服务出现抖动，查询失败比例上升，使连接泄漏被急剧放大。\n\n## 影响评估\n\n事件期间，订单服务的 P99 延迟从平时的 120ms 升至 2.4s，错误率峰值达到 17.6%。支付由独立服务处理，因此已完成支付的订单未受影响，没有出现资金损失。\n\n## 修复措施\n\n团队已采取以下修复措施：\n\n1. 在获取连接后立即添加 `defer conn.Release()`，确保连接在所有路径上都能正确释放。\n2. 增加连接池使用率监控告警：使用率超过 80% 并持续 2 分钟以上时触发告警。\n3. 计划在 11 月底之前完成其余 12 个数据访问函数的排查，避免类似问题再次发生。\n\n## 经验教训\n\n本次事件暴露了我们在代码评审中对资源释放问题关注不足，也反映出我们缺少针对依赖服务异常场景的压力测试。我们将进一步完善和优化相关流程。"}, {"code": "7349e8", "text": "# 关于 10 月 14 日订单服务不可用事件的根因分析报告\n\n## 事件概述\n\n2026 年 10 月 14 日 14:05 到 14:47（持续 42 分钟），订单服务可用性显著下降，影响了约 18% 的下单请求，表现为请求超时和错误率升高。\n\n## 根本原因\n\n深入分析日志和监控数据后，可以确定根本原因是数据库连接池耗尽。每次请求处理结束后，连接没有被正确归还到连接池；高并发下，这些连接会持续累积，直到达到连接池配置的最大连接数（50）。这时，新请求只能等待有连接被释放；如果等待超过配置的 30 秒超时时间，就会向调用方返回错误。\n\n具体来说，`db/pool.go` 里的 `QueryOrders()` 函数在开头获取连接，但只在成功路径上释放，错误路径漏掉了释放。这样，每次查询失败都会泄漏一个连接。当天 14:00 左右，上游库存服务抖动，查询失败比例上升，连接泄漏随之急剧加重。\n\n## 影响评估\n\n事件期间，订单服务的 P99 延迟从平时的 120ms 升到 2.4s，错误率达到 17.6% 的峰值。好在支付环节由独立服务处理，所以已完成支付的订单没有受到任何影响，也没有出现资金层面的损失。\n\n## 修复措施\n\n针对上述问题，团队已经采取了以下修复措施：\n\n1. 在获取连接后立即添加 `defer conn.Release()`，确保连接在所有路径上都能正确释放；\n2. 增加连接池使用率监控告警：使用率超过 80% 并持续 2 分钟以上时触发告警；\n3. 计划在 11 月底前排查其余 12 个数据访问函数，避免再次发生类似问题。\n\n## 经验教训\n\n这次事件说明，我们在代码评审中对资源释放关注不够，也缺少针对依赖服务异常场景的压力测试。我们会借这次事件继续完善和优化相关流程。\n"}, {"code": "cfce95", "text": "# 关于 10 月 14 日订单服务不可用事件的根因分析报告\n\n## 事件概述\n\n于 2026 年 10 月 14 日 14:05 至 14:47 期间（持续时间为 42 分钟），订单服务经历了一次可用性的显著下降，其对约 18% 的下单请求产生了影响，具体表现为请求的超时以及错误率的升高。\n\n## 根本原因\n\n经过对日志及监控数据进行的深入分析，该问题的根本原因被确定为是由于数据库连接池的耗尽所导致的。值得注意的是，在每次请求处理结束后未能被正确地归还至连接池中的数据库连接，在高并发场景的情况下，其数量会以一种持续累积的方式进行增长，直至达到连接池所被配置的最大连接数（50）的上限。在此情况下，新的请求将不得不进入一个等待可用连接被释放的状态，而该等待在超过所设定的 30 秒的超时时间之后，将会被以错误的形式返回给调用方。\n\n具体而言，在 `db/pool.go` 中的 `QueryOrders()` 函数内，对于连接的获取是在函数的开头被执行的，然而对于其的释放却仅在成功的路径上被进行，在错误路径上则被遗漏。这使得每一次查询失败都会导致一个连接的泄漏的发生。而在当天 14:00 左右，由于上游库存服务的抖动，查询失败的比例出现了上升，从而使得该泄漏被急剧地放大。\n\n## 影响评估\n\n在事件期间，订单服务的 P99 延迟由平时的 120ms 被拉升至 2.4s，并且错误率达到了 17.6% 的峰值。值得庆幸的是，由于支付环节是通过独立的服务来进行处理的，因此已完成支付的订单并未受到任何的影响，没有出现资金层面的损失。\n\n## 修复措施\n\n针对上述问题，团队已经采取了以下的措施来进行修复：\n\n1. 通过在获取连接之后立即添加 `defer conn.Release()` 的方式，确保了连接在所有的路径上都能够被正确地释放；\n2. 对连接池的使用率进行了监控告警的增加，当其使用率超过 80% 并持续 2 分钟以上时，将会触发告警的发送；\n3. 计划在 11 月底之前完成对其余 12 个数据访问函数的排查工作，以避免类似问题的再次发生。\n\n## 经验教训\n\n本次事件不仅暴露了我们在代码评审环节中对于资源释放问题的关注度的不足，而且更是反映出了我们在针对依赖服务异常场景进行的压力测试方面所存在的缺失。我们将以此为契机，进一步地对相关的流程进行完善和优化。\n"}]}]};
+const LETTERS = ["A","B","C","D","E","F"];
+const STORE = "nafBlind:" + (DATA && DATA.run);
+const state = { i: 0, tab: 0, split: false, right: 1, votes: {}, seen: {}, started: {} };
+
+// ---- 持久化（浏览器存储可能不可用，失败时只保留在内存里，靠导出兜底） ----
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ votes: state.votes, seen: state.seen, i: state.i })); } catch (e) {} }
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(STORE) || "null"); if (s) { state.votes = s.votes || {}; state.seen = s.seen || {}; state.i = Math.min(s.i || 0, DATA.items.length - 1); } } catch (e) {}
+}
+
+// ---- 极简 Markdown 渲染（先转义，离线可用） ----
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function inline(s) {
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+  s = esc(s)
+    .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*\w])\*(?!\s)([^*]*?[^*\s])\*(?![*\w])/g, "$1<em>$2</em>")
+    .replace(/~~([^~]+)~~/g, "<del>$1</del>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (m, t, u) => /^(https?:|#)/.test(u) ? `<a href="${u}" target="_blank" rel="noopener">${t}</a>` : t);
+  return s.replace(/\u0000(\d+)\u0000/g, (_, k) => "<code>" + esc(codes[+k]) + "</code>");
+}
+function md(src) {
+  const lines = src.replace(/\r\n/g, "\n").split("\n"); const out = []; let i = 0;
+  const isTable = (a, b) => /^\s*\|.*\|\s*$/.test(a) && /^\s*\|?\s*:?-{2,}/.test(b || "");
+  while (i < lines.length) {
+    let l = lines[i];
+    if (/^\s*(```|~~~)/.test(l)) { const f = l.trim().slice(0, 3); const buf = []; i++;
+      while (i < lines.length && !lines[i].trim().startsWith(f)) buf.push(lines[i++]); i++;
+      out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue; }
+    if (/^\s*$/.test(l)) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,6})\s+(.*)$/))) { const n = Math.min(m[1].length + 1, 4); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (isTable(l, lines[i + 1])) {
+      const row = r => r.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map(c => inline(c.trim()));
+      const head = row(l); i += 2; const body = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) body.push(row(lines[i++]));
+      out.push("<table><thead><tr>" + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        body.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>"); continue; }
+    if (/^\s*>/.test(l)) { const buf = []; while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ""));
+      out.push("<blockquote>" + md(buf.join("\n")) + "</blockquote>"); continue; }
+    if (/^\s*([-*+]|\d{1,3}[.)])\s+/.test(l)) {
+      const ordered = /^\s*\d/.test(l); const items = [];
+      while (i < lines.length && /^\s*([-*+]|\d{1,3}[.)])\s+/.test(lines[i])) {
+        let t = lines[i++].replace(/^\s*([-*+]|\d{1,3}[.)])\s+/, "").replace(/^\[([ xX])\]\s+/, (_, c) => c.trim() ? "☑ " : "☐ ");
+        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*+]|\d{1,3}[.)])\s+/.test(lines[i])) t += " " + lines[i++].trim();
+        items.push("<li>" + inline(t) + "</li>"); }
+      out.push((ordered ? "<ol>" : "<ul>") + items.join("") + (ordered ? "</ol>" : "</ul>")); continue; }
+    const buf = [l]; i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|\s*```|\s*>|\s*([-*+]|\d{1,3}[.)])\s+|\s*\|)/.test(lines[i])) buf.push(lines[i++]);
+    out.push("<p>" + buf.map(inline).join("<br>") + "</p>");
+  }
+  return out.join("\n");
+}
+
+// ---- 渲染 ----
+const $ = id => document.getElementById(id);
+const item = () => DATA.items[state.i];
+const vote = () => (state.votes[item().sid] ||= { best: null, worst: null, tie: false, note: "", seconds: 0 });
+
+function ratio(el) { const max = el.scrollHeight - el.clientHeight; return max > 0 ? el.scrollTop / max : 0; }
+function setRatio(el, r) { el.scrollTop = r * (el.scrollHeight - el.clientHeight); }
+
+function renderProgress() {
+  $("progress").innerHTML = DATA.items.map((it, k) => {
+    const v = state.votes[it.sid]; const done = v && v.best;
+    return `<button class="dot ${done ? "done" : ""} ${k === state.i ? "cur" : ""}" data-k="${k}" aria-label="第 ${k + 1} 篇${done ? "，已投" : ""}">${k + 1}</button>`;
+  }).join("");
+}
+function renderTabs() {
+  const it = item(); const v = vote(); const seen = state.seen[it.sid] || [];
+  $("tabs").querySelectorAll(".tab").forEach(t => t.remove());
+  const frag = document.createDocumentFragment();
+  it.cands.forEach((c, k) => {
+    const b = document.createElement("button");
+    b.className = "tab" + (v.best === c.code ? " best" : ""); b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(k === state.tab && !state.split || state.split && k === state.tab));
+    b.innerHTML = `${LETTERS[k]}<span class="seen ${seen.includes(k) ? "on" : ""}" title="${seen.includes(k) ? "已读过" : "未读"}"></span>`;
+    b.onclick = () => showTab(k); frag.appendChild(b);
+  });
+  $("tabs").insertBefore(frag, $("tabs").querySelector(".modes"));
+}
+function markSeen(k) { const s = (state.seen[item().sid] ||= []); if (!s.includes(k)) { s.push(k); save(); } }
+function showTab(k, keepRatio = true) {
+  const r = keepRatio ? ratio($("paneL")) : 0;
+  state.tab = k; $("docL").innerHTML = md(item().cands[k].text); $("selL").value = k;
+  requestAnimationFrame(() => setRatio($("paneL"), r));
+  markSeen(k); renderTabs(); renderVote();
+}
+function showRight(k, keepRatio = true) { const r = keepRatio ? ratio($("paneR")) : 0; state.right = k; $("docR").innerHTML = md(item().cands[k].text); $("selR").value = k; requestAnimationFrame(() => setRatio($("paneR"), r)); markSeen(k); renderTabs(); }
+function renderVote() {
+  const it = item(); const v = vote(); const seen = state.seen[it.sid] || [];
+  const mk = (kind) => it.cands.map((c, k) => `<button class="pick ${kind}" data-kind="${kind}" data-code="${c.code}" aria-pressed="${v[kind] === c.code}" aria-label="${kind === "best" ? "最好读" : "最难读"}：${LETTERS[k]}">${LETTERS[k]}</button>`).join("");
+  $("bestPicks").innerHTML = mk("best"); $("worstPicks").innerHTML = mk("worst");
+  $("tie").checked = !!v.tie; $("note").value = v.note || "";
+  const unread = it.cands.length - seen.length;
+  const st = $("status");
+  if (unread > 0) { st.textContent = `还有 ${unread} 个版本没打开过。建议每版至少读完一遍再选。`; st.className = "status warn"; }
+  else if (!v.best) { st.textContent = "4 个版本都读过了，选出最好读的一版就可以去下一篇。"; st.className = "status"; }
+  else { st.textContent = "已记录。可以去下一篇，也可以随时回来改。"; st.className = "status"; }
+  $("prevBtn").disabled = state.i === 0;
+  $("nextBtn").textContent = state.i === DATA.items.length - 1 ? "完成" : "下一篇";
+}
+function renderItem() {
+  const it = item();
+  $("brief").innerHTML = `第 ${state.i + 1} / ${DATA.items.length} 篇：<b>${esc(it.title)}</b>。下面是同一篇内容的 ${it.cands.length} 个版本，来源已隐去，顺序是随机的。` +
+    (it.prompt ? `<br>当时的提问：${esc(it.prompt)}` : "");
+  const opts = it.cands.map((_, k) => `<option value="${k}">${LETTERS[k]}</option>`).join("");
+  $("selL").innerHTML = opts; $("selR").innerHTML = opts;
+  state.tab = 0; state.right = Math.min(1, it.cands.length - 1);
+  $("paneL").scrollTop = 0; $("paneR").scrollTop = 0;
+  showTab(0, false); if (state.split) showRight(state.right, false);
+  state.started[it.sid] = Date.now();
+  renderProgress();
+}
+function go(k) {
+  tick(); if (k < 0) return;
+  if (k >= DATA.items.length) { $("main").classList.add("hidden"); $("finish").classList.remove("hidden"); return; }
+  state.i = k; save(); $("main").classList.remove("hidden"); $("finish").classList.add("hidden"); renderItem();
+}
+function tick() { const it = item(); const t0 = state.started[it.sid]; if (t0) { vote().seconds = (vote().seconds || 0) + Math.round((Date.now() - t0) / 1000); state.started[it.sid] = Date.now(); save(); } }
+function setSplit(on) {
+  state.split = on; $("panes").classList.toggle("split", on); $("paneR").classList.toggle("hidden", !on);
+  $("modeSingle").setAttribute("aria-pressed", String(!on)); $("modeSplit").setAttribute("aria-pressed", String(on));
+  if (on) { const k = state.tab === state.right ? (state.tab + 1) % item().cands.length : state.right; showRight(k); }
+}
+
+// ---- 事件 ----
+document.addEventListener("click", e => {
+  const p = e.target.closest(".pick"); if (p) { const v = vote(); const kind = p.dataset.kind, code = p.dataset.code;
+    v[kind] = v[kind] === code ? null : code;
+    if (v.best && v.best === v.worst) v[kind === "best" ? "worst" : "best"] = null;
+    save(); renderVote(); renderTabs(); renderProgress(); return; }
+  const d = e.target.closest(".dot"); if (d) go(+d.dataset.k);
+});
+$("tie").onchange = e => { vote().tie = e.target.checked; save(); };
+$("note").oninput = e => { vote().note = e.target.value; save(); };
+$("prevBtn").onclick = () => go(state.i - 1);
+$("nextBtn").onclick = () => go(state.i + 1);
+$("backBtn").onclick = () => go(DATA.items.length - 1);
+$("modeSingle").onclick = () => setSplit(false);
+$("modeSplit").onclick = () => setSplit(true);
+$("selL").onchange = e => showTab(+e.target.value);
+$("selR").onchange = e => showRight(+e.target.value);
+let syncing = false;
+["paneL", "paneR"].forEach((id, k) => $(id).addEventListener("scroll", () => {
+  if (!state.split || syncing) return; syncing = true;
+  setRatio($(k ? "paneL" : "paneR"), ratio($(id))); requestAnimationFrame(() => syncing = false);
+}));
+document.addEventListener("keydown", e => {
+  if (e.target.matches("textarea,input,select")) return;
+  if (/^[1-6]$/.test(e.key) && +e.key <= item().cands.length) showTab(+e.key - 1);
+  else if (e.key === "ArrowRight") go(state.i + 1);
+  else if (e.key === "ArrowLeft") go(state.i - 1);
+});
+$("exportBtn").onclick = () => {
+  tick();
+  const done = DATA.items.filter(it => state.votes[it.sid] && state.votes[it.sid].best).length;
+  const blob = new Blob([JSON.stringify({ run: DATA.run, exported_at: new Date().toISOString(), completed: done, total: DATA.items.length, votes: state.votes }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "blind_votes.json"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  $("status").textContent = `已导出 ${done} / ${DATA.items.length} 篇的投票。`; $("status").className = "status";
+};
+$("importBtn").onclick = () => $("importFile").click();
+$("importFile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const j = JSON.parse(await f.text()); if (j.run !== DATA.run) throw new Error("这份进度属于另一轮盲测（" + j.run + "）");
+    state.votes = j.votes || {}; save(); renderItem(); $("status").textContent = "进度已载入。"; }
+  catch (err) { $("status").textContent = "载入失败：" + err.message; $("status").className = "status warn"; }
+  e.target.value = "";
+};
+window.addEventListener("beforeunload", tick);
+
+load(); renderItem();
+</script>
+</body>
+</html>

@@ -160,11 +160,15 @@ class Masker:
         self.soft: list[int] = []
         self._soft_spans: set[tuple[int, int]] = set()
 
+    def _is_term(self, word: str) -> bool:
+        return bool(self._terms_re and self._terms_re.fullmatch(word))
+
     def _spans(self, text: str) -> list[tuple[int, int]]:
         spans: list[tuple[int, int]] = []
         self._soft_spans = set()
         for m in _COMBINED.finditer(text):
-            if m.lastgroup == "ensent":
+            if m.lastgroup == "ensent" or (m.lastgroup == "acronym" and not self._is_term(m.group(0))):
+                # 整句英文、PM / ROI 这类缩写：宿主以“中英混杂”为由改成中文时允许去掉；API、SDK 等术语表里的词仍是硬保护
                 self._soft_spans.add(m.span())
             if m.lastgroup == "hash":
                 tok = m.group(0)

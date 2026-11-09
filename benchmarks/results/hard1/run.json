@@ -1,0 +1,21 @@
+{
+  "purpose": "极端场景盲测：两篇人工构造的难例（黑话 + 中英混杂 / 翻译腔），DeepSeek 高推理强度分别执行 v6 与 Humanizer-zh",
+  "samples": [
+    "hard-001",
+    "hard-002"
+  ],
+  "sampling": "人工构造（claude-opus-5.5），故意堆满黑话、中英混杂、翻译腔，并埋入可核对的数字与条件",
+  "bridge": "ru",
+  "rules": "v6",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v6"
+  }
+}
