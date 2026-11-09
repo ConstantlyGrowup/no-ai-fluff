@@ -1,7 +1,7 @@
 """采集 Coding 场景语料：GitHub 公开仓库里 Claude Code 生成的真实中文 PR 总结（零生成开销）。
 
     python benchmarks/corpus/collect_github_prs.py            # 写入 coding_raw.jsonl
-    python benchmarks/corpus/collect_github_prs.py --n 8      # 取 8 条
+    python benchmarks/corpus/collect_github_prs.py --n 8      # 追加 8 条（已有条目保持原 id，新条目接着编号）
 
 筛选规则（确定性，便于复现与审计）：
 - 公开 PR，正文含 “Claude Code”（含 Generated with Claude Code 署名）；
@@ -69,7 +69,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=5)
     args = ap.parse_args()
-    seen_repos: set[str] = set()
+    # 追加模式：已采集的条目保持原 id 不动，新条目接着编号；同一仓库、同一 PR 不重复采
+    existing = [json.loads(l) for l in OUT.read_text("utf-8").splitlines() if l.strip()] if OUT.exists() else []
+    seen_repos: set[str] = {r["repo"] for r in existing}
+    seen_urls = {r["source_url"] for r in existing}
+    next_no = max((int(r["id"].split("-")[1]) for r in existing), default=0) + 1
     pool: list[dict] = []
     for q in QUERIES:
         url = "https://api.github.com/search/issues?" + urllib.parse.urlencode({"q": q, "per_page": 50})
@@ -82,7 +86,8 @@ def main() -> None:
             body = (it.get("body") or "").replace("\r\n", "\n").strip()
             repo = it["repository_url"].split("/repos/", 1)[1]
             ok, info = qualifies(body)
-            if ok and repo not in seen_repos and all(p["source_url"] != it["html_url"] for p in pool):
+            if (ok and repo not in seen_repos and it["html_url"] not in seen_urls
+                    and all(p["source_url"] != it["html_url"] for p in pool)):
                 pool.append({
                     "repo": repo, "title": it["title"], "source_url": it["html_url"],
                     "author": (it.get("user") or {}).get("login"), "created_at": it.get("created_at"),
@@ -98,8 +103,8 @@ def main() -> None:
         picked.append(r)
         if len(picked) >= args.n:
             break
-    with OUT.open("w", encoding="utf-8") as f:
-        for i, r in enumerate(picked, 1):
+    with OUT.open("a", encoding="utf-8") as f:
+        for i, r in enumerate(picked, next_no):
             rec = {
                 "id": f"coding-{i:03d}", "scenario": "coding", "model": "claude-code (in the wild)",
                 "title": r["title"], "prompt": None, "text": r["text"], "source_url": r["source_url"],
@@ -108,7 +113,8 @@ def main() -> None:
                 "stats": {k: r[k] for k in ("cjk", "trad_ratio", "code_ratio", "chars")},
             }
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            print(f"{rec['id']} {r['cjk']:5} cjk {r['chars']:5}ch {r['source_url']} | {r['title'][:40]}")
+            # 不打印标题与正文：新样本可能落入 Holdout
+            print(f"{rec['id']} {r['cjk']:5} cjk {r['chars']:5}ch {r['source_url']}")
     print(f"candidates={len(pool)} picked={len(picked)} -> {OUT}")
 
 
