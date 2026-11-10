@@ -1,0 +1,24 @@
+{
+  "purpose": "Holdout 终测人工盲测：原文 / no-ai-fluff v8 / Humanizer-zh",
+  "samples": [
+    "coding-006",
+    "daily-016",
+    "discussion-006",
+    "discussion-009",
+    "mixed-002",
+    "teaching-006",
+    "writing-008",
+    "writing-012"
+  ],
+  "split": "holdout",
+  "sampling": "Holdout 中 ≤4500 字的样本，按场景各抽 1 篇 + 余下随机 2 篇，random.Random(20261110)",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v8"
+  },
+  "source_run": "holdout"
+}
