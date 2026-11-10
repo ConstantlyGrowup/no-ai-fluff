@@ -20,6 +20,9 @@ no-ai-fluff = "no_ai_fluff.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"no_ai_fluff.adapters.claude_code" = ["*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

@@ -72,11 +72,20 @@ no-ai-fluff mcp                                   # 启动 stdio MCP Server
 
 ## 作为 MCP Server 接入
 
+Claude Code 一条命令装好审校子智能体、`/no-ai-fluff` Skill 和项目级 MCP 注册（`.mcp.json`）：
+
+```bash
+no-ai-fluff install claude-code              # 装进当前项目
+no-ai-fluff install claude-code --scope user # 装进 ~/.claude，MCP 再用 claude mcp add -s user 注册
+```
+
+也可以只注册 MCP Server：
+
 ```bash
 claude mcp add no-ai-fluff -- no-ai-fluff mcp
 ```
 
-Server 提供 `prepare_rtt_draft` 和 `finalize_patched_delivery` 两个工具。配套的 `context: fork` 审校子智能体、Codex CLI 与 DeepSeek Harness 适配放在 Milestone 5。
+Server 提供 `prepare_rtt_draft` 和 `finalize_patched_delivery` 两个工具。`no-ai-fluff` 子智能体在独立上下文里完成两次握手：它读原文和往返初稿，按返回的规则只开局部 JSON 补丁，再把定稿交回主会话。审校用的是 Claude Code 当前登录的模型，你只需要为 hy-mt2 往返翻译配一个 `OPENROUTER_API_KEY`。Codex CLI 与 DeepSeek Harness 适配仍在 Milestone 5。
 
 ## 宿主模型的推理强度
 
@@ -113,7 +122,7 @@ python -m pytest
 - [x] **Milestone 2**：五大场景真实语料，`2 模型 × 3 桥接语` 消融实验，宿主补丁与双轴评测
 - [x] **Milestone 3**：本地人工盲测与 LLM 复核，锁定 hy-mt2 + 俄语桥接 + 高推理宿主
 - [ ] **Milestone 4**：与 Humanizer-zh 横向对比，产出评测报告
-- [ ] **Milestone 5**：Claude Code / Codex CLI / DeepSeek Harness 多端适配与发布
+- [ ] **Milestone 5**：多端适配与发布（Claude Code 子智能体 + Skill 已完成；Codex CLI、DeepSeek Harness 待做）
 
 ## License
 

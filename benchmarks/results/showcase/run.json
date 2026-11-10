@@ -1,0 +1,21 @@
+{
+  "purpose": "宣传片演示：锁定配置 v8-locked 处理一段人工撰写的高密度黑话段落；不计入任何评测指标",
+  "samples": [
+    "showcase-001",
+    "showcase-002",
+    "showcase-003",
+    "squeeze-001",
+    "squeeze-002",
+    "showcase-004",
+    "script-v4"
+  ],
+  "split": "showcase",
+  "locked_tag": "v8-locked",
+  "rules": "v8",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "patch_max_tokens": 40000,
+  "baseline_max_tokens": 48000
+}

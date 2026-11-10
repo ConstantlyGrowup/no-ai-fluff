@@ -87,6 +87,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
 
     sub.add_parser("mcp", help="启动 stdio MCP Server")
+
+    p = sub.add_parser("install", help="安装宿主适配（审校子智能体 + Skill + MCP 注册）")
+    p.add_argument("host", choices=["claude-code"])
+    p.add_argument("--scope", default="project", choices=["project", "user"])
+    p.add_argument("--dir", help="安装到的根目录；默认 project=当前目录，user=用户主目录")
+    p.add_argument("--force", action="store_true", help="覆盖已存在且内容不同的文件")
     return ap
 
 
@@ -103,6 +109,12 @@ def main(argv: list[str] | None = None) -> int:
         from .mcp_server import main as mcp_main
 
         mcp_main()
+        return 0
+
+    if args.cmd == "install":
+        from .install import install_claude_code
+
+        print(install_claude_code(args.scope, Path(args.dir) if args.dir else None, args.force).render())
         return 0
 
     if args.cmd == "radar":

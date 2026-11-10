@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>no-ai-fluff 发布片</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --paper: #F4F1EA; --panel: #FFFFFF; --line: #D6CFC2; --ink: #141413; --dim: #6E6A63; --teal: #0F6E56; --rose: #C83E2B; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #E9E4D9; color: var(--ink);
+    font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; overflow: hidden; }
+  #stage { width: min(100vw - 32px, (100vh - 140px) * 16 / 9); aspect-ratio: 16 / 9; box-shadow: 4px 4px 0 rgba(20,20,19,0.08); }
+  #stage svg { width: 100%; height: 100%; display: block; }
+  #ctl { width: min(100vw - 32px, (100vh - 140px) * 16 / 9); display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; font-size: 14px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--ink); }
+  button.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  #play { width: 44px; font-size: 16px; }
+  #time { font-family: "JetBrains Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--dim); min-width: 92px; }
+  #track { position: relative; flex: 1; height: 28px; }
+  #scrub { position: absolute; inset: 0; width: 100%; margin: 0; accent-color: var(--ink); cursor: pointer; }
+  #marks { position: absolute; left: 0; right: 0; top: 0; height: 6px; pointer-events: none; }
+  #marks i { position: absolute; top: 0; width: 1px; height: 6px; background: var(--dim); }
+  #chapters { flex-wrap: wrap; }
+  body.capture { gap: 0; background: var(--paper); }
+  body.capture #ctl { display: none; }
+  body.capture #stage { width: 100vw; height: 100vh; aspect-ratio: auto; box-shadow: none; }
+  @media (max-width: 640px) { #chapters button { font-size: 12px; padding: 4px 8px; } }
+</style>
+</head>
+<body>
+<div id="stage"><svg id="v" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="no-ai-fluff 发布宣传片"></svg></div>
+<div id="ctl">
+  <div class="row">
+    <button id="play" title="播放 / 暂停（空格）">▶</button>
+    <button id="mute" title="声音开关（M）">声音 开</button>
+    <span id="time">0:00 / 0:00</span>
+    <div id="track"><input id="scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="进度"><div id="marks"></div></div>
+  </div>
+  <div class="row" id="chapters"></div>
+</div>
+<script src="data.js"></script>
+<script>
+"use strict";
+/* ============================================================================
+   no-ai-fluff 发布片 · 手稿审校美学（Editorial Paper & Ink）· 154 秒 · 音效由 buildAudio 合成（无配乐）
+   1. AI的“方言”          0–26    网关案例：逐个标红 → 擦除线换成定稿；周会黑话 vs 一对一的说法（构造例子）
+   2. 方言现象的猜想      26–56   三步因果链（猜想）→ 论文原题与三组证据
+   3. 中文场景的探索      56–86   语料与桥接矩阵 → 回译漂移与推理强度 → v1→v8 与 6 轮受控实验
+   4. 实际对比            86–108  编程 / 技术讲解 / 公式混排 / 写作讨论黑话
+   5. 和主流热门SKILL的对比 108–132 星数与第三方裁判 → 裁判结果与不误伤 → 同题三栏
+   6. 结尾                132–154 用在哪里 → 五张总结卡 → 标语，静止 hold ≥ 5s
+   画面是 seek(t) 的纯函数；动效只用闭式阻尼弹簧与缓动关键帧。
+   ========================================================================== */
+const D = window.PROMO_DATA;
+const NS = "http://www.w3.org/2000/svg";
+const SVG = document.getElementById("v");
+const SERIF = '"Newsreader","Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif';
+const SANS = '"Inter","Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif';
+const MONO = '"JetBrains Mono","Fira Code","SF Mono",Consolas,"Noto Sans SC",monospace';
+const PAL = {
+  bg: "#F4F1EA", panel: "#FFFFFF", panel2: "#EAE5DA", dark: "#141413", line: "#D6CFC2", lineStrong: "#141413",
+  ink: "#141413", inkOnDark: "#F4F1EA", dim: "#6E6A63",
+  rose: "#C83E2B", roseBg: "#FBE9E6", teal: "#0F6E56", tealBg: "#E3F3EE", amber: "#B45309", amberBg: "#FEF3C7", scan: "#1D4ED8", scanBg: "#E4EAFB",
+};
+const W = 1920, H = 1080, SUB = 56, AUX = 32;   // Q11：字幕 56px，要读的辅助文字 ≥ 32px
+const FX = 60, FY = 54, FW = 1800, FH = 972;    // 瑞士网格外框
+
+// ---------------------------------------------------------------------------
+// 运动学（移植自 motion-broll-motion.js）
+// ---------------------------------------------------------------------------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const eo = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+const eio = x => { x = clamp(x); return x * x * x * (x * (6 * x - 15) + 10); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const rng = s => () => (s = (s + 0x6D2B79F5) | 0, s = Math.imul(s ^ (s >>> 15), 1 | s), s ^= s + Math.imul(s ^ (s >>> 7), 61 | s), ((s ^ (s >>> 14)) >>> 0) / 4294967296);   // 带种子的随机数（噪声音源用，保证每次渲染一致）
+function S(tau, w, z) {
+  if (tau <= 0) return 0;
+  if (z < 1) { const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * tau) * (Math.cos(wd * tau) + z * w / wd * Math.sin(wd * tau)); }
+  return 1 - Math.exp(-w * tau) * (1 + w * tau);
+}
+const SP = { MORPH: [15, 0.84], FAST: [27, 0.86], SLOW: [12.5, 0.9], POP: [14, 0.62] };
+const track = (v0, keys, def = SP.MORPH) => {
+  let prev = v0; const ks = [];
+  for (const k of keys) { const d = k[1] - prev; prev = k[1]; const sp = k[2] || def; if (d !== 0) ks.push([k[0], d, sp[0], sp[1]]); }
+  return t => { let v = v0; for (const k of ks) v += k[1] * S(t - k[0], k[2], k[3]); return v; };
+};
+const kf = keys => t => {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = eio] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); }
+  return keys[keys.length - 1][1];
+};
+function vis(t, tin, tout, o = {}) {  // 模糊溶解：退场先走、入场后到，两层不同时可读
+  const din = o.din ?? 0.08, lin = o.lin ?? 0.32, lout = o.lout ?? 0.14, bl = o.blur ?? 10;
+  const a = tin == null ? 1 : eo((t - tin - din) / lin);
+  const b = tout == null ? 0 : eo((t - tout) / lout);
+  return { o: a * (1 - b), blur: (1 - a) * bl + b * bl * 0.8, s: (0.96 + 0.04 * a) * (1 - 0.02 * b) };
+}
+/** 入场：弹簧上浮 + 淡入 */
+const rise = (g, t, t0, dy = 24, sp = SP.SLOW) => { const k = S(t - t0, ...sp); op(g, clamp(k * 1.3)); tr(g, 0, dy * (1 - k)); return k; };
+
+// ---------------------------------------------------------------------------
+// SVG 工具
+// ---------------------------------------------------------------------------
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs || {}) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const cv = document.createElement("canvas").getContext("2d");
+function mw(str, size, weight = 400, family = SANS, italic = false) {
+  cv.font = `${italic ? "italic " : ""}${weight} ${size}px ${family}`;
+  return cv.measureText(str).width;
+}
+function T(parent, x, y, str, o = {}) {
+  const e = el("text", { x, y, "font-size": o.size || AUX, "font-weight": o.weight || 400, fill: o.fill || PAL.ink,
+    "text-anchor": o.anchor || "start", "font-family": o.family || SANS,
+    style: "white-space:pre" }, parent);   // 等宽字体本身就是等宽数字；正文不改数字宽度，保证与实测一致
+  if (o.italic) e.setAttribute("font-style", "italic");
+  e.textContent = str;
+  return e;
+}
+function fit(str, size, maxW, weight = 400, family = SANS, min = AUX) {
+  while (size > min && mw(str, size, weight, family) > maxW) size -= 1;
+  return size;
+}
+const op = (e, v) => e.setAttribute("opacity", clamp(v).toFixed(3));
+const tr = (e, x, y, s = 1) => e.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${s.toFixed(4)})`);
+const trc = (e, cx, cy, s, dx = 0, dy = 0) => e.setAttribute("transform",
+  `translate(${(cx + dx).toFixed(2)} ${(cy + dy).toFixed(2)}) scale(${s.toFixed(4)}) translate(${-cx} ${-cy})`);
+let FID = 0, DEFS;
+function apply(g, v, cx = W / 2, cy = H / 2) {
+  if (v.o < 0.003) { g.setAttribute("display", "none"); return false; }
+  g.setAttribute("display", "inline");
+  op(g, v.o);
+  if (!g._blur) {
+    const f = el("filter", { id: `fb${FID++}`, x: "-10%", y: "-10%", width: "120%", height: "120%" }, DEFS);
+    g._blur = el("feGaussianBlur", { stdDeviation: 0 }, f); g._fid = f.id;
+  }
+  if (v.blur > 0.05) { g._blur.setAttribute("stdDeviation", v.blur.toFixed(2)); g.setAttribute("filter", `url(#${g._fid})`); }
+  else g.removeAttribute("filter");
+  trc(g, cx, cy, v.s);
+  return true;
+}
+/** 出版物卡片：rx 6、1.5px 细框、硬投影；accent 给左侧 4px 色条 */
+function card(g, x, y, w, h, o = {}) {
+  const k = el("g", {}, g);
+  if (o.shadow !== false) el("rect", { x: x + 4, y: y + 4, width: w, height: h, rx: 6, fill: "rgba(20,20,19,0.06)" }, k);
+  el("rect", { x, y, width: w, height: h, rx: 6, fill: o.fill || PAL.panel, stroke: o.stroke || PAL.line, "stroke-width": o.sw || 1.5 }, k);
+  if (o.accent) el("rect", { x, y, width: 4, height: h, fill: o.accent }, k);
+  return k;
+}
+/** 等宽角标：[PATCH] [LOCKED] 之类 */
+function tag(g, x, y, str, color, bg, o = {}) {
+  const size = o.size || AUX, w = mw(str, size, 500, MONO) + 24;
+  const k = el("g", {}, g);
+  el("rect", { x, y: y - size * 0.86, width: w, height: size * 1.22, rx: 4, fill: bg, stroke: color, "stroke-width": 1.5 }, k);
+  T(k, x + 12, y, str, { size, family: MONO, weight: 500, fill: color });
+  return { g: k, w };
+}
+const chipW = it => mw(it.text, it.size || AUX, 500, it.family || SANS) + 52;
+function chip(g, x, y, str, o = {}) {
+  const size = o.size || AUX, h = size * 1.9, w = chipW({ ...o, text: str });
+  const c = el("g", {}, g);
+  el("rect", { x, y: y - h / 2, width: w, height: h, rx: 6, fill: o.bg || PAL.panel, stroke: o.stroke || PAL.line, "stroke-width": 1.5 }, c);
+  T(c, x + 26, y + size * 0.36, str, { size, weight: 500, fill: o.fill || PAL.ink, family: o.family });
+  return { g: c, w };
+}
+function chipRow(g, y, items, gap = 24, x0 = null) {
+  const total = items.map(chipW).reduce((a, b) => a + b, 0) + gap * (items.length - 1);
+  let x = x0 ?? (W - total) / 2;
+  return items.map(it => { const c = chip(g, x, y, it.text, it); x += c.w + gap; return c; });
+}
+function title(g, str, y = 206, size = 60, o = {}) {
+  size = fit(str, size, 1640, 700, SERIF);
+  return T(g, o.x ?? W / 2, y, str, { size, weight: 700, family: SERIF, anchor: o.anchor || "middle", fill: o.fill || PAL.ink });
+}
+
+// ---------------------------------------------------------------------------
+// 富文本：按真实字宽折行；锁定（代码/公式/数字）不可拆
+// ---------------------------------------------------------------------------
+const PUNCT = "，。；：、）」』！？,.;:)!?”’";
+const SOLID = c => c === "lock" || c === "math";
+function styleFor(c, o) {
+  if (c === "lock") return { family: MONO, weight: 500, padX: 8 };
+  if (c === "math") return { family: SERIF, weight: 500, padX: 9 };
+  return { family: o.family || SANS, weight: o.weight || 400, padX: 0 };
+}
+function mathParts(s) { const m = /^(.*?)_\{(.+)\}$/.exec(s); return m ? [m[1], m[2]] : [s, ""]; }
+function rich(parent, segs, o) {
+  const size = o.size, units = [];
+  for (const [text, c] of segs) {
+    const st = styleFor(c, o);
+    if (SOLID(c)) {
+      const w = c === "math" ? mw(mathParts(text)[0], size, 500, SERIF, true) : mw(text, size, st.weight, st.family);
+      units.push({ t: text, c, st, w: w + st.padX * 2 + 6, solid: true });
+      continue;
+    }
+    const re = /[A-Za-z0-9_.+\-%<>=/]+|\s+|[\s\S]/g;
+    let m;
+    while ((m = re.exec(text))) units.push({ t: m[0], c, st, w: mw(m[0], size, st.weight, st.family), space: /^\s+$/.test(m[0]) });
+  }
+  const lines = [[]];
+  let x = 0;
+  for (const u of units) {
+    let line = lines[lines.length - 1];
+    if (u.space && line.length === 0) continue;
+    const hang = PUNCT.includes(u.t) && x + u.w <= o.width + size * 1.05;
+    if (x + u.w > o.width && line.length > 0 && !hang) {
+      while (line.length && line[line.length - 1].space) x -= line.pop().w;
+      lines.push([]); line = lines[lines.length - 1]; x = 0;
+      if (u.space) continue;
+    }
+    const prev = line[line.length - 1];
+    if (prev && prev.c !== u.c && (prev.c || u.c)) x += 3;
+    u.x = x; line.push(u); x += u.w;
+  }
+  const runs = [];
+  lines.forEach((line, li) => {
+    for (const u of line) {
+      const last = runs[runs.length - 1];
+      if (last && last.li === li && last.c === u.c && !u.solid && !last.solid) { last.t += u.t; last.w += u.w; continue; }
+      runs.push({ t: u.t, c: u.c, st: u.st, x: u.x, w: u.w, li, solid: !!u.solid });
+    }
+  });
+  const g = el("g", {}, parent);
+  for (const r of runs) {
+    const bx = o.x + r.x, by = o.y + r.li * o.lh + size;
+    Object.assign(r, { bx, by, top: by - size * 0.95, h: size * 1.3 });
+    r.g = el("g", {}, g);
+    if (r.c) r.rect = el("rect", { x: bx - 2, y: r.top, width: r.w + 4, height: r.h, rx: 4, fill: "none", opacity: 0 }, r.g);
+    const pad = r.st.padX ? r.st.padX + 3 : 0;
+    if (r.c === "math") r.text = T(r.g, bx + pad, by, mathParts(r.t)[0], { size, family: SERIF, italic: true, weight: 500, fill: o.fill || PAL.ink });
+    else r.text = T(r.g, bx + pad, by, r.t, { size, weight: r.st.weight, family: r.st.family, fill: o.fill || PAL.ink });
+    if (r.c === "del") r.strike = el("line", { x1: bx, x2: bx + r.w, y1: by - size * 0.32, y2: by - size * 0.32, stroke: PAL.rose, "stroke-width": 2.5, opacity: 0 }, r.g);
+  }
+  return { g, runs, height: lines.length * o.lh, lines: lines.length };
+}
+/** 审校样式：mark/del = 朱砂红批注，ins = 翠绿补丁，lock/math = 古铜锁定 */
+function paint(r, a = 1) {
+  if (!r.rect) return;
+  const sty = { mark: [PAL.roseBg, PAL.rose, "none"], del: [PAL.roseBg, PAL.rose, "none"], ins: [PAL.tealBg, PAL.teal, "none"],
+    lock: [PAL.amberBg, PAL.amber, PAL.amber], math: [PAL.amberBg, PAL.amber, PAL.amber] }[r.c];
+  if (!sty) return;
+  r.rect.setAttribute("fill", sty[0]); r.rect.setAttribute("stroke", sty[2]); r.rect.setAttribute("stroke-width", 1.5);
+  op(r.rect, a); r.text.setAttribute("fill", a > 0.45 ? sty[1] : PAL.ink);
+  if (r.strike) op(r.strike, a);
+}
+const markAll = (segs, words, cls = "mark") => {   // 在普通片段里把 words 标成 cls
+  const re = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  const out = [];
+  for (const [t, c] of segs) {
+    if (c) { out.push([t, c]); continue; }
+    let p = 0, m;
+    while ((m = re.exec(t))) { if (m.index > p) out.push([t.slice(p, m.index), ""]); out.push([m[0], cls]); p = m.index + m[0].length; }
+    if (p < t.length) out.push([t.slice(p), ""]);
+  }
+  return out;
+};
+
+// ===========================================================================
+// 1. AI的“方言”（0–26s）
+// ===========================================================================
+const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
+function buildC1(g) {
+  const SC = D.showcase;
+  // 1-a 网关案例：先逐个标红，再用擦除线换成定稿
+  const a = el("g", {}, g);
+  const PX = 130, PY = 190, PW = 1660, PAD = 64, size = 42, lh = 72;
+  const before = el("g", {}, a), after = el("g", {}, a);
+  const Rb = rich(before, SC.before, { x: PX + PAD, y: PY + 104, width: PW - PAD * 2, size, lh });
+  const Ra = rich(after, SC.after, { x: PX + PAD, y: PY + 104, width: PW - PAD * 2, size, lh });
+  const PH = 104 + Math.max(Rb.height, Ra.height) + 36;
+  before.insertBefore(card(before, PX, PY, PW, PH, { fill: PAL.panel2, accent: PAL.rose }), before.firstChild);
+  after.insertBefore(card(after, PX, PY, PW, PH, { fill: PAL.panel, accent: PAL.teal }), after.firstChild);
+  T(before, PX + PAD, PY + 62, "reply.md · 模型原始回复", { size: AUX, fill: PAL.dim });
+  tag(before, PX + PW - 260, PY + 62, "[REDLINE]", PAL.rose, PAL.roseBg);
+  T(after, PX + PAD, PY + 62, "no-ai-fluff v8 定稿", { size: AUX, fill: PAL.teal, weight: 500 });
+  tag(after, PX + PW - 230, PY + 62, "[PATCH]", PAL.teal, PAL.tealBg);
+  const cA = el("clipPath", { id: "c1A" }, DEFS), cB = el("clipPath", { id: "c1B" }, DEFS);
+  const rA = el("rect", { x: PX - 6, y: PY - 6, height: PH + 16 }, cA), rB = el("rect", { y: PY - 6, height: PH + 16 }, cB);
+  after.setAttribute("clip-path", "url(#c1A)"); before.setAttribute("clip-path", "url(#c1B)");
+  const mA = el("rect", { x: PX - 6, y: PY - 6, height: PH + 16, fill: "none", "data-clipbox": "c1A" }, a);
+  const mB = el("rect", { y: PY - 6, height: PH + 16, fill: "none", "data-clipbox": "c1B" }, a);
+  after.setAttribute("data-clipref", "c1A"); before.setAttribute("data-clipref", "c1B");
+  const wipe = el("g", {}, a);
+  el("rect", { x: -1.5, y: PY - 26, width: 3, height: PH + 52, fill: PAL.ink }, wipe);
+  el("path", { d: `M-10 ${PY - 26} L10 ${PY - 26} L0 ${PY - 12} Z`, fill: PAL.ink }, wipe);
+  const marks = Rb.runs.filter(r => r.c === "mark"), insA = Ra.runs.filter(r => r.c === "ins");
+  const locks = [...Rb.runs, ...Ra.runs].filter(r => r.c === "lock");
+  insA.forEach(r => paint(r, 1));
+  const stats = chipRow(a, PY + PH + 76, [
+    { text: `黑话 ${SC.words} 处 → ${SC.words_left}`, fill: PAL.teal, stroke: PAL.teal, bg: PAL.tealBg },
+    { text: `箭头链 ${SC.arrows[0]} → ${SC.arrows[1]}`, fill: PAL.teal, stroke: PAL.teal, bg: PAL.tealBg },
+    { text: `代码与指标 ${SC.locks}/${SC.locks} 原样`, fill: PAL.amber, stroke: PAL.amber, bg: PAL.amberBg },
+    { text: `${SC.applied} 处修改 · ${SC.rejected} 处被拒` },
+  ], 20);
+  // 1-b 周会黑话 vs 一对一（构造例子；右侧只是解释，不做红绿对照）
+  const b = el("g", {}, g);
+  title(b, "同一件事，两种说法", 206, 60);
+  const L = { x: 120, w: 820 }, Rr = { x: 980, w: 820 }, top = 262;
+  const lq = markAll([["本周围绕核心链路做了一轮赋能与收口，拉齐了上下游颗粒度，以双端门控为抓手打通了履约闭环，沉淀出标准化底座。", ""]],
+    ["赋能", "收口", "颗粒度", "门控", "抓手", "打通", "闭环", "沉淀", "底座"]);
+  const rq = [["别说“收口、门控、抓手、赋能”——跟我一对一聊具体工作和代码的时候，我只想知道你这周到底改了哪几个接口、修掉了哪个超时 Bug、加了什么校验。", ""]];
+  const left = el("g", {}, b), right = el("g", {}, b);
+  const lr = rich(left, lq, { x: L.x + 44, y: top + 96, width: L.w - 88, size: 38, lh: 64 });
+  const note = el("g", {}, left);
+  const nr = rich(note, [["信息被折叠起来，听着很有条理，但你不知道他到底做了什么", ""]], { x: L.x + 44, y: top + 96 + lr.height + 24, width: L.w - 88, size: AUX, lh: 48, fill: PAL.dim });
+  const rr = rich(right, rq, { x: Rr.x + 44, y: top + 96, width: Rr.w - 88, size: 38, lh: 64 });
+  const CH = Math.max(96 + lr.height + 24 + nr.height + 30, 96 + rr.height + 40);
+  left.insertBefore(card(left, L.x, top, L.w, CH, { fill: PAL.panel2, accent: PAL.rose }), left.firstChild);
+  right.insertBefore(card(right, Rr.x, top, Rr.w, CH, { fill: PAL.panel, accent: PAL.ink }), right.firstChild);
+  T(left, L.x + 44, top + 62, "大厂周会汇报 · 高度压缩的黑话", { size: 34, weight: 700, fill: PAL.rose });
+  T(right, Rr.x + 44, top + 62, "线下一对一 · 你真正想听的话", { size: 34, weight: 700, fill: PAL.ink });
+  lr.runs.forEach(r => paint(r, 1));
+  const foot = T(b, L.x, top + CH + 66, "示意 · 为说明问题编的例子，没有经过工具处理", { size: AUX, fill: PAL.dim });
+  return {
+    cam: t => t < 12 ? { s: kf([[0, 1], [5.4, 1.02], [7.6, 1.0], [11.8, 1.015]])(t), fx: 960, fy: 520 } : { s: kf([[12, 1], [25.8, 1.02]])(t), fx: 960, fy: 540 },
+    update(t) {
+      if (apply(a, vis(t, -1, 11.85), W / 2, 520)) {
+        marks.forEach((r, i) => paint(r, S(t - MARK_T(i), ...SP.POP)));
+        const wx = lerp(PX - 4, PX + PW + 4, eio(seg(t, 5.6, 7.4)));
+        rA.setAttribute("width", Math.max(0, wx - PX + 6).toFixed(1)); mA.setAttribute("width", Math.max(0, wx - PX + 6).toFixed(1));
+        rB.setAttribute("x", wx.toFixed(1)); rB.setAttribute("width", Math.max(0, PX + PW + 10 - wx).toFixed(1));
+        mB.setAttribute("x", wx.toFixed(1)); mB.setAttribute("width", Math.max(0, PX + PW + 10 - wx).toFixed(1));
+        wipe.setAttribute("transform", `translate(${wx.toFixed(1)} 0)`); op(wipe, t > 5.4 && t < 7.7 ? 1 : 0);
+        locks.forEach(r => paint(r, S(t - 7.7, ...SP.POP)));
+        stats.forEach((c, i) => rise(c.g, t, CHIP_T(i)));
+      }
+      if (apply(b, vis(t, 11.93, null), W / 2, 540)) {
+        rise(left, t, 12.4); rise(right, t, 16.2); rise(note, t, 14.4, 12); rise(foot, t, 17.4, 10);
+      }
+    },
+  };
+}
+const MARK_T = i => 0.8 + i * 0.48 - i * i * 0.012;   // 幕 1 标红时刻（音效同步用）
+const CHIP_T = i => 8.3 + i * 0.36 - i * i * 0.04;
+
+// ===========================================================================
+// 2. 方言现象的猜想（26–56s）
+// ===========================================================================
+function buildC2(g) {
+  const a = el("g", {}, g);
+  title(a, "为什么模型会觉得“越短分越高”？", 196, 60);
+  const hyp = tag(a, 0, 260, "HYPOTHESIS · 我的猜想", PAL.amber, PAL.amberBg);
+  hyp.g.setAttribute("transform", `translate(${(W - hyp.w) / 2} 0)`);
+  const steps = [
+    ["STEP 01", "物理限制", "上下文长度和推理成本", "模型一次能看的文字有上限，生成每个字也要花算力，所以训练时不希望它写得太长。"],
+    ["STEP 02", "打分方式", "只看答对，再按字数扣分", "强化学习阶段，模型不知道什么叫好读，只知道怎么拿高分：答对才得分，字越多扣得越多。同样的字数里塞的信息越多，分越高。"],
+    ["STEP 03", "训练出来的副作用", "AI 自创压缩说法", "为了用更少的字说完同样的逻辑，模型学会了用“门禁、收口、探针”和 → 代替连接词。对模型来说这样得分最高，对读者来说就得自己把它展开。"],
+  ];
+  const cw = 520, gap = 40, x0 = (W - (cw * 3 + gap * 2)) / 2, y0 = 316;
+  const cards = steps.map(([k, h, sub, body], i) => {
+    const x = x0 + i * (cw + gap), cg = el("g", {}, a);
+    T(cg, x + 34, y0 + 56, k, { size: AUX, family: MONO, fill: PAL.dim });
+    T(cg, x + 34, y0 + 116, h, { size: fit(h, 42, cw - 68, 700, SERIF), weight: 700, family: SERIF });
+    T(cg, x + 34, y0 + 168, sub, { size: fit(sub, 34, cw - 68, 500), weight: 500, fill: i === 2 ? PAL.rose : PAL.ink });
+    const br = rich(cg, [[body, ""]], { x: x + 34, y: y0 + 196, width: cw - 68, size: AUX, lh: 50, fill: PAL.dim });
+    let hh = 196 + br.height + 30;
+    if (i === 2) {
+      const ex = rich(cg, [["上游探针失活 → 链路熔断闭环", "mark"]], { x: x + 34, y: y0 + hh, width: cw - 68, size: AUX, lh: 50 });
+      ex.runs.forEach(r => paint(r, 1)); hh += ex.height + 20;
+    }
+    return { cg, x, hh };
+  });
+  const CH = Math.max(...cards.map(c => c.hh)) + 10;
+  cards.forEach((c, i) => c.cg.insertBefore(card(c.cg, c.x, y0, cw, CH, { accent: i === 2 ? PAL.rose : PAL.ink }), c.cg.firstChild));
+  const arrows = [0, 1].map(i => { const x = x0 + (i + 1) * (cw + gap) - gap / 2;
+    return el("path", { d: `M${x - 9} ${y0 + CH / 2 - 14} L${x + 7} ${y0 + CH / 2} L${x - 9} ${y0 + CH / 2 + 14}`, fill: "none", stroke: PAL.ink, "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }, a); });
+  // 2-b 论文原题 + 三组证据
+  const b = el("g", {}, g);
+  const pc = el("g", {}, b);
+  card(pc, 120, 170, 1680, 290, { accent: PAL.scan });
+  T(pc, 170, 236, "arXiv:2610.29162 · Clark, Martin & Mahowald · 2026", { size: AUX, family: MONO, fill: PAL.scan });
+  T(pc, 170, 330, "Why is AI-generated language", { size: 68, family: SERIF, italic: true, weight: 500 });
+  T(pc, 170, 414, "so hard to understand?", { size: 68, family: SERIF, italic: true, weight: 500 });
+  const ev = [
+    ["01", "14 个模型，以及 Olmo 的 Base → Instruct → Think：后训练越多，难懂的写法越多"],
+    ["02", "在小模型上做强化学习，加上长度惩罚：模型稳定地偏向更短的句式"],
+    ["03", "把文本翻成外语再翻回来：意思不变，难懂的写法明显变少，说明它们并不是必需的"],
+  ].map(([n, s], i) => {
+    const eg = el("g", {}, b), x = 140 + i * 60, y = 540 + i * 92;
+    T(eg, x, y, n, { size: 40, family: MONO, weight: 700, fill: PAL.teal });
+    T(eg, x + 70, y - 2, s, { size: fit(s, 36, 1700 - x - 70), weight: 500 });
+    el("line", { x1: x, x2: x + 50, y1: y + 22, y2: y + 22, stroke: PAL.teal, "stroke-width": 2 }, eg);
+    return eg;
+  });
+  const bridge = T(b, W / 2, 870, "这让我想到：能不能在中文里也做一遍？", { size: 44, family: SERIF, weight: 700, fill: PAL.teal, anchor: "middle" });
+  return {
+    cam: t => t < 15 ? { s: kf([[0, 1], [14.8, 1.02]])(t), fx: 960, fy: 540 } : { s: kf([[15, 1.0], [29.8, 1.02]])(t), fx: 960, fy: 520 },
+    update(t) {
+      if (apply(a, vis(t, 0, 14.85), W / 2, 540)) {
+        cards.forEach((c, i) => rise(c.cg, t, [0.6, 5.2, 10.0][i], 30));
+        arrows.forEach((ar, i) => op(ar, S(t - [4.9, 9.7][i], ...SP.SLOW)));
+      }
+      if (apply(b, vis(t, 14.93, null), W / 2, 520)) {
+        rise(pc, t, 15.1, 20);
+        ev.forEach((e, i) => rise(e, t, 17.6 + i * 3.0, 18));
+        rise(bridge, t, 26.4, 14);
+      }
+    },
+  };
+}
+
+// ===========================================================================
+// 3. 中文场景的探索（56–86s）
+// ===========================================================================
+const frac = s => { const [a, b] = String(s).split("/").map(Number); return b ? a / b : Number(s); };
+function buildC3(g) {
+  const F = D.facts, SPL = D.splits, N = SPL.train + SPL.dev + SPL.holdout;
+  // 3-a 语料 + 桥接矩阵
+  const a = el("g", {}, g);
+  title(a, `中文实验：${N} 篇真实长文，6 种组合`, 196, 58);
+  const cnt = T(a, 140, 400, "", { size: 112, family: MONO, weight: 700 });
+  T(a, 140, 478, `篇真实长文（最初只有 ${F.corpus_m2} 篇）`, { size: 34, fill: PAL.dim });
+  const bars = [["训练", SPL.train, PAL.panel2], ["调参", SPL.dev, PAL.tealBg], ["封存测试", SPL.holdout, PAL.ink]];
+  let bx = 140; const BW = 680;
+  const barEls = bars.map(([l, n, c], i) => { const w = BW * n / N, x = bx; bx += w + 6;
+    const r = el("rect", { x, y: 512, height: 40, rx: 3, fill: c, stroke: PAL.line }, a);
+    const lt = T(a, x, 596, `${l} ${n}`, { size: AUX, fill: i === 2 ? PAL.ink : PAL.dim, weight: i === 2 ? 500 : 400 });
+    return { r, w, lt }; });
+  const scen = ["编程", "技术讲解", "写作", "讨论", "公式混排", "日常"];
+  const sc1 = chipRow(a, 664, scen.slice(0, 3).map(s => ({ text: s })), 14, 140);
+  const sc2 = chipRow(a, 742, scen.slice(3).map(s => ({ text: s })), 14, 140);
+  const mx0 = 1090, my0 = 300, mcw = 220, mch = 92, mg = 16;
+  ["日语", "法语", "俄语"].forEach((s, i) => T(a, mx0 + i * (mcw + mg) + mcw / 2, my0 - 22, s, { size: AUX, anchor: "middle", fill: PAL.dim }));
+  ["hy-mt2", "gemma-3-4b"].forEach((s, j) => T(a, mx0 - 20, my0 + j * (mch + mg) + mch / 2 + 11, s, { size: AUX, family: MONO, anchor: "end" }));
+  const cells = [];
+  for (let j = 0; j < 2; j++) for (let i = 0; i < 3; i++) {
+    const x = mx0 + i * (mcw + mg), y = my0 + j * (mch + mg);
+    cells.push({ r: el("rect", { x, y, width: mcw, height: mch, rx: 6, fill: PAL.panel, stroke: PAL.line, "stroke-width": 1.5 }, a), win: i === 2 && j === 0, gem: j === 1, x, y });
+  }
+  const wc = cells.find(c => c.win);
+  const winT = T(a, wc.x + mcw / 2, wc.y + mch / 2 + 12, "✓ 选定", { size: 34, weight: 700, fill: PAL.teal, anchor: "middle" });
+  const notes = [
+    ["gemma 慢一倍，段落经常翻译失败，所以淘汰", PAL.dim],
+    ["日语：翻译后长句反而变多", PAL.ink],
+    ["法语：机器指标最好，但人工盲测很少选它", PAL.ink],
+    ["俄语：人工盲测最常被选为最好读，准确度和法语一样", PAL.teal],
+    ["原因推测：俄语有格变化，翻译时必须说清谁对谁做了什么", PAL.scan],
+  ].map(([s, c], i) => T(a, 900, 560 + i * 62, s, { size: fit(s, AUX, 900), fill: c, weight: i === 3 ? 700 : 400 }));
+  const nTrack = track(F.corpus_m2, [[1.2, N, [6, 0.95]]]);
+  // 3-b 回译走样 → 只当参考；推理强度
+  const b = el("g", {}, g);
+  title(b, "翻译回来的稿子会走样，只能当参考", 196, 58);
+  T(b, 140, 290, "直接用翻译回来的稿子？真实的走样例子：", { size: 34, weight: 500 });
+  const drift = F.drift.map(([o, r], i) => { const dg = el("g", {}, b), y = 370 + i * 76;
+    T(dg, 160, y, o, { size: 36 });
+    T(dg, 160 + mw(o, 36) + 24, y, "→", { size: 36, fill: PAL.dim });
+    const rx = 160 + mw(o, 36) + 80;
+    el("rect", { x: rx - 6, y: y - 36, width: mw(r, 36) + 12, height: 48, rx: 4, fill: PAL.roseBg }, dg);
+    T(dg, rx, y, r, { size: 36, fill: PAL.rose });
+    return dg; });
+  const sol = el("g", {}, b);
+  card(sol, 140, 600, 780, 250, { accent: PAL.teal });
+  ["① 以原文为准，翻译稿只作参考", "② 本地检查标出黑话、箭头和长句", "③ 大模型只改有问题的几处"].forEach((s, i) =>
+    T(sol, 180, 670 + i * 66, s, { size: 34, weight: i === 2 ? 700 : 400, fill: i === 2 ? PAL.teal : PAL.ink }));
+  const eff = el("g", {}, b);
+  card(eff, 1000, 270, 800, 580, { fill: PAL.panel });
+  T(eff, 1040, 332, "改稿模型的推理强度：低 → 高", { size: 38, weight: 700, family: SERIF });
+  T(eff, 1040, 380, "同一批样本，只改这一个变量", { size: AUX, fill: PAL.dim });
+  const E = F.effort, vLo = frac(E.veto[0]), vHi = frac(E.veto[1]);
+  const rows = [["严重事实错误", vLo, vHi, pct(vLo, 0), pct(vHi, 0), 1, true], ["准确度（满分 5）", E.fid[0], E.fid[1], E.fid[0].toFixed(1), E.fid[1].toFixed(1), 5, false],
+    ["好读程度（满分 5）", E.read[0], E.read[1], E.read[0].toFixed(1), E.read[1].toFixed(1), 5, false]].map(([l, lo, hi, ls, hs, max, bad], i) => {
+    const y = 474 + i * 142, rg = el("g", {}, eff);
+    T(rg, 1040, y - 34, l, { size: AUX, weight: 500 });
+    const rl = el("rect", { x: 1040, y: y - 16, height: 26, rx: 3, fill: bad ? PAL.rose : PAL.line }, rg);
+    const rh = el("rect", { x: 1040, y: y + 34, height: 26, rx: 3, fill: PAL.teal }, rg);
+    const tl = T(rg, 1040, y + 8, `低 ${ls}`, { size: AUX, family: MONO, fill: PAL.dim });
+    const th = T(rg, 1040, y + 58, `高 ${hs}`, { size: AUX, family: MONO, fill: PAL.teal, weight: 700 });
+    return { rg, rl, rh, tl, th, lo: lo / max * 460, hi: hi / max * 460 }; });
+  // 3-c v1 → v8 与 6 轮受控实验
+  const c = el("g", {}, g);
+  title(c, "v1 → v8：每次只改一处", 196, 58);
+  const vs = [["v1–v2", "在翻译稿上", "修改"], ["v3–v5", "放开改写幅度，", "改动常落错地方"], ["v6", "改回在原文上改", "翻译稿只作参考"],
+    ["v7", "逐段检查", ""], ["v8", "补上省略的字", "定为最终版本"]];
+  const rx0 = 270, rstep = 345, ry = 316;
+  el("line", { x1: 170, x2: 1750, y1: ry, y2: ry, stroke: PAL.line, "stroke-width": 3 }, c);
+  const prog = el("line", { x1: 170, y1: ry, y2: ry, stroke: PAL.ink, "stroke-width": 3 }, c);
+  const vnodes = vs.map(([v, a1, a2], i) => { const x = rx0 + i * rstep, ng = el("g", {}, c);
+    const dot = el("circle", { cx: x, cy: ry, r: 13, fill: PAL.bg, stroke: PAL.ink, "stroke-width": 3 }, ng);
+    T(ng, x, ry - 34, v, { size: 38, family: MONO, weight: 700, anchor: "middle", fill: i === 4 ? PAL.amber : PAL.ink });
+    T(ng, x, ry + 62, a1, { size: AUX, anchor: "middle" });
+    if (a2) T(ng, x, ry + 108, a2, { size: AUX, anchor: "middle", fill: i === 4 ? PAL.amber : PAL.dim });
+    return { ng, dot, x }; });
+  const legend = T(c, 140, 552, "下面每格：这一轮改动后，在调参集上对 Humanizer-zh 的胜率（第三方裁判 JEV 判定）", { size: fit("下面每格：这一轮改动后，在调参集上对 Humanizer-zh 的胜率（第三方裁判 JEV 判定）", 34, 1640), weight: 500 });
+  const cw2 = 216, cg2 = 14, cx0 = (W - (7 * cw2 + 6 * cg2)) / 2, cy = 588;
+  const DEC = { "KEEP": "保留", "REVERT": "撤回", "基线": "基线" };
+  const cellsR = F.ratchet.map(([r, v, d], i) => { const x = cx0 + i * (cw2 + cg2), k = el("g", {}, c);
+    const col = d === "KEEP" ? PAL.teal : d === "REVERT" ? PAL.rose : PAL.dim;
+    card(k, x, cy, cw2, 168, { accent: col, shadow: false });
+    T(k, x + 24, cy + 48, `第 ${r.slice(1)} 轮`, { size: AUX, fill: PAL.dim });
+    T(k, x + 24, cy + 102, v, { size: fit(v, 40, cw2 - 40, 700, MONO), family: MONO, weight: 700 });
+    T(k, x + 24, cy + 146, DEC[d] || d, { size: AUX, weight: 700, fill: col });
+    return k; });
+  const lockW = mw("[LOCKED] v8 最终版", AUX, 500, MONO) + 24;
+  const lockT = tag(el("g", { transform: `translate(${rx0 + 4 * rstep - lockW / 2 - 20} ${ry + 158})` }, c), 0, 0, "[LOCKED] v8 最终版", PAL.amber, PAL.amberBg);
+  return {
+    cam: t => t < 10 ? { s: kf([[0, 1], [9.8, 1.02]])(t), fx: 960, fy: 520 } : t < 20 ? { s: kf([[10, 1.0], [19.8, 1.015]])(t), fx: 960, fy: 540 } : { s: kf([[20, 1.0], [29.8, 1.015]])(t), fx: 960, fy: 520 },
+    update(t) {
+      if (apply(a, vis(t, 0, 9.85), W / 2, 520)) {
+        cnt.textContent = `${Math.round(nTrack(t))}`;
+        barEls.forEach((o, i) => { o.r.setAttribute("width", Math.max(0, o.w * S(t - 1.6 - i * 0.3, ...SP.MORPH)).toFixed(1)); op(o.lt, S(t - 1.9 - i * 0.3, ...SP.SLOW)); });
+        [...sc1, ...sc2].forEach((cc, i) => op(cc.g, S(t - 2.6 - i * 0.16 + i * i * 0.008, ...SP.SLOW)));
+        cells.forEach((cc, k) => { const on = S(t - 3.2 - k * 0.2, ...SP.SLOW), out = cc.gem ? seg(t, 5.0, 5.5) : 0, win = cc.win && t > 7.6;
+          cc.r.setAttribute("fill", win ? PAL.tealBg : PAL.panel); cc.r.setAttribute("stroke", win ? PAL.teal : PAL.line); op(cc.r, on * (1 - 0.6 * out)); });
+        op(winT, S(t - 7.8, ...SP.SLOW));
+        notes.forEach((n, i) => rise(n, t, 4.9 + i * 0.75 - i * i * 0.05, 12));
+      }
+      if (apply(b, vis(t, 9.93, 19.85), W / 2, 540)) {
+        drift.forEach((d, i) => rise(d, t, 10.5 + i * 0.6, 14));
+        rise(sol, t, 13.0, 20); rise(eff, t, 14.4, 20);
+        rows.forEach((r, i) => { const k = S(t - 15.2 - i * 0.5, ...SP.MORPH);
+          r.rl.setAttribute("width", Math.max(0, r.lo * k).toFixed(1)); r.rh.setAttribute("width", Math.max(0, r.hi * k).toFixed(1));
+          r.tl.setAttribute("x", (1040 + r.lo * k + 16).toFixed(1)); r.th.setAttribute("x", (1040 + r.hi * k + 16).toFixed(1)); op(r.tl, k); op(r.th, k); });
+      }
+      if (apply(c, vis(t, 19.93, null), W / 2, 520)) {
+        const p = eio(seg(t, 20.4, 24.2)), px = lerp(170, rx0 + 4 * rstep, p);
+        prog.setAttribute("x2", px.toFixed(1));
+        vnodes.forEach((n, i) => { const on = px >= n.x - 2; op(n.ng, on ? 1 : 0.25); n.dot.setAttribute("fill", on ? (i === 4 ? PAL.amber : PAL.ink) : PAL.bg); });
+        rise(legend, t, 24.2, 10);
+        cellsR.forEach((k, i) => rise(k, t, RATCHET_T(i), 22, SP.POP));
+        op(lockT.g, S(t - 24.3, ...SP.POP));
+      }
+    },
+  };
+}
+const RATCHET_T = i => 24.7 + [0, 0.5, 0.92, 1.26, 1.54, 1.76, 1.92][i];
+
+// ===========================================================================
+// 4. 实际对比（86–108s）
+// ===========================================================================
+function caseShot(g, data, head) {
+  const s = el("g", {}, g);
+  const x = 130, w = 1660, padTop = 86;
+  let ra, rb, yc, B;
+  for (const size of [42, 40, 38, 36, 34, 32]) {   // 逐级缩小，保证整组落在字幕条之上
+    s.textContent = "";
+    title(s, head, 196, 56);
+    const lh = Math.round(size * 1.56), A = el("g", {}, s);
+    B = el("g", {}, s);
+    ra = rich(A, data.before, { x: x + 56, y: 250 + padTop, width: w - 112, size, lh });
+    const ha = padTop + ra.height + 30;
+    A.insertBefore(card(A, x, 250, w, ha, { fill: PAL.panel2, accent: PAL.rose }), A.firstChild);
+    T(A, x + 56, 250 + 60, "原文", { size: AUX, fill: PAL.rose, weight: 500 });
+    tag(A, x + w - 220, 250 + 60, "[REDLINE]", PAL.rose, PAL.roseBg);
+    const yb = 250 + ha + 28;
+    rb = rich(B, data.after, { x: x + 56, y: yb + padTop, width: w - 112, size, lh });
+    const hb = padTop + rb.height + 30;
+    B.insertBefore(card(B, x, yb, w, hb, { accent: PAL.teal }), B.firstChild);
+    T(B, x + 56, yb + 60, "no-ai-fluff v8", { size: AUX, fill: PAL.teal, weight: 500 });
+    tag(B, x + w - 190, yb + 60, "[PATCH]", PAL.teal, PAL.tealBg);
+    yc = yb + hb + 52;
+    if (yc + 12 <= 905) break;
+  }
+  T(s, x, yc, data.src, { size: AUX, family: MONO, fill: PAL.dim });
+  const dels = ra.runs.filter(r => r.c === "del"), ins = rb.runs.filter(r => r.c === "ins");
+  const locks = [...ra.runs, ...rb.runs].filter(r => r.c === "lock" || r.c === "math");
+  const lkW = mw("[LOCKED] 代码公式原样", AUX, 500, MONO) + 24;   // 只有含代码/公式的案例才挂锁定角标
+  const lk = locks.length ? tag(el("g", { transform: `translate(${x + w - lkW} ${yc})` }, s), 0, 0, "[LOCKED] 代码公式原样", PAL.amber, PAL.amberBg) : null;
+  return (t, s0, e0) => {
+    if (!apply(s, vis(t, s0, e0), W / 2, 540)) return;
+    const lt = t - s0;
+    dels.forEach((r, i) => paint(r, S(lt - 0.6 - i * 0.12, ...SP.SLOW)));
+    op(B, S(lt - 1.3, ...SP.SLOW));
+    ins.forEach((r, i) => paint(r, S(lt - 1.8 - i * 0.18 + i * i * 0.008, ...SP.POP)));
+    locks.forEach(r => paint(r, S(lt - 3.0, ...SP.POP)));
+    if (lk) rise(lk.g, lt, 3.4, 0);
+  };
+}
+function buildC4(g) {
+  const cs = caseShot(g, D.coding, "编程总结：箭头链展开成完整的话");
+  const ts = caseShot(g, D.teaching, "技术讲解：Raft 选举过程讲清楚");
+  const ms = caseShot(g, D.mixed, "公式混排：变量原样不动");
+  const p = el("g", {}, g);
+  title(p, "写作和讨论：黑话改成大白话", 196, 56);
+  T(p, 160, 290, "原文", { size: AUX, fill: PAL.rose, weight: 500 });
+  T(p, 800, 290, "no-ai-fluff v8", { size: AUX, fill: PAL.teal, weight: 500 });
+  T(p, 1390, 290, "来源", { size: AUX, fill: PAL.dim });
+  el("line", { x1: 130, x2: 1790, y1: 310, y2: 310, stroke: PAL.lineStrong, "stroke-width": 1.5 }, p);
+  const rows = D.pairs.map(([o, r, src], i) => {
+    const rg = el("g", {}, p), y = 384 + i * 88;
+    const s1 = fit(o, 36, 560), s2 = fit(r, 36, 540);
+    const w1 = mw(o, s1), w2 = mw(r, s2);
+    el("rect", { x: 152, y: y - 36, width: w1 + 16, height: 50, rx: 4, fill: PAL.roseBg }, rg);
+    T(rg, 160, y, o, { size: s1, fill: PAL.rose });
+    el("line", { x1: 160, x2: 160 + w1, y1: y - 12, y2: y - 12, stroke: PAL.rose, "stroke-width": 2 }, rg);
+    T(rg, 750, y, "→", { size: 36, fill: PAL.dim, anchor: "middle" });
+    el("rect", { x: 792, y: y - 36, width: w2 + 16, height: 50, rx: 4, fill: PAL.tealBg }, rg);
+    T(rg, 800, y, r, { size: s2, fill: PAL.teal });
+    T(rg, 1390, y, src.replace("封存集", "封存").replace("Dev", "调参"), { size: AUX, family: MONO, fill: PAL.dim });
+    el("line", { x1: 130, x2: 1790, y1: y + 30, y2: y + 30, stroke: PAL.line, "stroke-width": 1 }, rg);
+    return { rg };
+  });
+  return {
+    cam: t => ({ s: kf([[0, 1], [22, 1.02]])(t), fx: 960, fy: 540 }),
+    update(t) {
+      cs(t, 0, 5.35); ts(t, 5.43, 10.85); ms(t, 10.93, 16.35);
+      if (apply(p, vis(t, 16.43, null), W / 2, 540)) rows.forEach((r, i) => rise(r.rg, t, PAIR_T(i), 16));
+    },
+  };
+}
+const PAIR_T = i => 16.8 + i * 0.5 - i * i * 0.03;
+
+// ===========================================================================
+// 5. 和主流热门SKILL的对比（108–132s）
+// ===========================================================================
+function buildC5(g) {
+  const B = D.blind, J = D.jev, F = D.facts;
+  const kStar = n => n.toLocaleString("en-US");
+  // 5-a 裁判与选手（带 GitHub 星数）
+  const a = el("g", {}, g);
+  title(a, "裁判是第三方，比较的是两个工具", 196, 58);
+  const judge = el("g", {}, a);
+  card(judge, 260, 250, 1400, 96, { fill: PAL.dark, stroke: PAL.dark });
+  T(judge, W / 2, 312, "第三方大模型裁判 JEV（typesafe/jev-1.14）盲评", { size: 36, fill: PAL.inkOnDark, anchor: "middle", weight: 500 });
+  const vsL = el("g", {}, a), vsR = el("g", {}, a);
+  card(vsL, 260, 390, 620, 200, { accent: PAL.teal });
+  T(vsL, 310, 456, "no-ai-fluff（v8）", { size: 44, weight: 700, family: SERIF, fill: PAL.teal });
+  T(vsL, 310, 510, `★ ${kStar(F.stars.ours)} · 今天刚开源`, { size: 36, family: MONO, weight: 700, fill: PAL.amber });
+  T(vsL, 310, 558, "翻译参考 + 局部修改", { size: AUX, fill: PAL.dim });
+  card(vsR, 1040, 390, 620, 200, { accent: PAL.ink });
+  T(vsR, 1090, 456, "Humanizer-zh", { size: 44, weight: 700, family: SERIF });
+  T(vsR, 1090, 510, `★ ${kStar(F.stars.hz)}`, { size: 36, family: MONO, weight: 700, fill: PAL.amber });
+  T(vsR, 1090, 558, "中文去 AI 味的标杆 · 整篇重写", { size: AUX, fill: PAL.dim });
+  const vsT = T(a, W / 2, 506, "vs", { size: 56, family: SERIF, italic: true, anchor: "middle", fill: PAL.dim });
+  const hb = el("g", {}, a);
+  card(hb, 260, 640, 1400, 210, { fill: PAL.panel });
+  const big = T(hb, 310, 782, "", { size: 108, family: MONO, weight: 700, fill: PAL.teal });
+  T(hb, 760, 724, "人工盲测首选率", { size: 40, weight: 700, family: SERIF });
+  T(hb, 760, 784, "封存测试集抽样，原文和两个工具的版本一起盲选最好读", { size: AUX, fill: PAL.dim });
+  // 5-b 裁决结果 + 不误伤 + 评判标准
+  const b = el("g", {}, g);
+  title(b, "裁判结果，以及不误伤内容", 196, 58);
+  const res = [["对 Humanizer-zh 胜率", J.overall], ["对原文胜率", J.vs_orig]].map(([l, v], i) => {
+    const rg = el("g", {}, b), y = 290 + i * 150;
+    T(rg, 140, y, l, { size: 34, weight: 500 });
+    el("rect", { x: 140, y: y + 24, width: 470, height: 24, rx: 3, fill: PAL.panel2 }, rg);
+    const bar = el("rect", { x: 140, y: y + 24, height: 24, rx: 3, fill: PAL.teal }, rg);
+    el("line", { x1: 140 + 235, x2: 140 + 235, y1: y + 14, y2: y + 58, stroke: PAL.ink, "stroke-width": 2, "stroke-dasharray": "5 5" }, rg);
+    const num = T(rg, 640, y + 46, "", { size: 56, family: MONO, weight: 700, fill: PAL.teal });
+    return { rg, bar, num, v }; });
+  const safe = el("g", {}, b);
+  card(safe, 120, 548, 820, 316, { accent: PAL.amber });
+  T(safe, 160, 604, "不误伤", { size: 38, weight: 700, family: SERIF, fill: PAL.amber });
+  T(safe, 160, 664, "数字：没有改动任何数值", { size: 34, weight: 700 });
+  T(safe, 160, 710, `（${F.number_note}）`, { size: AUX, fill: PAL.dim });
+  T(safe, 160, 776, `代码、公式、占位符：每篇 ${pct(D.hard_survival, 0)} 原样`, { size: 34, weight: 700 });
+  T(safe, 160, 822, `（Humanizer-zh 最差一篇只剩 ${pct(D.hz_hard_min)}）`, { size: AUX, fill: PAL.dim });
+  const std = el("g", {}, b);
+  card(std, 980, 250, 820, 610, { accent: PAL.scan });
+  T(std, 1020, 312, "[第三方裁判 JEV · 评判标准]", { size: 34, family: MONO, weight: 700, fill: PAL.scan });
+  let yy = 380;
+  const rules = [["1", "6 项准确性检查：数字、语气强弱、术语、遗漏、添加、主客体，合成一个风险分"],
+    ["2", "好读程度 1–5 分：不给原文，只看读起来顺不顺"],
+    ["3", "两个版本换位置各评一次再平均，抵消位置偏好；这套评法事先用人工盲测校准过"]].map(([n, s]) => {
+    const rg = el("g", {}, std);
+    T(rg, 1020, yy + 32, n, { size: 40, family: MONO, weight: 700, fill: PAL.scan });
+    const rr = rich(rg, [[s, ""]], { x: 1080, y: yy, width: 680, size: 34, lh: 54 });
+    yy += rr.height + 40;
+    return rg; });
+  // 5-c 同题三栏 + 硬指标
+  const c = el("g", {}, g);
+  title(c, "同一段 Raft 选举：三版放在一起", 196, 58);
+  const th = D.three, arrow = s => markAll([[s, ""]], ["→"]);
+  const cols = [["原文", arrow(th.orig), PAL.panel2, PAL.rose], ["Humanizer-zh", arrow(th.hz), PAL.panel2, PAL.ink], ["no-ai-fluff（v8）", D.teaching.after, PAL.panel, PAL.teal]];
+  const cw3 = 530, gp3 = 25, x3 = (W - (cw3 * 3 + gp3 * 2)) / 2;
+  const colEls = cols.map(([h, segs, fill, acc], i) => { const x = x3 + i * (cw3 + gp3), k = el("g", {}, c);
+    const rr = rich(k, segs, { x: x + 34, y: 316, width: cw3 - 68, size: 34, lh: 54 });
+    k.insertBefore(card(k, x, 240, cw3, 76 + rr.height + 36, { fill, accent: acc }), k.firstChild);
+    T(k, x + 34, 292, h, { size: 34, weight: 700, fill: acc });
+    rr.runs.forEach(r => paint(r, 1));
+    return { k, h: 76 + rr.height + 36 }; });
+  const ST = D.stats, ch = 240 + Math.max(...colEls.map(o => o.h)) + 60;
+  const m1 = T(c, 140, ch + 10, `6 个高频黑话（调参集 + 封存测试集）：原文 ${ST.jargon[0]} → Humanizer-zh ${ST.jargon[2]} → no-ai-fluff ${ST.jargon[1]}`, { size: 36, weight: 500 });
+  const m2 = T(c, 140, ch + 74, `解释性箭头（封存测试集）：原文 ${ST.arrows[0]} → Humanizer-zh ${ST.arrows[2]} → no-ai-fluff ${ST.arrows[1]}`, { size: 36, weight: 500 });
+  return {
+    cam: t => t < 8 ? { s: kf([[0, 1.02], [7.8, 1.0]])(t), fx: 960, fy: 520 } : t < 16 ? { s: kf([[8, 1.0], [15.8, 1.015]])(t), fx: 960, fy: 540 } : { s: kf([[16, 1.0], [24, 1.015]])(t), fx: 960, fy: 540 },
+    update(t) {
+      if (apply(a, vis(t, 0, 7.85), W / 2, 540)) {
+        rise(judge, t, 0.4, -16); rise(vsL, t, 1.3, 20); rise(vsR, t, 1.6, 20); op(vsT, S(t - 1.9, ...SP.SLOW));
+        rise(hb, t, 3.0, 20);
+        big.textContent = pct(B.first_ours * S(t - 3.4, 7, 0.95));
+      }
+      if (apply(b, vis(t, 7.93, 15.85), W / 2, 540)) {
+        res.forEach((r, i) => { const k = S(t - 8.6 - i * 0.6, 8, 0.9); op(r.rg, clamp(k * 2));
+          r.bar.setAttribute("width", Math.max(0, 470 * r.v * k).toFixed(1)); r.num.textContent = pct(r.v * clamp(k, 0, 1)); });
+        rise(safe, t, 10.0, 16); rise(std, t, 9.4, 20);
+        rules.forEach((r, i) => rise(r, t, 10.6 + i * 0.9, 12));
+      }
+      if (apply(c, vis(t, 15.93, null), W / 2, 540)) {
+        colEls.forEach((o, i) => rise(o.k, t, 16.3 + i * 0.5, 20));
+        rise(m1, t, 18.6, 10); rise(m2, t, 19.2, 10);
+      }
+    },
+  };
+}
+
+// ===========================================================================
+// 6. 结尾（132–154s）：用在哪里 → 五张总结卡 → 标语
+// ===========================================================================
+function buildC6(g) {
+  const J = D.jev;
+  // 6-a 用在哪里
+  const a = el("g", {}, g);
+  title(a, "在哪些地方用得上", 196, 60);
+  const legend = T(a, W / 2, 252, "百分比：封存测试集上，第三方裁判 JEV 判定对 Humanizer-zh 的胜率", { size: AUX, fill: PAL.dim, anchor: "middle" });
+  const tiles = [
+    ["公式推导", "带公式的数学、算法推导", J.mixed], ["技术讲解", "原理、概念、面试题讲解", J.teaching], ["编程", "PR 总结、代码改动说明", J.coding],
+    ["写作", "方案、周报、汇报", null], ["讨论", "技术选型、利弊分析", null], ["日常问答", "生活建议、日常问答", null],
+  ];
+  const tw = 520, thh = 236, tg = 30, tx0 = (W - (tw * 3 + tg * 2)) / 2, ty0 = 290;
+  const tileEls = tiles.map(([n, ex, v], i) => {
+    const x = tx0 + (i % 3) * (tw + tg), y = ty0 + Math.floor(i / 3) * (thh + tg), k = el("g", {}, a);
+    card(k, x, y, tw, thh, { accent: v ? PAL.teal : PAL.line, fill: v ? PAL.panel : PAL.panel2 });
+    T(k, x + 36, y + 70, n, { size: 44, weight: 700, family: SERIF });
+    T(k, x + 36, y + 128, ex, { size: fit(ex, 34, tw - 72), fill: PAL.dim });
+    if (v) { const tt = tag(k, x + 36, y + 196, `最擅长 · ${pct(v)}`, PAL.teal, PAL.tealBg); }
+    else T(k, x + 36, y + 196, "也能用", { size: AUX, weight: 500, fill: PAL.dim });
+    return k; });
+  const tail = T(a, W / 2, 866, "写作、讨论、日常问答场景，和 Humanizer-zh 互有胜负", { size: AUX, fill: PAL.dim, anchor: "middle" });
+  // 6-b 五张总结卡 + 标语
+  const b = el("g", {}, g);
+  const cardsDef = [
+    ["01", "猜想与论文实证", "强化学习的长度惩罚，带来压缩说法"],
+    ["02", "代码与公式 100% 保留", "用结构解析和正则冻住代码块与公式"],
+    ["03", "跨语种往返翻译拆开句子", "语种差得越远，小模型越会先保住意思，句子结构也可能被重新组织"],
+    ["04", "本地检查 + 精确修改", "确定性扫描，加上 JSON 局部替换"],
+    ["05", "人工盲测 + 大模型辅助验证", `人工盲测首选率 ${pct(D.blind.first_ours)} · 6 个高频黑话清零`],
+  ];
+  const cw = 540, chh = 196, gx = 30, gy = 26;
+  const pos = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];
+  const ox = (W - (cw * 3 + gx * 2)) / 2, oy = 168;
+  const from = [[-600, -60], [0, 380], [600, -60], [-600, 240], [600, 240]];
+  const cards = cardsDef.map(([n, h, s], i) => {
+    const [cx, cy] = pos[i], x = ox + cx * (cw + gx), y = oy + cy * (chh + gy), k = el("g", {}, b);
+    card(k, x, y, cw, chh, { accent: i === 4 ? PAL.teal : PAL.amber });
+    T(k, x + 34, y + 54, n, { size: AUX, family: MONO, weight: 700, fill: PAL.amber });
+    T(k, x + 94, y + 56, h, { size: fit(h, 36, cw - 128, 700, SERIF), weight: 700, family: SERIF });
+    rich(k, [[s, ""]], { x: x + 34, y: y + 80, width: cw - 68, size: AUX, lh: 46, fill: PAL.dim });
+    return { k, cx: x + cw / 2, cy: y + chh / 2, from: from[i] }; });
+  const fin = el("g", {}, b);
+  el("line", { x1: 560, x2: 1360, y1: 686, y2: 686, stroke: PAL.ink, "stroke-width": 1.5 }, fin);
+  T(fin, W / 2, 790, "赛博方言去质器 · no-ai-fluff", { size: 84, family: SERIF, weight: 900, anchor: "middle" });
+  const quote = T(b, W / 2, 878, "少一点机器的体面，多一点人类的直接。", { size: 48, family: SERIF, weight: 600, italic: true, anchor: "middle", fill: PAL.teal });
+  return {
+    cam: t => t < 9 ? { s: kf([[0, 1.0], [8.8, 1.02]])(t), fx: 960, fy: 540 } : { s: kf([[9, 1.04], [17.4, 1.0]])(t), fx: 960, fy: kf([[9, 560], [17.4, 540]])(t) },
+    update(t) {
+      if (apply(a, vis(t, 0, 8.9), W / 2, 540)) {
+        op(legend, S(t - 0.5, ...SP.SLOW));
+        tileEls.forEach((k, i) => rise(k, t, TILE_T(i), 24, SP.POP));
+        rise(tail, t, 4.6, 10);
+      }
+      if (apply(b, vis(t, 8.98, null, { lin: 0.4 }), W / 2, 540)) {
+        cards.forEach((c, i) => { const k = S(t - END_T(i), 10, 0.74);
+          trc(c.k, c.cx, c.cy, 0.86 + 0.14 * k, c.from[0] * (1 - k), c.from[1] * (1 - k)); op(c.k, clamp(k * 2));
+          c.k.setAttribute("data-transit", Math.abs(1 - k) > 0.02 ? "1" : "0"); });
+        const fk = S(t - 13.0, 9, 0.8); op(fin, clamp(fk * 1.4)); trc(fin, W / 2, 760, 0.94 + 0.06 * fk);
+        rise(quote, t, 14.4, 14);
+      }
+    },
+  };
+}
+const TILE_T = i => 0.9 + [0, 0.45, 0.8, 1.6, 1.9, 2.12][i];
+const END_T = i => 9.5 + [0, 0.6, 1.05, 1.38, 1.6][i];   // 错峰越来越短（R2）
+
+// ---------------------------------------------------------------------------
+// 时间轴、字幕
+// ---------------------------------------------------------------------------
+const SCENES = [
+  { title: "1. AI的“方言”", short: "AI的“方言”", start: 0, end: 26, build: buildC1 },
+  { title: "2. 方言现象的猜想", short: "方言现象的猜想", start: 26, end: 56, build: buildC2 },
+  { title: "3. 中文场景的探索", short: "中文场景的探索", start: 56, end: 86, build: buildC3 },
+  { title: "4. 实际对比", short: "实际对比", start: 86, end: 108, build: buildC4 },
+  { title: "5. 和主流热门SKILL的对比", short: "和主流热门SKILL的对比", start: 108, end: 132, build: buildC5 },
+  { title: "6. 结尾", short: "结尾", start: 132, end: 154, build: buildC6 },
+];
+const DURATION = 154;
+const SUBS = [
+  [0.4, 5.4, "一段典型的 AI 技术回复：每个词都认识。"],
+  [5.6, 11.6, "连起来却像电报。去掉黑话，事实一个不少。"],
+  [12.4, 18.8, "周会上这么说，是为了显得信息多。"],
+  [19.0, 25.6, "AI 跟你一对一讲技术也这么说，就很难读。"],
+  [26.4, 31.0, "我的猜想：上下文和算力都有上限，"],
+  [31.2, 35.8, "训练只看有没有答对，还按字数扣分，"],
+  [36.0, 40.8, "于是模型自己学会了一套压缩说法。"],
+  [41.4, 48.4, "这篇论文的标题，正是我的问题。"],
+  [48.6, 55.6, "三组证据：后训练越多，难懂的写法越多。"],
+  [56.4, 61.0, `我在中文里重做了一遍：${D.splits.train + D.splits.dev + D.splits.holdout} 篇真实长文。`],
+  [61.2, 65.8, "6 种组合里，人工盲测最常选中俄语。"],
+  [66.4, 70.8, "但翻译回来的稿子会走样，只能当参考。"],
+  [71.0, 75.8, "推理强度调高后，严重错误从 100% 降到 20%。"],
+  [76.4, 81.0, "规则从 v1 改到 v8，每次只改一处。"],
+  [81.2, 85.8, "6 轮实验：3 轮保留，3 轮撤回。"],
+  [86.4, 91.2, "编程总结：箭头链展开成完整的话。"],
+  [91.8, 96.6, "技术讲解：Raft 选举过程讲清楚了。"],
+  [97.3, 102.1, "公式混排：变量原样不动，只换英文。"],
+  [102.8, 107.8, "写作和讨论：抓手、打通、心智负担都改掉了。"],
+  [108.4, 115.8, "比较的是两个工具：no-ai-fluff 和 Humanizer-zh。"],
+  [116.4, 123.8, "数字一个没改，代码和公式每篇都原样保留。"],
+  [124.4, 131.8, "同一段 Raft：只有 no-ai-fluff 把箭头都展开了。"],
+  [132.4, 136.8, "编程、技术讲解、公式推导，是它最擅长的地方。"],
+  [137.0, 140.8, "写作、讨论、日常问答，也能拿来用。"],
+  [141.4, 146.6, "猜想、论文、实验、盲测，一路验证过来。"],
+];
+
+// ---------------------------------------------------------------------------
+// 声音：只有音效，没有配乐。全部用 WebAudio 合成，和画面共用同一条时间轴（buildAudio 可在任意 (Offline)AudioContext 上排程）
+// 音效：标红=笔尖轻点、擦除线=气流声、锁定=金属轻响、卡片/胶囊落位=轻敲、换镜头=短气流、收尾卡=低沉落地、标语=钟音
+// ---------------------------------------------------------------------------
+const mhz = m => 440 * Math.pow(2, (m - 69) / 12);
+function cueList() {
+  const L = [], at = (s, t) => SCENES[s].start + t;
+  for (let i = 0; i < 7; i++) L.push([at(0, MARK_T(i)), "tick", 0.55]);
+  L.push([at(0, 5.5), "whoosh", 0.55], [at(0, 7.7), "clink", 0.45]);
+  for (let i = 0; i < 4; i++) L.push([at(0, CHIP_T(i)), "tap", 0.35]);
+  [11.93, 26, 40.93, 56, 65.93, 75.93, 86, 91.43, 96.93, 102.43, 108, 115.93, 123.93, 132, 140.98].forEach(t => L.push([t - 0.12, "whoosh", 0.28]));
+  for (let i = 0; i < 7; i++) L.push([at(2, RATCHET_T(i)), "tap", 0.3]);
+  for (let i = 0; i < 6; i++) L.push([at(3, PAIR_T(i)), "tick", 0.4]);
+  for (let i = 0; i < 6; i++) L.push([at(5, TILE_T(i)), "tap", 0.32]);
+  for (let i = 0; i < 5; i++) L.push([at(5, END_T(i)), "thump", 0.5]);
+  L.push([at(5, 13.0), "chime", 0.6]);
+  return L;
+}
+window.buildAudio = async function (ctx) {
+  const sr = ctx.sampleRate, R = rng(7);
+  const noise = ctx.createBuffer(1, sr, sr), nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = R() * 2 - 1;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
+  const master = ctx.createGain(); master.gain.value = 0.8;
+  master.connect(comp); comp.connect(ctx.destination);
+  const env = (g, t, a, peak, d) => { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); };
+  const osc = (type, f, t, dur, peak, a = 0.005, out = master, f2 = null) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur * 0.6);
+    env(g, t, a, peak, dur); o.connect(g); g.connect(out); o.start(t); o.stop(t + a + dur + 0.05);
+  };
+  const nz = (t, dur, peak, type, f, q = 1, f2 = null, a = 0.002) => {
+    const s = ctx.createBufferSource(), b = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; s.loop = true; b.type = type; b.frequency.setValueAtTime(f, t); b.Q.value = q;
+    if (f2) b.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    env(g, t, a, peak, dur); s.connect(b); b.connect(g); g.connect(master); s.start(t); s.stop(t + a + dur + 0.05);
+  };
+  // 音效
+  for (const [t, kind, gn] of cueList()) {
+    if (t < 0 || t > DURATION) continue;
+    if (kind === "tick") nz(t, 0.035, 0.5 * gn, "bandpass", 3600, 1.2);
+    else if (kind === "tap") osc("sine", 880, t, 0.09, 0.35 * gn, 0.002, master, 640);
+    else if (kind === "clink") { osc("sine", 1568, t, 0.7, 0.25 * gn); osc("sine", 2349, t, 0.5, 0.15 * gn); }
+    else if (kind === "whoosh") nz(t, 0.5, 0.35 * gn, "bandpass", 400, 0.8, 3200, 0.18);
+    else if (kind === "thump") { osc("sine", 95, t, 0.32, 0.55 * gn, 0.003, master, 48); nz(t, 0.08, 0.12 * gn, "lowpass", 900); }
+    else if (kind === "chime") for (const [m, a] of [[84, 0.3], [88, 0.2], [91, 0.16], [96, 0.08]]) osc("sine", mhz(m), t, 3.2, a * gn, 0.004);
+  }
+  // 结尾淡出
+  master.gain.setValueAtTime(0.8, DURATION - 3); master.gain.linearRampToValueAtTime(0, DURATION);
+};
+let AC = null, ABUF = null, ASRC = null, muted = false, ARENDER = null;
+function ensureAudio() {
+  if (!ARENDER) ARENDER = (async () => {
+    const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * DURATION), sr);
+    await window.buildAudio(off); ABUF = await off.startRendering(); return ABUF;
+  })();
+  return ARENDER;
+}
+function stopAudio() { if (ASRC) { try { ASRC.stop(); } catch (e) { /* 已停止 */ } ASRC.disconnect(); ASRC = null; } }
+function startAudio() {
+  stopAudio();
+  if (muted || !ABUF || !AC || !playing) return;
+  ASRC = AC.createBufferSource(); ASRC.buffer = ABUF; ASRC.connect(AC.destination); ASRC.start(0, Math.min(now, DURATION - 0.01));
+}
+
+let sceneEls = [], subG, subBg, subTx, hud;
+function build() {
+  SVG.textContent = ""; FID = 0;
+  DEFS = el("defs", {}, SVG);
+  el("rect", { x: 0, y: 0, width: W, height: H, fill: PAL.bg }, SVG);
+  const root = el("g", {}, SVG);
+  sceneEls = SCENES.map(s => { const sg = el("g", {}, root), cg = el("g", {}, sg); return { sg, cg, api: s.build(cg) }; });
+  // 瑞士网格外框 + 章节眉标 + 底部章节进度
+  hud = el("g", {}, SVG);
+  el("rect", { x: FX, y: FY, width: FW, height: FH, fill: "none", stroke: PAL.line, "stroke-width": 1 }, hud);
+  el("line", { x1: FX, x2: FX + FW, y1: 128, y2: 128, stroke: PAL.line, "stroke-width": 1 }, hud);
+  T(hud, 96, 104, "NO-AI-FLUFF // RESEARCH & ENGINEERING REPORT", { size: AUX, family: MONO, fill: PAL.dim });
+  hud.chap = T(hud, FX + FW - 36, 104, "", { size: AUX, family: MONO, fill: PAL.ink, anchor: "end" });
+  hud.ticks = SCENES.map(s => el("line", { x1: FX + FW * s.start / DURATION, x2: FX + FW * s.start / DURATION, y1: FY + FH - 8, y2: FY + FH, stroke: PAL.dim, "stroke-width": 1 }, hud));
+  hud.prog = el("line", { x1: FX, y1: FY + FH, y2: FY + FH, stroke: PAL.ink, "stroke-width": 3 }, hud);
+  subG = el("g", {}, SVG);
+  subBg = el("rect", { y: 932, height: 80, rx: 6, fill: PAL.dark }, subG);
+  subTx = T(subG, W / 2, 992, "", { size: SUB, anchor: "middle", fill: PAL.inkOnDark, weight: 500 });
+}
+function render(T_) {
+  const t = clamp(T_, 0, DURATION);
+  let camNow = { s: 1, fx: 960, fy: 540 };
+  SCENES.forEach((s, i) => {
+    const se = sceneEls[i], last = i === SCENES.length - 1;
+    const on = t >= s.start - 0.001 && (t < s.end || (last && t <= s.end));
+    se.sg.setAttribute("display", on ? "inline" : "none");
+    if (!on) return;
+    const lt = t - s.start, c = se.api.cam ? se.api.cam(lt) : camNow;
+    se.cg.setAttribute("transform", `translate(960 540) scale(${c.s.toFixed(5)}) translate(${(-c.fx).toFixed(2)} ${(-c.fy).toFixed(2)})`);
+    se.api.update(lt);
+    camNow = c;
+  });
+  const si = SCENES.findIndex(s => t >= s.start && t < s.end), idx = si < 0 ? SCENES.length - 1 : si;
+  hud.chap.textContent = `CHAPTER 0${idx + 1} — ${SCENES[idx].short}`;
+  hud.prog.setAttribute("x2", (FX + FW * t / DURATION).toFixed(1));
+  const cue = SUBS.find(c => t >= c[0] && t <= c[1]);
+  if (cue) {
+    if (subTx.textContent !== cue[2]) {
+      subTx.textContent = cue[2];
+      const w = mw(cue[2], SUB, 500) + 72;
+      subBg.setAttribute("x", ((W - w) / 2).toFixed(1)); subBg.setAttribute("width", w.toFixed(1));
+    }
+    op(subG, Math.min(eo(seg(t, cue[0], cue[0] + 0.22)), 1 - seg(t, cue[1] - 0.18, cue[1])));
+  } else op(subG, 0);
+}
+
+// ---------------------------------------------------------------------------
+// 播放控制、章节、?t= 定格
+// ---------------------------------------------------------------------------
+const qs = new URLSearchParams(location.search);
+const frozen = qs.has("t") || qs.has("render");
+let now = qs.has("t") ? Number(qs.get("t")) / 1000 : 0, playing = false, lastTs = 0;
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+function seek(sec) {
+  now = clamp(sec, 0, DURATION); render(now);
+  $("scrub").value = Math.round(now / DURATION * 1000);
+  $("time").textContent = `${fmt(now)} / ${fmt(DURATION)}`;
+  document.querySelectorAll("#chapters button").forEach((b, i) =>
+    b.classList.toggle("on", now >= SCENES[i].start && (now < SCENES[i].end || (i === SCENES.length - 1 && now >= SCENES[i].start))));
+}
+function setPlaying(p) {
+  playing = p; $("play").textContent = p ? "❚❚" : "▶";
+  if (p && now >= DURATION) seek(0);
+  lastTs = performance.now();
+  if (p && !muted) {
+    try { AC = AC || new AudioContext(); AC.resume(); } catch (e) { AC = null; }
+    if (!ABUF) $("mute").textContent = "声音 加载中";
+    ensureAudio().then(() => { $("mute").textContent = muted ? "声音 关" : "声音 开"; startAudio(); });
+  } else stopAudio();
+}
+/** 用户主动跳转（拖进度条、点章节、方向键）：画面跳过去，正在播放时声音也从新位置接上 */
+function userSeek(sec) { seek(sec); if (playing) startAudio(); }
+let lastFrame = 0;
+function tick() {
+  const ts = performance.now();
+  if (playing) { seek(now + (ts - lastTs) / 1000); if (now >= DURATION) setPlaying(false); }
+  lastTs = ts;
+}
+function loop() { lastFrame = performance.now(); tick(); requestAnimationFrame(loop); }
+setInterval(() => { if (!frozen && performance.now() - lastFrame > 200) tick(); }, 50);   // 后台或不出帧时兜底推进
+function initControls() {
+  const marks = $("marks"), chaps = $("chapters");
+  SCENES.forEach((s, i) => {
+    const m = document.createElement("i"); m.style.left = `${s.start / DURATION * 100}%`; marks.appendChild(m);
+    const b = document.createElement("button"); b.textContent = s.title;
+    b.onclick = () => userSeek(s.start); chaps.appendChild(b);
+  });
+  $("play").onclick = () => setPlaying(!playing);
+  $("scrub").oninput = e => userSeek(e.target.value / 1000 * DURATION);
+  $("mute").onclick = () => { muted = !muted; $("mute").textContent = muted ? "声音 关" : "声音 开"; if (muted) stopAudio(); else if (playing) setPlaying(true); };
+  addEventListener("keydown", e => {
+    if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === "ArrowRight") userSeek(now + 5);
+    else if (e.key === "ArrowLeft") userSeek(now - 5);
+    else if (e.key === "m" || e.key === "M") $("mute").click();
+    else if (/^[1-6]$/.test(e.key)) userSeek(SCENES[Number(e.key) - 1].start);
+  });
+}
+
+/** 排版自检：可见文字不重叠、不出外框（拉杆两侧按裁剪框计算，飞入途中的卡片不计出框） */
+window.__audit = function (stepMs = 200) {
+  const issues = [];
+  const sr = SVG.getBoundingClientRect(), k = W / sr.width;
+  const box = r => ({ x0: (r.left - sr.left) * k, y0: (r.top - sr.top) * k, x1: (r.right - sr.left) * k, y1: (r.bottom - sr.top) * k });
+  const meta = e => {
+    let a = 1, clip = null, transit = false;
+    for (let n = e; n && n !== SVG; n = n.parentNode) {
+      if (n.getAttribute("display") === "none" || n.getAttribute("visibility") === "hidden") return { a: 0 };
+      if (n.getAttribute("data-transit") === "1") transit = true;
+      const o = n.getAttribute("opacity"); if (o !== null) a *= Number(o);
+      const cr = n.getAttribute("data-clipref");
+      if (cr && !clip) clip = box(SVG.querySelector(`[data-clipbox="${cr}"]`).getBoundingClientRect());
+    }
+    return { a, clip, transit };
+  };
+  for (let ms = 0; ms <= DURATION * 1000; ms += stepMs) {
+    render(ms / 1000);
+    const boxes = [];
+    SVG.querySelectorAll("text").forEach(e => {
+      if (!e.textContent.trim()) return;
+      const m = meta(e); if (m.a < 0.05) return;
+      let b = box(e.getBoundingClientRect());
+      if (m.clip) { b = { x0: Math.max(b.x0, m.clip.x0), x1: Math.min(b.x1, m.clip.x1), y0: b.y0, y1: b.y1 }; if (b.x1 - b.x0 < 3) return; }
+      b.s = e.textContent.slice(0, 16);
+      if (!m.transit && (b.x0 < FX - 1 || b.y0 < FY - 1 || b.x1 > FX + FW + 1 || b.y1 > FY + FH + 1)) issues.push({ ms, kind: "出框", a: b.s });
+      boxes.push(b);
+    });
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const p = boxes[i], q = boxes[j];
+      const ox = Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0), oy = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0);
+      if (ox > 3 && oy > 6) issues.push({ ms, kind: "重叠", a: p.s, b: q.s, ox: Math.round(ox), oy: Math.round(oy) });
+    }
+  }
+  render(now);
+  return issues;
+};
+window.__fontAudit = function () {
+  const small = new Set();
+  SVG.querySelectorAll("text").forEach(e => { const s = Number(e.getAttribute("font-size")); if (s < AUX && e.textContent.trim()) small.add(`${s}px ${e.textContent.slice(0, 12)}`); });
+  if (Number(subTx.getAttribute("font-size")) < SUB) small.add("字幕");
+  return [...small];
+};
+window.seekMs = ms => seek(ms / 1000);
+window.VIDEO = { w: W, h: H, duration: DURATION };
+
+async function start() {
+  build();
+  const all = Array.from(SVG.querySelectorAll("text")).map(e => e.textContent).join("") + SUBS.map(s => s[2]).join("")
+    + JSON.stringify(D) + "0123456789%→" + SCENES.map(s => s.title).join("");
+  if (document.fonts && document.fonts.load) {
+    const fam = [["Noto Sans SC", ["400", "500", "700"]], ["Noto Serif SC", ["600", "700", "900"]], ["Inter", ["400", "500", "700"]],
+      ["Newsreader", ["500", "700"]], ["JetBrains Mono", ["400", "500", "700"]]];
+    const loads = fam.flatMap(([f, ws]) => ws.map(w => document.fonts.load(`${w} 32px "${f}"`, all)))
+      .concat([document.fonts.load('italic 500 32px "Newsreader"', all), document.fonts.load('italic 600 32px "Noto Serif SC"', all)]);
+    await Promise.race([Promise.allSettled(loads), new Promise(r => setTimeout(r, 5000))]);
+    build();
+  }
+  if (frozen) { document.body.classList.add("capture"); render(now); }
+  else {
+    if (qs.has("clean")) document.body.classList.add("capture");
+    initControls(); seek(now);
+    if (qs.has("autoplay")) setPlaying(true);
+    requestAnimationFrame(loop);
+    setTimeout(() => ensureAudio(), 300);   // 后台预渲染配乐，点播放时不用等
+  }
+  window.__promoReady = true;
+}
+start();
+</script>
+</body>
+</html>
