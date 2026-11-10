@@ -683,7 +683,7 @@ def main() -> None:
     ap.add_argument("--term-effort", default="high", choices=["low", "medium", "high"],
                     help="v5 词对微筛的推理强度（脱离上下文的小请求）")
     ap.add_argument("--rtt-context", type=int, default=300, help="往返翻译附带的中文上文长度；0 关闭（v6 之前的轮次均为 0）")
-    ap.add_argument("--rules", default="v7", choices=["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
+    ap.add_argument("--rules", default="v8", choices=["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"],
                     help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],

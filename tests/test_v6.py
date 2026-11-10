@@ -167,3 +167,11 @@ def test_v7_patches_original_and_requires_type(tmp_path):
     fin = pipe.finalize(prep.draft_id, json.dumps(patches, ensure_ascii=False))
     assert "运维成本低" in fin.final_text and "这个方案要把系统整体改好。" in fin.final_text
     assert fin.applied == 1 and fin.rejected == 1
+
+
+def test_v8_adds_compression_type():
+    from no_ai_fluff.patcher import ORIGINAL_BASE_RULES, PROBLEM_TYPES
+    v8 = AUDIT_RULES["v8"]
+    assert len(v8) <= 1600 and "10. [省略压缩]" in v8 and "上面十类之一" in v8
+    assert "v8" in ORIGINAL_BASE_RULES and PROBLEM_TYPES["v8"][-1] == "省略压缩" and len(PROBLEM_TYPES["v8"]) == 10
+    assert v8.replace("；\n10. [省略压缩]", "").startswith(AUDIT_RULES["v7"][:200])

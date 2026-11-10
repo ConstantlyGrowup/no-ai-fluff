@@ -228,18 +228,30 @@ AUDIT_INSTRUCTIONS_V7 = """你是中文编辑。请逐段通读【原文】，�
 - find 逐字摘自【原文】，在全文中唯一，不跨行；可以是一个词、一句话或同一行内的整段（不超过 400 字）；
 - 同一处问题只出一条补丁，补丁之间不要重叠。"""
 
+# v8（优化闭环第 3 轮）：Train 上 Humanizer-zh 赢在日常场景的，多是全篇的小幅“解压”——补回省掉的“的、了、在”和动词宾语
+# （“固定8:30起”→“固定8:30起床”“下午2点后不咖啡因”→“不碰咖啡因”），把夹在中文里当词用的“/、+、—”换成“或、和、到”，
+# 把“目标：……”这类标签式短语说成整句。v7 九类里没有对应项，宿主不改。v8 = v7 + 第 10 类 [省略压缩]，其余不变。
+PROBLEM_TYPES_V8 = PROBLEM_TYPES_V6 + ("省略压缩",)
+AUDIT_INSTRUCTIONS_V8 = AUDIT_INSTRUCTIONS_V7.replace(
+    "9. [指代不清] “它、其、该”等指代不清，主体客体容易弄混。",
+    "9. [指代不清] “它、其、该”等指代不清，主体客体容易弄混；\n"
+    "10. [省略压缩] 像发电报一样省字：省掉了“的、了、在、把”或动词的宾语，用“/、+、—、→”代替“或、和、到、然后”，"
+    "用“目标：……”这类标签代替句子。补回省掉的字，说成完整的话。",
+).replace("\"type\": \"上面九类之一\"", "\"type\": \"上面十类之一\"")
+assert AUDIT_INSTRUCTIONS_V8 != AUDIT_INSTRUCTIONS_V7 and "上面十类之一" in AUDIT_INSTRUCTIONS_V8
+
 AUDIT_RULES = {"v1": AUDIT_INSTRUCTIONS_V1, "v2": AUDIT_INSTRUCTIONS_V2, "v3": AUDIT_INSTRUCTIONS_V3,
                "v4": AUDIT_INSTRUCTIONS_V4, "v5": AUDIT_INSTRUCTIONS_V5, "v6": AUDIT_INSTRUCTIONS_V6,
-               "v7": AUDIT_INSTRUCTIONS_V7}
-DEFAULT_AUDIT_RULES = "v7"  # 优化闭环第 1 轮 Keep（2026-11-10）
+               "v7": AUDIT_INSTRUCTIONS_V7, "v8": AUDIT_INSTRUCTIONS_V8}
+DEFAULT_AUDIT_RULES = "v8"  # 优化闭环第 3 轮 Keep（2026-11-10）
 # v6 起：补丁打在原文上（往返稿只作参考）
-ORIGINAL_BASE_RULES = {"v6", "v7"}
+ORIGINAL_BASE_RULES = {"v6", "v7", "v8"}
 # v6 起：每条补丁必须写明修的是哪一类问题
-PROBLEM_TYPES = {"v6": PROBLEM_TYPES_V6, "v7": PROBLEM_TYPES_V6}
+PROBLEM_TYPES = {"v6": PROBLEM_TYPES_V6, "v7": PROBLEM_TYPES_V6, "v8": PROBLEM_TYPES_V8}
 AUDIT_INSTRUCTIONS = AUDIT_RULES[DEFAULT_AUDIT_RULES]  # 向后兼容
 # 单条补丁 find 的长度上限，按规则版本区分：v1/v2 只修局部，超过 200 字视为整段重写而拒收；
 # v3 允许整段改写，上限放宽到一个段落的量级（仍不得跨行，结构由原文决定）
-MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300, "v5": 300, "v6": 400, "v7": 400}
+MAX_FIND_BY_RULES = {"v1": 200, "v2": 200, "v3": 300, "v4": 300, "v5": 300, "v6": 400, "v7": 400, "v8": 400}
 # v5：保真补丁只准框选出错的最小词组，避免“真修复 + 整句回抄”连坐
 FIDELITY_MAX_FIND = {"v5": 20}
 # v5：启用词对微筛（见 reversion.py）
@@ -258,7 +270,7 @@ def build_audit_prompt(
 ) -> str:
     if rules not in AUDIT_RULES:
         raise ValueError(f"未知审校规则 {rules}，可选：{', '.join(AUDIT_RULES)}")
-    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules in ("v4", "v5", "v6", "v7") else ""
+    q = f"【用户问题】\n{question.strip()}\n\n" if question and question.strip() and rules in ("v4", "v5", "v6", "v7", "v8") else ""
     if rules in ORIGINAL_BASE_RULES:
         return (
             f"{AUDIT_RULES[rules]}\n\n{q}【原文】\n{original}\n\n"

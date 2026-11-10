@@ -162,7 +162,7 @@ def test_patch_changing_structure_prefix_is_rejected():
 def test_audit_rules_versions():
     from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
 
-    assert DEFAULT_AUDIT_RULES == "v7"  # 优化闭环第 1 轮 Keep
+    assert DEFAULT_AUDIT_RULES == "v8"  # 优化闭环第 3 轮 Keep
     v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
     v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v2")
     assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
