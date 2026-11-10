@@ -78,3 +78,29 @@ def test_digit_to_chinese_numeral_is_not_a_mismatch():
     # 真正的改动仍会报
     hs = compare_numbers("延迟 120ms，3 个服务", "延迟 150ms，三个服务")
     assert hs and "120" in hs[0].message and "150" in hs[0].message
+
+
+# ---- 优化闭环第 2 轮：高密度句、句首连列 ----
+
+
+def test_dense_sentence_and_list_first_flagged_in_prose():
+    from no_ai_fluff.radar import scan_slot
+    dense = ("读回比对一致后写完成标记，原键与归档都不删除，也不自动归属任何账号，"
+             "迁移失败时保留旧数据并提示用户手动处理，同时记录日志，便于之后排查和回滚操作。")
+    hs = [h for h in scan_slot(dense) if h.kind == "long_clause"]
+    assert any("信息太密" in h.message for h in hs)
+    lst = "看房时要问清楚：中介费、服务费、物业费、供暖费、网费分别由谁出，这些都要写进合同里，免得以后扯皮。"
+    assert any("连列 5 项" in h.message for h in scan_slot(lst))
+
+
+def test_short_cells_and_headings_not_flagged():
+    from no_ai_fluff.radar import scan_slot
+    cell = "需求开发、Bug 修复、测试编写、代码评审"
+    assert not [h for h in scan_slot(cell) if "连列" in h.message]
+
+
+def test_prompt_hint_limit_raised():
+    from no_ai_fluff.radar import Hint, RadarReport
+    r = RadarReport([Hint("cliche", 0, f"x{i}", "套话") for i in range(40)])
+    lines = r.to_prompt().splitlines()
+    assert len(lines) == 31 and "另有 10 条" in lines[-1]

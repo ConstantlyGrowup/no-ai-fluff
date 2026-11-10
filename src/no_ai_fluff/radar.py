@@ -28,6 +28,15 @@ KIND_LABELS = {
 
 LONG_CLAUSE_CHARS = 40
 DE_LIMIT = 3
+# 优化闭环第 2 轮：原有分句切分把顿号、括号都当断点，一句话塞满信息的“高密度句”从不报警。
+# 以下两条仍归入 long_clause（不改报表口径），只对正文段落生效（短于 PROSE_MIN_CHARS 的槽位多是标题、表格格子）。
+DENSE_SENT_CHARS = 70  # 一整句（到句号 / 问号 / 分号为止）超过这么多字……
+DENSE_SENT_SEPS = 4  # ……且内部有这么多个逗号、顿号、冒号：信息太密，读者要停下来拆
+LIST_FIRST_ITEMS = 4  # 分句里连列这么多项（≥3 个顿号）……
+LIST_FIRST_WITHIN = 12  # ……且第一个顿号出现在分句开头这么多字以内：先堆名词、最后才说要做什么
+PROSE_MIN_CHARS = 40
+PROMPT_HINT_LIMIT = 30  # v7 要求逐条核对雷达，原来只给前 12 条，长文后半段的疑点会被截掉
+_SENT_RE = re.compile(r"[^。！？!?；;\n]+[。！？!?；;]?")
 
 CLICHES = [
     # 起承转合套话
@@ -75,7 +84,7 @@ class RadarReport:
     def to_dict(self) -> dict:
         return {"counts": self.counts, "hints": [asdict(h) for h in self.hints]}
 
-    def to_prompt(self, limit: int = 12) -> str:
+    def to_prompt(self, limit: int = PROMPT_HINT_LIMIT) -> str:
         if not self.hints:
             return "（雷达未发现表层问题，仍需全量语义审校）"
         lines = [f"- [{KIND_LABELS[h.kind]}] {h.message}：「{h.excerpt}」" for h in self.hints[:limit]]
@@ -119,6 +128,18 @@ def scan_slot(masked: str, slot: int | None = None) -> list[Hint]:
             hints.append(Hint("long_clause", slot, _clip(c), f"分句 {n} 字未断句"))
         elif de >= DE_LIMIT:
             hints.append(Hint("long_clause", slot, _clip(c), f"单分句 {de} 个「的」连环定语"))
+    if len(re.sub(r"\s", "", vis)) >= PROSE_MIN_CHARS:
+        for m in _SENT_RE.finditer(vis):
+            sent = m.group(0).strip()
+            n = len(re.sub(r"\s", "", sent))
+            seps = len(re.findall(r"[，,；;：:、]", sent))
+            if n > DENSE_SENT_CHARS and seps >= DENSE_SENT_SEPS:
+                hints.append(Hint("long_clause", slot, _clip(sent), f"一句 {n} 字、{seps} 处停顿，信息太密，考虑拆成几句"))
+            for clause in re.split(r"[，,。；;：:！？!?]", sent):
+                c = clause.strip()
+                if c.count("、") >= LIST_FIRST_ITEMS - 1 and 0 <= c.find("、") <= LIST_FIRST_WITHIN:
+                    hints.append(Hint("long_clause", slot, _clip(c),
+                                      f"分句开头连列 {c.count('、') + 1} 项，读者要读到最后才知道要做什么；考虑先说动作，或写成完整句"))
     # 3. 套话 / 黑话
     for m in _CLICHE_RE.finditer(masked):
         hints.append(Hint("cliche", slot, m.group(0), "套话/空洞黑话/无度量修饰"))
