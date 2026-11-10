@@ -1,0 +1,92 @@
+{
+  "run": "calib2",
+  "exported_at": "2026-11-10T03:13:02.420Z",
+  "completed": 9,
+  "total": 12,
+  "votes": {
+    "discussion-001": {
+      "best": null,
+      "worst": null,
+      "tie": true,
+      "note": "",
+      "seconds": 694
+    },
+    "writing-005": {
+      "best": "4d87b6",
+      "worst": null,
+      "tie": false,
+      "note": "更符合实际的公告，对于大部分用户阅读负担不重。\n大部分句子有完整主体，且对于一些动作有更清晰的解释。",
+      "seconds": 134
+    },
+    "coding-005": {
+      "best": "d49d4c",
+      "worst": "baa581",
+      "tie": false,
+      "note": "对于“商家入驻”的说明，有明确的状态、动作，且阅读顺序上更符合习惯，是先做动作。\nA的“含入驻只差勾同意时”明显不属于正常人类可读语句，因此最差。\nB还存在一些不地道的说明“坏手机号”。",
+      "seconds": 410
+    },
+    "writing-002": {
+      "best": "a0cfd4",
+      "worst": "22737c",
+      "tie": false,
+      "note": "A提到的“业务爆发”是在汇报中比较生硬的用词，包括“核心战役”也不如“核心工作贴切”\nB在信息耦合上比较少，如果是速读，能发现不会错过很多信息，因为B会做信息密度的切分",
+      "seconds": 636
+    },
+    "coding-003": {
+      "best": "22eaa9",
+      "worst": null,
+      "tie": false,
+      "note": "首先C优于B\nA和C对比，“读回比对一致后写完成标记；原键与归档都不删除，也不自动归属任何账号。”C的这句话密度太高，需要停下来阅读思考。\nA会把一些词进行小幅度补全，比如在阅读测试证据环节时，读者会先看到“基线因缺”，会觉得这是一个额外造词，又会停下来",
+      "seconds": 372
+    },
+    "writing-003": {
+      "best": null,
+      "worst": "133845",
+      "tie": false,
+      "note": "A\\B差不多",
+      "seconds": 1666
+    },
+    "daily-002": {
+      "best": "569991",
+      "worst": "7438e6",
+      "tie": false,
+      "note": "",
+      "seconds": 115
+    },
+    "daily-001": {
+      "best": "4c9314",
+      "worst": "1b742a",
+      "tie": false,
+      "note": "问清楚这些费用分别由谁出：中介费、服务费、物业费、供暖费、网费、保洁费和维修费。\n能让人先看到最关键的动作，例如，按照人类阅读、联想顺序，费用由谁出则可以联想到后续应该是计费项，但是前面先放计费项则没有这种效果。",
+      "seconds": 128
+    },
+    "discussion-005": {
+      "best": null,
+      "worst": null,
+      "tie": true,
+      "note": "都差不多；但是相对来说C会解释的更加友好一些",
+      "seconds": 415
+    },
+    "teaching-003": {
+      "best": "56bf2c",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 159
+    },
+    "teaching-004": {
+      "best": "004428",
+      "worst": null,
+      "tie": false,
+      "note": "A的\"阻止编译器和 CPU 重排屏障前后的内存操作\"较难看懂",
+      "seconds": 2223
+    },
+    "discussion-004": {
+      "best": "cb06d8",
+      "worst": "7eec3e",
+      "tie": false,
+      "note": "B在部分情况下略好于C\n例如断句“现有系统文件格式、边界行为复杂，但测试不足。”\n语义不切分的话，是“现有系统文件格式、边界行为复杂但测试不足。”，这样仍然会多出判断/停顿的时间。其他的部分C优于B",
+      "seconds": 281
+    }
+  }
+}

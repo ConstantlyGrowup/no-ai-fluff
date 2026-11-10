@@ -400,7 +400,8 @@ def human_pairs() -> list[dict]:
         for sid, var in texts:
             shown[sid].append(var)
         for v in votes:
-            if v.get("tie") or not v.get("best"):
+            # 只标了“最难读”、没选“最好读”的票，仍给出“其余版本 > 最难读”的偏好
+            if v.get("tie") or not (v.get("best") or v.get("worst")):
                 continue
             sid = v["sample_id"]
             order = sorted(shown[sid])
@@ -408,7 +409,7 @@ def human_pairs() -> list[dict]:
             if missing:
                 print(f"  警告：{run} {sid} 缺少文本 {missing}", file=sys.stderr)
             # 逐字相同的版本（same_as）共用一个代号：它们之间不构成偏好对
-            best_g = {v["best"], *v.get("best_same_as", [])}
+            best_g = {v["best"], *v.get("best_same_as", [])} if v.get("best") else set()
             worst_g = {v["worst"], *v.get("worst_same_as", [])} if v.get("worst") else set()
             seen = set()
             for b in best_g:
@@ -419,7 +420,12 @@ def human_pairs() -> list[dict]:
                 for o in order:
                     if o not in best_g | worst_g and (sid, o) in texts:
                         seen.add((o, wv))
+            texts_seen = set()
             for w, l in sorted(seen):
+                tk = (texts[(sid, w)], texts[(sid, l)])
+                if tk in texts_seen:  # same_as 版本逐字相同，同一组文本只算一对
+                    continue
+                texts_seen.add(tk)
                 pairs.append({"run": run, "sample_id": sid, "winner": w, "loser": l,
                               "winner_text": texts[(sid, w)], "loser_text": texts[(sid, l)],
                               "kind": "best" if w in best_g else "worst",
