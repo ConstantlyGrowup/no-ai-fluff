@@ -1,0 +1,30 @@
+{
+  "purpose": "第 1 轮探针：v7（逐段检查、逐条核对雷达）",
+  "samples": [
+    "coding-004",
+    "coding-011",
+    "daily-004",
+    "daily-006",
+    "discussion-008",
+    "mixed-004",
+    "mixed-006",
+    "teaching-005",
+    "teaching-010",
+    "writing-001"
+  ],
+  "split": "probe",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v7"
+  },
+  "rules": "v7",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "rtt_and_baseline_from": "dev"
+}

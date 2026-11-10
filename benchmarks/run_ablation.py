@@ -473,6 +473,10 @@ def text_metrics(original: str, text: str) -> dict:
     doc = parse(original)
     frozen = doc.placeholders
     survived = sum(1 for p in frozen if p in text) / len(frozen) if frozen else 1.0
+    # 硬约束只看“硬”占位符（代码、路径、公式、URL、标识符等）；软占位符（整句英文、首字母大写词、缩写）允许被译掉
+    soft = set(doc.soft)
+    hard = [p for i, p in enumerate(frozen) if i not in soft]
+    hard_survived = sum(1 for p in hard if p in text) / len(hard) if hard else 1.0
     cand = parse(text)
     missing, added = number_mismatch("\n".join(s.masked for s in doc.slots), "\n".join(s.masked for s in cand.slots))
     num_diff = sum(missing.values()) + sum(added.values())
@@ -480,6 +484,7 @@ def text_metrics(original: str, text: str) -> dict:
     kchars = max(1, len(text)) / 1000
     return {
         "placeholder_survival": survived,
+        "hard_placeholder_survival": hard_survived,
         "number_mismatch": num_diff,
         "fence_ok": original.count("```") == text.count("```"),
         "radar_per_kchar": {k: radar[k] / kchars for k in KINDS},
@@ -586,6 +591,8 @@ def stage_report(args) -> None:
             "readability": _mean([r["readability"] for r in group]),
             "veto_rate": _mean([1.0 if r["veto"] else 0.0 for r in group if r["veto"] is not None]),
             "placeholder_survival": _mean([r["placeholder_survival"] for r in group]),
+            "hard_placeholder_survival": _mean([r.get("hard_placeholder_survival", r["placeholder_survival"]) for r in group]),
+            "hard_placeholder_min": min(r.get("hard_placeholder_survival", r["placeholder_survival"]) for r in group),
             "number_mismatch_rate": _mean([1.0 if r["number_mismatch"] else 0.0 for r in group]),
             "fence_ok_rate": _mean([1.0 if r["fence_ok"] else 0.0 for r in group]),
             "radar_per_kchar": _mean([r["radar_total_per_kchar"] for r in group]),
@@ -676,7 +683,7 @@ def main() -> None:
     ap.add_argument("--term-effort", default="high", choices=["low", "medium", "high"],
                     help="v5 词对微筛的推理强度（脱离上下文的小请求）")
     ap.add_argument("--rtt-context", type=int, default=300, help="往返翻译附带的中文上文长度；0 关闭（v6 之前的轮次均为 0）")
-    ap.add_argument("--rules", default="v6", choices=["v1", "v2", "v3", "v4", "v5", "v6"],
+    ap.add_argument("--rules", default="v7", choices=["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
                     help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],

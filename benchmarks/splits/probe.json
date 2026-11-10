@@ -1,0 +1,26 @@
+{
+  "split": "probe",
+  "seed": 20261110,
+  "source": "dev",
+  "quota": {
+    "coding": 2,
+    "teaching": 2,
+    "writing": 1,
+    "discussion": 1,
+    "mixed": 2,
+    "daily": 2
+  },
+  "ids": [
+    "coding-004",
+    "coding-011",
+    "daily-004",
+    "daily-006",
+    "discussion-008",
+    "mixed-004",
+    "mixed-006",
+    "teaching-005",
+    "teaching-010",
+    "writing-001"
+  ],
+  "note": "每轮探针固定用这 10 篇 Dev 样本（只看聚合指标），只改 Stage 2b/3 时复用往返翻译缓存"
+}

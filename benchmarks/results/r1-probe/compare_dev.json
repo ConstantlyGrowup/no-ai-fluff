@@ -1,0 +1,160 @@
+{
+  "run": "r1-probe",
+  "ref": "dev",
+  "n": 10,
+  "ids": [
+    "coding-004",
+    "coding-011",
+    "daily-004",
+    "daily-006",
+    "discussion-008",
+    "mixed-004",
+    "mixed-006",
+    "teaching-005",
+    "teaching-010",
+    "writing-001"
+  ],
+  "overall": {
+    "reward": {
+      "cur": 0.6307,
+      "ref": 0.6162,
+      "delta": 0.0145
+    },
+    "win_vs_base": {
+      "cur": 0.525,
+      "ref": 0.5165,
+      "delta": 0.0085
+    },
+    "win_vs_orig": {
+      "cur": 0.5974999999999999,
+      "ref": 0.5665,
+      "delta": 0.031
+    },
+    "read_ours": {
+      "cur": 4.079,
+      "ref": 4.062,
+      "delta": 0.017
+    },
+    "ai_ours": {
+      "cur": 0.348,
+      "ref": 0.354,
+      "delta": -0.006
+    },
+    "risk_ours": {
+      "cur": 0.5264053511064,
+      "ref": 0.3666672451260001,
+      "delta": 0.1597
+    },
+    "risk_base": {
+      "cur": 0.5047193738431001,
+      "ref": 0.5047193738431001,
+      "delta": 0.0
+    }
+  },
+  "by_scenario": {
+    "coding": {
+      "reward": [
+        0.6054,
+        0.6138
+      ],
+      "win_vs_base": [
+        0.54,
+        0.5449999999999999
+      ],
+      "risk_ours": [
+        0.4259878156000001,
+        0.53233438285
+      ]
+    },
+    "daily": {
+      "reward": [
+        0.6454,
+        0.5979
+      ],
+      "win_vs_base": [
+        0.43500000000000005,
+        0.395
+      ],
+      "risk_ours": [
+        0.47799779345599996,
+        0.09137465498800007
+      ]
+    },
+    "discussion": {
+      "reward": [
+        0.5808,
+        0.5917
+      ],
+      "win_vs_base": [
+        0.45999999999999996,
+        0.47
+      ],
+      "risk_ours": [
+        0.5430001059999998,
+        0.10511841116800003
+      ]
+    },
+    "mixed": {
+      "reward": [
+        0.6521,
+        0.6233
+      ],
+      "win_vs_base": [
+        0.53,
+        0.525
+      ],
+      "risk_ours": [
+        0.6167332288,
+        0.52221513244
+      ]
+    },
+    "teaching": {
+      "reward": [
+        0.6546,
+        0.6458
+      ],
+      "win_vs_base": [
+        0.6199999999999999,
+        0.6125
+      ],
+      "risk_ours": [
+        0.497781100096,
+        0.36327610592800014
+      ]
+    },
+    "writing": {
+      "reward": [
+        0.6117,
+        0.6083
+      ],
+      "win_vs_base": [
+        0.54,
+        0.54
+      ],
+      "risk_ours": [
+        0.6840535291600001,
+        0.5431534876800002
+      ]
+    }
+  },
+  "objective": {
+    "cur": {
+      "n": 10,
+      "zero_patch_rate": 0.0,
+      "change_ratio_mean": 0.016,
+      "change_ratio_median": 0.0143,
+      "patches_applied": 96,
+      "patch_reject_rate": 0.02,
+      "fallbacks": 0
+    },
+    "ref": {
+      "n": 10,
+      "zero_patch_rate": 0.4,
+      "change_ratio_mean": 0.0056,
+      "change_ratio_median": 0.005,
+      "patches_applied": 38,
+      "patch_reject_rate": 0.073,
+      "fallbacks": 0
+    }
+  }
+}

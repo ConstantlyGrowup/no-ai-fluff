@@ -140,3 +140,30 @@ def test_acronyms_soft_but_term_list_hard():
     doc = parse("这个 case 我们和 PM 侧同步过，ROI 不错，API 已经上线。")
     soft = {doc.placeholders[i] for i in doc.soft}
     assert {"PM", "ROI"} <= soft and "API" not in soft
+
+
+# ---- v7（优化闭环第 1 轮）：在 v6 基础上改“改多少”的姿态，沿用原文底本、九类问题与 400 字上限 ----
+
+
+def test_v7_registered_and_within_prompt_budget():
+    from no_ai_fluff.patcher import MAX_FIND_BY_RULES, ORIGINAL_BASE_RULES, PROBLEM_TYPES
+    v7 = AUDIT_RULES["v7"]
+    assert len(v7) <= 1600  # 交接文档：审校提示词上限 1,600 字
+    assert "v7" in ORIGINAL_BASE_RULES and PROBLEM_TYPES["v7"] == PROBLEM_TYPES["v6"] and MAX_FIND_BY_RULES["v7"] == 400
+    assert "逐段" in v7 and "雷达提示】里的每一条" in v7 and "一个字都不要动" not in v7
+    p = build_audit_prompt("原文X", "参考Y", "雷达Z", rules="v7", question="问题Q")
+    assert p.index("问题Q") < p.index("原文X") < p.index("参考Y") < p.index("雷达Z")
+
+
+def test_v7_patches_original_and_requires_type(tmp_path):
+    tr = Plain()
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v7"),
+                    translator_factory=lambda c: tr)
+    prep = pipe.prepare(ORIG)
+    patches = [
+        {"find": "本方案旨在对系统进行全面赋能。", "replace": "这个方案要把系统整体改好。", "type": "空洞大词", "reason": "黑话"},
+        {"find": "团队可以专注业务", "replace": "团队能专心做业务", "reason": "没写类型"},
+    ]
+    fin = pipe.finalize(prep.draft_id, json.dumps(patches, ensure_ascii=False))
+    assert "运维成本低" in fin.final_text and "这个方案要把系统整体改好。" in fin.final_text
+    assert fin.applied == 1 and fin.rejected == 1
