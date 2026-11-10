@@ -1,0 +1,138 @@
+{
+  "blind": "holdout-blind",
+  "jev": "holdout",
+  "summary": {
+    "hz-orig": "3/3",
+    "hz-ours": "3/7",
+    "orig-ours": "6/8",
+    "all": "12/18"
+  },
+  "pairs": [
+    {
+      "sample_id": "teaching-006",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.55,
+      "agree": true
+    },
+    {
+      "sample_id": "teaching-006",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.57,
+      "agree": true
+    },
+    {
+      "sample_id": "teaching-006",
+      "human_winner": "hz",
+      "human_loser": "orig",
+      "jev_p_winner": 0.545,
+      "agree": true
+    },
+    {
+      "sample_id": "coding-006",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.525,
+      "agree": true
+    },
+    {
+      "sample_id": "coding-006",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.59,
+      "agree": true
+    },
+    {
+      "sample_id": "writing-008",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.715,
+      "agree": true
+    },
+    {
+      "sample_id": "writing-008",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.725,
+      "agree": true
+    },
+    {
+      "sample_id": "mixed-002",
+      "human_winner": "orig",
+      "human_loser": "ours",
+      "jev_p_winner": 0.355,
+      "agree": false
+    },
+    {
+      "sample_id": "mixed-002",
+      "human_winner": "orig",
+      "human_loser": "hz",
+      "jev_p_winner": 0.505,
+      "agree": true
+    },
+    {
+      "sample_id": "writing-012",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.31,
+      "agree": false
+    },
+    {
+      "sample_id": "writing-012",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.68,
+      "agree": true
+    },
+    {
+      "sample_id": "writing-012",
+      "human_winner": "hz",
+      "human_loser": "orig",
+      "jev_p_winner": 0.77,
+      "agree": true
+    },
+    {
+      "sample_id": "discussion-006",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.39,
+      "agree": false
+    },
+    {
+      "sample_id": "discussion-006",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.735,
+      "agree": true
+    },
+    {
+      "sample_id": "daily-016",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.315,
+      "agree": false
+    },
+    {
+      "sample_id": "daily-016",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.44,
+      "agree": false
+    },
+    {
+      "sample_id": "discussion-009",
+      "human_winner": "ours",
+      "human_loser": "hz",
+      "jev_p_winner": 0.42,
+      "agree": false
+    },
+    {
+      "sample_id": "discussion-009",
+      "human_winner": "ours",
+      "human_loser": "orig",
+      "jev_p_winner": 0.555,
+      "agree": true
+    }
+  ]
+}

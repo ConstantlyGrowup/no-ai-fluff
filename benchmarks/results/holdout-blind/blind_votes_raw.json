@@ -1,0 +1,64 @@
+{
+  "run": "holdout-blind",
+  "exported_at": "2026-11-10T05:24:31.387Z",
+  "completed": 8,
+  "total": 8,
+  "votes": {
+    "teaching-006": {
+      "best": "22a422",
+      "worst": "6f97ee",
+      "tie": false,
+      "note": "",
+      "seconds": 454
+    },
+    "coding-006": {
+      "best": "25f11e",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 44
+    },
+    "writing-008": {
+      "best": "337a9f",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 110
+    },
+    "mixed-002": {
+      "best": "3f8e4b",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 92
+    },
+    "writing-012": {
+      "best": "fbca75",
+      "worst": "7e84d3",
+      "tie": false,
+      "note": "",
+      "seconds": 50
+    },
+    "discussion-006": {
+      "best": "bdcdb9",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 216
+    },
+    "daily-016": {
+      "best": "0fb566",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 1595
+    },
+    "discussion-009": {
+      "best": "d73066",
+      "worst": null,
+      "tie": false,
+      "note": "",
+      "seconds": 93
+    }
+  }
+}

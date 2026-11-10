@@ -13,7 +13,9 @@
 4. **分场景**：我方在 coding、teaching、mixed（公式/代码混排）上领先，在 daily、discussion、writing 上落后（见第 3 节）。
 5. **代价**：我方多一次往返翻译、宿主输出更长，端到端延迟中位数约 71 秒对 34 秒；宿主费用约为 Humanizer-zh 的 1.5 倍。
 
-目标“保真不低于 Humanizer-zh 且去偏胜率稳定超过它”：保真达成；胜率在 Dev 上达成、在 Holdout 上没有显著超过（统计上打平）。
+6. **人工盲测（Holdout 8 篇，1 位测试者）明显偏向我方**：7/8 篇选我方最好读，Humanizer-zh 0 篇；但 JEV 在其中“我方 vs Humanizer-zh”的 7 对里只同意 3 对（见第 7 节）。
+
+目标“保真不低于 Humanizer-zh 且去偏胜率稳定超过它”：保真达成；胜率在 Dev 上达成，在 Holdout 上按 JEV 统计打平，按小样本人工盲测则明显领先。两种评判不一致，需要更多人工票定论。
 
 ## 1. 评测设置
 
@@ -121,15 +123,32 @@
 - Holdout 每场景 5 篇，分场景结论只能看方向。
 - 宿主用 DeepSeek 模拟；Claude Code 等真实宿主下的表现未在 Holdout 上测。sonnet1 的单篇对照显示宿主强弱影响不大。
 - Dev 对 Humanizer-zh 的胜率比 Holdout 高 5.6pp：每轮的 Keep/Revert 都看 Dev，存在一定的 Dev 过拟合。
-- Holdout 的人工盲测（第 7 节）待用户投票。
+- Holdout 人工盲测只有 8 篇、1 位测试者（项目方本人），且只抽了 ≤4,500 字的样本；它与 JEV 在我方对 Humanizer-zh 上的分歧尚无定论。
 
 ## 7. 人工盲测（Holdout）
 
 `benchmarks/results/holdout-blind/blind_test_holdout.html`：从 Holdout 中 ≤4,500 字的样本按场景各抽 1 篇、再随机 2 篇，共 8 篇（固定种子 20261110）。
-每篇 3 个版本（原文 / no-ai-fluff v8 / Humanizer-zh），顺序随机，只显示代号。投票后：
+每篇 3 个版本（原文 / no-ai-fluff v8 / Humanizer-zh），顺序随机，只显示代号。1 位测试者，8 篇全部投完，没有“选不出”。
+
+| 版本 | 最好读 | 最难读 |
+|---|---|---|
+| no-ai-fluff v8 | **7/8** | 0 |
+| Humanizer-zh | 0/8 | 0 |
+| 原文 | 1/8（mixed-002） | 2（teaching-006、writing-012） |
+
+- 能从投票推出的“我方 vs Humanizer-zh”两两偏好有 7 对，**7 对都是我方更好**（符号检验双侧 p ≈ 0.016）。
+  若三个版本被选中的机会均等，我方被选为最好读 ≥7 篇的概率约 0.003。
+- 唯一没选我方的是 mixed-002：测试者认为原文最好读。
+- **人工与 JEV 在“我方 vs Humanizer-zh”上明显分歧**（`blind_vs_jev.json`）：18 对两两偏好中 JEV 同意 12 对（67%），
+  其中对原文的 11 对同意 9 对，但我方对 Humanizer-zh 的 7 对只同意 3 对。
+  JEV 判 Humanizer-zh 占优的 4 篇（daily-016、discussion-006、discussion-009、writing-012）正好落在第 3 节里我方落后的场景，人工却都选了我方。
+- 解读：样本小（8 篇、1 位测试者，置信区间很宽），不能单独推翻 JEV 的结论；但它说明第 3 节“daily / discussion / writing 落后”
+  可能部分来自评委偏好（JEV 偏爱 Humanizer-zh 那种全篇小幅改写），第 2 节的 51.2% 可能低估了我方。
+  calib2 校准时 JEV 在“v6 vs Humanizer-zh”上同意 6/7，这次只有 3/7，评委在这一对比上的可靠性需要更多人工票才能定论。
 
 ```bash
-python benchmarks/blind_workbench.py analyze <导出的 blind_votes.json>
+python benchmarks/blind_workbench.py analyze <导出的 blind_votes.json>   # 解码，写 blind_votes.json / blind_summary.md
+python benchmarks/blind_vs_jev.py --blind holdout-blind --jev holdout     # 与 JEV 逐对比对，写 blind_vs_jev.json
 ```
 
 ## 8. 复现
