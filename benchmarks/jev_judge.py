@@ -346,7 +346,7 @@ def run_texts(run: str) -> dict[tuple[str, str], str]:
     base = ra.load_baselines(d)
     out = {}
     ra.RUN_SAMPLES = None  # 取全部样本；再按需要过滤
-    smap = {s["id"]: s for s in ra.load_jsonl(ra.SAMPLES)}
+    smap = {s["id"]: s for s in ra.all_samples()}
     for sid, s in smap.items():
         for name, text in ra.variants_for(s, rtt[sid], patch[sid], base[sid]):
             out[(sid, name)] = text
@@ -455,7 +455,7 @@ def gpt6_rows(train: set[str]) -> list[dict]:
 
 def calibrate(args) -> None:
     train = train_ids()
-    smap = {s["id"]: s for s in ra.load_jsonl(ra.SAMPLES)}
+    smap = {s["id"]: s for s in ra.all_samples()}
     out_dir = ra.BENCH / "results" / "jev_calib"
     out_dir.mkdir(parents=True, exist_ok=True)
     pairs = human_pairs()
@@ -538,7 +538,7 @@ def score(args) -> None:
     cfg = ra.load_run_config(d)
     texts = run_texts(args.run)
     sids = cfg.get("samples") or sorted({k[0] for k in texts})
-    smap = {s["id"]: s for s in ra.load_jsonl(ra.SAMPLES)}
+    smap = {s["id"]: s for s in ra.all_samples()}
     ours, base = args.ours, args.baseline
     lang, style = args.lang, args.style
 

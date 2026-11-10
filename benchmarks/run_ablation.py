@@ -79,8 +79,30 @@ def combo_key(model: str, bridge: str) -> str:
     return f"{SHORT.get(model, model)}-{bridge}"
 
 
+SEALED = BENCH / "corpus" / "holdout_sealed.jsonl"
+HOLDOUT_LOCK = BENCH / "splits" / "holdout.lock.json"
+UNSEALED = False  # 只有 run.json 声明 "split": "holdout" 的轮次才解封（load_run_config 里设置）
+
+
+def sealed_samples() -> list[dict]:
+    """读取封存的 Holdout，逐篇核对 sha256 与 holdout.lock.json；不一致立即终止。"""
+    import hashlib
+    lock = json.loads(HOLDOUT_LOCK.read_text("utf-8"))
+    rows = load_jsonl(SEALED)
+    got = {r["id"]: hashlib.sha256(r["text"].encode("utf-8")).hexdigest() for r in rows}
+    bad = [i for i in lock["ids"] if got.get(i) != lock["sha256"][i]]
+    if bad or len(rows) != len(lock["ids"]):
+        sys.exit(f"Holdout 封存文件与 lock 不符：{bad or '篇数不同'}")
+    return rows
+
+
+def all_samples() -> list[dict]:
+    """全部可用样本：Train + Dev；当前轮次是 Holdout 终测时再加上封存的 Holdout。"""
+    return load_jsonl(SAMPLES) + (sealed_samples() if UNSEALED else [])
+
+
 def samples(only: list[str] | None = None) -> list[dict]:
-    rows = load_jsonl(SAMPLES)
+    rows = all_samples()
     if RUN_SAMPLES is not None:
         rows = [r for r in rows if r["id"] in RUN_SAMPLES]
     return [r for r in rows if not only or r["id"] in only or r["scenario"] in only]
@@ -361,6 +383,8 @@ def load_run_config(run_dir: Path) -> dict:
     cfg = json.loads(p.read_text("utf-8")) if p.exists() else {}
     JUDGE_VARIANTS = cfg.get("judge_variants")
     RUN_SAMPLES = cfg.get("samples")
+    global UNSEALED
+    UNSEALED = cfg.get("split") == "holdout"
     return cfg
 
 

@@ -43,7 +43,7 @@ def setup(args) -> None:
 
 
 def objective(run: str, ids: list[str]) -> dict:
-    smap = {s["id"]: s for s in ra.load_jsonl(ra.SAMPLES)}
+    smap = {s["id"]: s for s in ra.all_samples()}
     rows = [r for r in ra.load_jsonl(ra.BENCH / "results" / run / "patch.jsonl") if r["sample_id"] in ids]
     n = len(rows)
     if not n:

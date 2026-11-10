@@ -1,0 +1,52 @@
+{
+  "purpose": "Holdout 终测（一次性）：锁定配置 v8-locked 对 Humanizer-zh 对原文",
+  "samples": [
+    "coding-006",
+    "coding-007",
+    "coding-009",
+    "coding-010",
+    "coding-012",
+    "daily-013",
+    "daily-014",
+    "daily-015",
+    "daily-016",
+    "daily-017",
+    "discussion-006",
+    "discussion-009",
+    "discussion-010",
+    "discussion-011",
+    "discussion-012",
+    "mixed-001",
+    "mixed-002",
+    "mixed-003",
+    "mixed-005",
+    "mixed-007",
+    "teaching-006",
+    "teaching-008",
+    "teaching-009",
+    "teaching-011",
+    "teaching-012",
+    "writing-007",
+    "writing-008",
+    "writing-009",
+    "writing-010",
+    "writing-012"
+  ],
+  "split": "holdout",
+  "locked_tag": "v8-locked",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v8"
+  },
+  "rules": "v8",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "patch_max_tokens": 40000,
+  "baseline_max_tokens": 48000
+}
