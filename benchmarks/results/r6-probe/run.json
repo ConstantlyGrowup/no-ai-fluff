@@ -1,0 +1,30 @@
+{
+  "purpose": "第 6 轮探针：v10 = v8 去掉往返参考稿（RTT 消融）",
+  "samples": [
+    "coding-004",
+    "coding-011",
+    "daily-004",
+    "daily-006",
+    "discussion-008",
+    "mixed-004",
+    "mixed-006",
+    "teaching-005",
+    "teaching-010",
+    "writing-001"
+  ],
+  "split": "probe",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v10"
+  },
+  "rules": "v10",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "rtt_and_baseline_from": "dev"
+}
