@@ -1,0 +1,33 @@
+{
+  "split": "en_test",
+  "created_at": "2026-11-11",
+  "note": "Written/collected before any English rule tuning; not read during tuning.",
+  "ids": [
+    "en-test-coding-01",
+    "en-test-coding-02",
+    "en-test-coding-03",
+    "en-test-coding-04",
+    "en-test-teaching-01",
+    "en-test-teaching-02",
+    "en-test-writing-01",
+    "en-test-writing-02",
+    "en-test-discussion-01",
+    "en-test-discussion-02",
+    "en-test-daily-01",
+    "en-test-mixed-01"
+  ],
+  "sha256": {
+    "en-test-coding-01": "517c4678c15b9328e55db02ceef4d4f62b956300e63cf951bc7937d1521f9743",
+    "en-test-coding-02": "2094e131421ae1805a8d77044c6185ec208f62360e0ecd2f7e57241a6ac25bd0",
+    "en-test-coding-03": "3a4bcea362c05b651c64850f516d95c2fcec99bf00f8242ce52a062fba2d0ca1",
+    "en-test-coding-04": "a3e029c269a0530f3f9a331686f8488da5033415d509383d7ccc455f93ae5897",
+    "en-test-teaching-01": "c0989f6a951fdf702eba289d7c696326fdfbd9577398f2c2d15f9534873fedef",
+    "en-test-teaching-02": "edf4cd96cc71338ecfb62d073fedd625cadca0b18e4edf506cfc0bfa1a1dadc6",
+    "en-test-writing-01": "dda54d8651783b0d910f39ef01a30dbc08bf70dff465ac3a0949c72bab975a68",
+    "en-test-writing-02": "fb3a5c12c88c8c7a12b492ec6037a61dcf058122c4334ad3db7e019fb257ab8a",
+    "en-test-discussion-01": "c35772c82a20eb346b91c9778a1bc1eec0711f332d604083ae7f68154d9c3eac",
+    "en-test-discussion-02": "ba8f9af028d665081e081f23117d13e15e580063abd74077ac545f28bbccd11a",
+    "en-test-daily-01": "34a3cf5ebc9b0ed1232b4dd64b0301408f6213edfa77574b1652f9fd94a0789b",
+    "en-test-mixed-01": "be8bc09a8250b28ac9c3f45f71c0f8822871c8c564edc5c564a8e59f227ffa3d"
+  }
+}

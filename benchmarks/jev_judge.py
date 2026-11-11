@@ -140,6 +140,36 @@ PAIR_INSTR = {
 PAIR_CRIT = {"en": {"A": "A reads better.", "B": "B reads better."},
              "zh": {"A": "A 更好读。", "B": "B 更好读。"}}
 
+# 英文版（no-ai-fluff-en，2026-11-11）：评英文文本用的问题集 "en_text"。
+# 逐条照搬 rubric 版的 "en" 措辞，只把“中文段落”换成英文、把中文特有的例子（赋能、中英夹杂）换成英文对应物。
+# 未经英文人工盲测校准（没有英语母语评审），报告里必须注明。
+FIDELITY_Q["en_text"] = dict(FIDELITY_Q["en"])
+FIDELITY_Q["en_text"]["term"] = (
+    "Compare `candidate` with `original`. Does `candidate` turn a technical term, product name or proper noun into "
+    "something that refers to a different thing (for example 'amortized O(1)' becoming 'average O(1)', or "
+    "'write-path invalidation' becoming 'write-through')? Replacing jargon with a plain phrase that means the same "
+    "thing does not count.",
+    "Yes: at least one term now refers to a different thing.",
+    "No: every term still refers to the same thing.")
+READ_LEVELS["en_text"] = READ_LEVELS["en"]
+READ_INSTR["en_text"] = (
+    "`text` is an English passage. How easy and natural is it to read? Imagine an experienced colleague explaining "
+    "this in person: complete sentences with subjects and verbs, connectives such as 'because' and 'so' kept, saying "
+    "directly who did what, no slogans or buzzwords. Reading well is NOT the same as being dense or short: sentences "
+    "compressed into noun phrases that make the reader fill in the gaps read worse. Code, formulas and technical terms "
+    "are fine and should not lower the score.")
+AI_TONE["en_text"] = (
+    "`text` is an English passage. Does it still have obvious AI tone? Signs: sentences compressed into noun phrases "
+    "or stacked nouns, business slogans or buzzwords (such as 'leverage', 'unlock', 'seamless', 'drive alignment'), "
+    "empty hype words, long chains of modifiers, filler openings and lofty closing lines.",
+    "Yes: a reader would clearly notice AI tone.",
+    "No: it reads like natural writing by a person.")
+PAIR_INSTR["en_text"] = (
+    "`A` and `B` are two English versions of the same content. Which one is easier and more natural to read — closer "
+    "to how an experienced colleague would explain it in person, with complete sentences and no AI tone or "
+    "buzzwords? Judge readability only, not length or level of detail.")
+PAIR_CRIT["en_text"] = PAIR_CRIT["en"]
+
 # 校准第 2 版（style="human"）：照搬人工盲测页面给测试者的指令，并像盲测页面一样附上当时的提问。
 # 第 1 版（style="rubric"）的问题措辞带着“AI 腔 / 翻译腔”清单，与人工两两偏好一致率只有 41%~50%。
 HUMAN_PAIR_INSTR = {

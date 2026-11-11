@@ -1,0 +1,10 @@
+{
+  "set": "tune",
+  "rules": "en2",
+  "model": "tencent/hy-mt2-30b-a3b",
+  "bridge": "ja",
+  "host": "deepseek-flash",
+  "effort": "high",
+  "rtt_context": 300,
+  "date": "2026-11-11"
+}

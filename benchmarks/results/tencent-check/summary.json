@@ -1,0 +1,34 @@
+{
+  "tencent/hy-mt2-pro": {
+    "n": 24,
+    "doc_fallback": 0,
+    "latency_p50": 7.91,
+    "latency_p90": 28.44,
+    "segment_fallback": 0.0254,
+    "unchanged_rate": 0.0581,
+    "loose_english_before": 3.3135,
+    "loose_english_after": 2.2954,
+    "long_clause_before": 0.9221,
+    "long_clause_after": 1.1418,
+    "cliche_before": 0.1381,
+    "cliche_after": 0.0584,
+    "number_mismatch_docs": 1,
+    "cost_usd": 0
+  },
+  "openrouter/hy-mt2-30b": {
+    "n": 24,
+    "doc_fallback": 0,
+    "latency_p50": 0.02,
+    "latency_p90": 3.97,
+    "segment_fallback": 0.0202,
+    "unchanged_rate": 0.0351,
+    "loose_english_before": 3.3135,
+    "loose_english_after": 1.5714,
+    "long_clause_before": 0.9221,
+    "long_clause_after": 0.9919,
+    "cliche_before": 0.1381,
+    "cliche_after": 0.1351,
+    "number_mismatch_docs": 2,
+    "cost_usd": 0.04714
+  }
+}

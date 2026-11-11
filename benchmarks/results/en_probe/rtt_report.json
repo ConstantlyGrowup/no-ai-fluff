@@ -1,0 +1,63 @@
+{
+  "original": {
+    "words": 62.7,
+    "words_per_sent": 17.7,
+    "long_sent_pct": 4.8,
+    "nominal_per100": 9.1,
+    "buzz_per1k": 63.8,
+    "hyphen_compounds_per100": 6.4,
+    "relativizer_per100": 1.1,
+    "symbols": 0.3
+  },
+  "tencent/hy-mt2-30b-a3b": {
+    "latency_p50_s": 3.751,
+    "seg_fallback_pct": 0.0,
+    "doc_fallback": 0,
+    "unchanged_docs": 0,
+    "num_mismatch_docs": 3,
+    "keep_rate": 0.876,
+    "cost_usd": 0.00081,
+    "words": 79.6,
+    "words_per_sent": 17.4,
+    "long_sent_pct": 7.1,
+    "nominal_per100": 5.3,
+    "buzz_per1k": 14.9,
+    "hyphen_compounds_per100": 1.5,
+    "relativizer_per100": 1.2,
+    "symbols": 0.4
+  },
+  "google/gemma-3-4b-it": {
+    "latency_p50_s": 2.244,
+    "seg_fallback_pct": 33.3,
+    "doc_fallback": 0,
+    "unchanged_docs": 3,
+    "num_mismatch_docs": 3,
+    "keep_rate": 0.905,
+    "cost_usd": 0.00052,
+    "words": 71.3,
+    "words_per_sent": 17.6,
+    "long_sent_pct": 3.6,
+    "nominal_per100": 7.2,
+    "buzz_per1k": 34.0,
+    "hyphen_compounds_per100": 3.0,
+    "relativizer_per100": 1.1,
+    "symbols": 0.1
+  },
+  "google/gemma-4-26b-a4b-it": {
+    "latency_p50_s": 1.2,
+    "seg_fallback_pct": 0.0,
+    "doc_fallback": 0,
+    "unchanged_docs": 0,
+    "num_mismatch_docs": 3,
+    "keep_rate": 0.912,
+    "cost_usd": 0.0005,
+    "words": 81.1,
+    "words_per_sent": 19.0,
+    "long_sent_pct": 10.7,
+    "nominal_per100": 6.4,
+    "buzz_per1k": 13.9,
+    "hyphen_compounds_per100": 1.6,
+    "relativizer_per100": 1.2,
+    "symbols": 0.3
+  }
+}
