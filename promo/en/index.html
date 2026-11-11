@@ -1,0 +1,1195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>no-ai-fluff-en promo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,700;0,6..72,800;1,6..72,500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --paper: #090B10; --panel: #121620; --line: #232A38; --ink: #F5F2EB; --dim: #8E96A8; --teal: #2DD4A8; --rose: #E86B52; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #050608; color: var(--ink);
+    font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; overflow: hidden; }
+  #stage { width: min(100vw - 32px, (100vh - 140px) * 16 / 9); aspect-ratio: 16 / 9; box-shadow: 0 0 0 1px #1A1F2A; }
+  #stage svg { width: 100%; height: 100%; display: block; }
+  #ctl { width: min(100vw - 32px, (100vh - 140px) * 16 / 9); display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; font-size: 14px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--ink); }
+  button.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  #play { width: 44px; font-size: 16px; }
+  #time { font-family: "JetBrains Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--dim); min-width: 92px; }
+  #track { position: relative; flex: 1; height: 28px; }
+  #scrub { position: absolute; inset: 0; width: 100%; margin: 0; accent-color: var(--ink); cursor: pointer; }
+  #marks { position: absolute; left: 0; right: 0; top: 0; height: 6px; pointer-events: none; }
+  #marks i { position: absolute; top: 0; width: 1px; height: 6px; background: var(--dim); }
+  #chapters { flex-wrap: wrap; }
+  body.capture { gap: 0; background: var(--paper); }
+  body.capture #ctl { display: none; }
+  body.capture #stage { width: 100vw; height: 100vh; aspect-ratio: auto; box-shadow: none; }
+  @media (max-width: 640px) { #chapters button { font-size: 12px; padding: 4px 8px; } }
+</style>
+</head>
+<body>
+<div id="stage"><svg id="v" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="no-ai-fluff-en promo video"></svg></div>
+<div id="ctl">
+  <div class="row">
+    <button id="play" title="Play / pause (space)">▶</button>
+    <button id="mute" title="Sound on / off (M)">Sound on</button>
+    <span id="time">0:00 / 0:00</span>
+    <div id="track"><input id="scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="Progress"><div id="marks"></div></div>
+  </div>
+  <div class="row" id="chapters"></div>
+</div>
+<script src="data.js"></script>
+<script>
+"use strict";
+/* ============================================================================
+   no-ai-fluff-en promo · Cinematic Darkroom (v10) · 163 s · sound effects synthesized by buildAudio (no music)
+   Same engine as the Chinese promo (../index.html); data from promo/build_en.py.
+   0. Cold open                0–9     three-line hook (0.3/1.4/2.6 s) → 4.8 s first title + tagline
+   1. AI's dialect             9–35    status-update case: redline → wipe to the final; meeting speak vs one-on-one (illustration)
+   2. The hypothesis           35–65   three-step chain (my guess) → the paper and three lines of evidence
+   3. Building it for English  65–95   EN→JA→EN and three translators → drift and tuning en1→en2 → the locked test set
+   4. Real examples            95–117  PR / technical explanation / discussion / jargon pairs (test and tune sets)
+   5. The judge                117–141 JEV vs the original → verdict and does-no-harm → the same answer side by side
+   6. Wrap-up                  141–163 where it helps → five cards → second title + tagline, still hold ≥ 5 s
+   Scenes use local time; SCENES / SUBS are shifted by INTRO_T at the top of the sound section.
+   画面是 seek(t) 的纯函数；动效只用闭式阻尼弹簧与缓动关键帧。
+   ========================================================================== */
+const D = window.PROMO_DATA;
+const NS = "http://www.w3.org/2000/svg";
+const SVG = document.getElementById("v");
+const SERIF = '"Newsreader","Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif';
+const SANS = '"Inter","Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif';
+const MONO = '"JetBrains Mono","Fira Code","SF Mono",Consolas,"Noto Sans SC",monospace';
+// 暗房色板（v10，参照 docs/video-skills-ref/opus-dark-ref-*.jpg）：深曜石黑底 + 中心/地平线径向微光，象牙白文字
+const PAL = {
+  bg: "#090B10", bgGlow: "#141D2B", introGlow: "#1F1114", panel: "#121620", panel2: "#0D1017", dark: "#06070A",
+  line: "#232A38", lineStrong: "#384357",
+  ink: "#F5F2EB", inkOnDark: "#F5F2EB", dim: "#8E96A8",
+  rose: "#E86B52", roseBg: "rgba(232, 107, 82, 0.16)", teal: "#2DD4A8", tealBg: "rgba(45, 212, 168, 0.15)",
+  amber: "#F0A84B", amberBg: "rgba(240, 168, 75, 0.15)", scan: "#689BF7", scanBg: "rgba(104, 155, 247, 0.15)",
+  subWarm: "#F0944D", subGreen: "#34D399", hookCoral: "#E87A5D", white: "#FFFFFF",
+};
+const INTRO_T = 9.0;   // 片头冷开场时长：设问 0–4.8s，第一次亮标题 4.8–9.0s；六章整体顺延 INTRO_T
+const W = 1920, H = 1080, SUB = 56, AUX = 32;   // Q11：字幕 56px，要读的辅助文字 ≥ 32px
+const FX = 60, FY = 54, FW = 1800, FH = 972;    // 场景排版用的版心（v9 起不再画外框）
+const STAGE_S = 1.07, STAGE_TOP = 80;           // 场景整体放大倍数、放大后内容顶边（右上角章节眉标在它上方）
+const SAFE = 16;                                // 自检：文字离画面边缘至少 16px
+// v11 垂直居中（只在场景段声明 CENTER_SHOTS = true 的版本里启用）：舞台以 (960, STAGE_CY) 为中心放大，
+// 每个镜头组（标题 + 内容）建好后量一次包围盒，整体平移到 STAGE_CY，并夹在安全带 BAND 内（不压字幕）
+const STAGE_CY = 490, BAND = [118, 894];
+
+// ---------------------------------------------------------------------------
+// 运动学（移植自 motion-broll-motion.js）
+// ---------------------------------------------------------------------------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const eo = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+const eio = x => { x = clamp(x); return x * x * x * (x * (6 * x - 15) + 10); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const rng = s => () => (s = (s + 0x6D2B79F5) | 0, s = Math.imul(s ^ (s >>> 15), 1 | s), s ^= s + Math.imul(s ^ (s >>> 7), 61 | s), ((s ^ (s >>> 14)) >>> 0) / 4294967296);   // 带种子的随机数（噪声音源用，保证每次渲染一致）
+function S(tau, w, z) {
+  if (tau <= 0) return 0;
+  if (z < 1) { const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * tau) * (Math.cos(wd * tau) + z * w / wd * Math.sin(wd * tau)); }
+  return 1 - Math.exp(-w * tau) * (1 + w * tau);
+}
+const SP = { MORPH: [15, 0.84], FAST: [27, 0.86], SLOW: [12.5, 0.9], POP: [14, 0.62] };
+const track = (v0, keys, def = SP.MORPH) => {
+  let prev = v0; const ks = [];
+  for (const k of keys) { const d = k[1] - prev; prev = k[1]; const sp = k[2] || def; if (d !== 0) ks.push([k[0], d, sp[0], sp[1]]); }
+  return t => { let v = v0; for (const k of ks) v += k[1] * S(t - k[0], k[2], k[3]); return v; };
+};
+const kf = keys => t => {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = eio] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); }
+  return keys[keys.length - 1][1];
+};
+function vis(t, tin, tout, o = {}) {  // 模糊溶解：退场先走、入场后到，两层不同时可读
+  const din = o.din ?? 0.08, lin = o.lin ?? 0.32, lout = o.lout ?? 0.14, bl = o.blur ?? 10;
+  const a = tin == null ? 1 : eo((t - tin - din) / lin);
+  const b = tout == null ? 0 : eo((t - tout) / lout);
+  return { o: a * (1 - b), blur: (1 - a) * bl + b * bl * 0.8, s: (0.96 + 0.04 * a) * (1 - 0.02 * b) };
+}
+/** 入场：弹簧上浮 + 淡入 */
+const rise = (g, t, t0, dy = 24, sp = SP.SLOW) => { const k = S(t - t0, ...sp); op(g, clamp(k * 1.3)); tr(g, 0, dy * (1 - k)); return k; };
+
+// ---------------------------------------------------------------------------
+// SVG 工具
+// ---------------------------------------------------------------------------
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs || {}) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const cv = document.createElement("canvas").getContext("2d");
+function mw(str, size, weight = 400, family = SANS, italic = false) {
+  cv.font = `${italic ? "italic " : ""}${weight} ${size}px ${family}`;
+  return cv.measureText(str).width;
+}
+function T(parent, x, y, str, o = {}) {
+  const e = el("text", { x, y, "font-size": o.size || AUX, "font-weight": o.weight || 400, fill: o.fill || PAL.ink,
+    "text-anchor": o.anchor || "start", "font-family": o.family || SANS,
+    style: "white-space:pre" }, parent);   // 等宽字体本身就是等宽数字；正文不改数字宽度，保证与实测一致
+  if (o.italic) e.setAttribute("font-style", "italic");
+  e.textContent = str;
+  return e;
+}
+function fit(str, size, maxW, weight = 400, family = SANS, min = AUX) {
+  while (size > min && mw(str, size, weight, family) > maxW) size -= 1;
+  return size;
+}
+const op = (e, v) => e.setAttribute("opacity", clamp(v).toFixed(3));
+const tr = (e, x, y, s = 1) => e.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${s.toFixed(4)})`);
+const trc = (e, cx, cy, s, dx = 0, dy = 0) => e.setAttribute("transform",
+  `translate(${(cx + dx).toFixed(2)} ${(cy + dy).toFixed(2)}) scale(${s.toFixed(4)}) translate(${-cx} ${-cy})`);
+let FID = 0, DEFS;
+function apply(g, v, cx = W / 2, cy = H / 2) {
+  if (v.o < 0.003) { g.setAttribute("display", "none"); return false; }
+  g.setAttribute("display", "inline");
+  op(g, v.o);
+  if (!g._blur) {
+    const f = el("filter", { id: `fb${FID++}`, x: "-10%", y: "-10%", width: "120%", height: "120%" }, DEFS);
+    g._blur = el("feGaussianBlur", { stdDeviation: 0 }, f); g._fid = f.id;
+  }
+  if (v.blur > 0.05) { g._blur.setAttribute("stdDeviation", v.blur.toFixed(2)); g.setAttribute("filter", `url(#${g._fid})`); }
+  else g.removeAttribute("filter");
+  trc(g, cx, cy, v.s);
+  return true;
+}
+/** 出版物卡片：rx 6、1.5px 细框、硬投影；accent 给左侧 4px 色条 */
+function card(g, x, y, w, h, o = {}) {
+  const k = el("g", {}, g);
+  if (o.shadow !== false) el("rect", { x: x + 4, y: y + 6, width: w, height: h, rx: 6, fill: "rgba(0,0,0,0.35)" }, k);
+  el("rect", { x, y, width: w, height: h, rx: 6, fill: o.fill || PAL.panel, stroke: o.stroke || PAL.line, "stroke-width": o.sw || 1.5 }, k);
+  if (o.accent) el("rect", { x, y, width: 4, height: h, fill: o.accent }, k);
+  return k;
+}
+/** 等宽角标：[PATCH] [LOCKED] 之类 */
+function tag(g, x, y, str, color, bg, o = {}) {
+  const size = o.size || AUX, w = mw(str, size, 500, MONO) + 24;
+  const k = el("g", {}, g);
+  el("rect", { x, y: y - size * 0.86, width: w, height: size * 1.22, rx: 4, fill: bg, stroke: color, "stroke-width": 1.5 }, k);
+  T(k, x + 12, y, str, { size, family: MONO, weight: 500, fill: color });
+  return { g: k, w };
+}
+const chipW = it => mw(it.text, it.size || AUX, 500, it.family || SANS) + 52;
+function chip(g, x, y, str, o = {}) {
+  const size = o.size || AUX, h = size * 1.9, w = chipW({ ...o, text: str });
+  const c = el("g", {}, g);
+  el("rect", { x, y: y - h / 2, width: w, height: h, rx: 6, fill: o.bg || PAL.panel, stroke: o.stroke || PAL.line, "stroke-width": 1.5 }, c);
+  T(c, x + 26, y + size * 0.36, str, { size, weight: 500, fill: o.fill || PAL.ink, family: o.family });
+  return { g: c, w };
+}
+function chipRow(g, y, items, gap = 24, x0 = null) {
+  const total = items.map(chipW).reduce((a, b) => a + b, 0) + gap * (items.length - 1);
+  let x = x0 ?? (W - total) / 2;
+  return items.map(it => { const c = chip(g, x, y, it.text, it); x += c.w + gap; return c; });
+}
+function title(g, str, y = 206, size = 60, o = {}) {
+  const weight = o.weight || 700;
+  size = fit(str, size, 1640, weight, SERIF);
+  return T(g, o.x ?? W / 2, y, str, { size, weight, family: SERIF, anchor: o.anchor || "middle", fill: o.fill || PAL.ink });
+}
+
+// ---------------------------------------------------------------------------
+// 富文本：按真实字宽折行；锁定（代码/公式/数字）不可拆
+// ---------------------------------------------------------------------------
+const PUNCT = "，。；：、）」』！？,.;:)!?”’";
+const SOLID = c => c === "lock" || c === "math";
+function styleFor(c, o) {
+  if (c === "lock") return { family: MONO, weight: 500, padX: 8 };
+  if (c === "math") return { family: SERIF, weight: 500, padX: 9 };
+  return { family: o.family || SANS, weight: o.weight || 400, padX: 0 };
+}
+function mathParts(s) { const m = /^(.*?)_\{(.+)\}$/.exec(s); return m ? [m[1], m[2]] : [s, ""]; }
+function rich(parent, segs, o) {
+  const size = o.size, units = [];
+  for (const [text, c] of segs) {
+    const st = styleFor(c, o);
+    if (SOLID(c)) {
+      const w = c === "math" ? mw(mathParts(text)[0], size, 500, SERIF, true) : mw(text, size, st.weight, st.family);
+      units.push({ t: text, c, st, w: w + st.padX * 2 + 6, solid: true });
+      continue;
+    }
+    const re = /[A-Za-z0-9_.+\-%<>=/'’]+|\s+|[\s\S]/g;
+    let m;
+    while ((m = re.exec(text))) units.push({ t: m[0], c, st, w: mw(m[0], size, st.weight, st.family), space: /^\s+$/.test(m[0]) });
+  }
+  const lines = [[]];
+  let x = 0;
+  for (const u of units) {
+    let line = lines[lines.length - 1];
+    if (u.space && line.length === 0) continue;
+    const hang = PUNCT.includes(u.t) && x + u.w <= o.width + size * 1.05;
+    if (x + u.w > o.width && line.length > 0 && !hang) {
+      while (line.length && line[line.length - 1].space) x -= line.pop().w;
+      lines.push([]); line = lines[lines.length - 1]; x = 0;
+      if (u.space) continue;
+    }
+    const prev = line[line.length - 1];
+    if (prev && prev.c !== u.c && (prev.c || u.c)) x += 3;
+    u.x = x; line.push(u); x += u.w;
+  }
+  const runs = [];
+  lines.forEach((line, li) => {
+    for (const u of line) {
+      const last = runs[runs.length - 1];
+      if (last && last.li === li && last.c === u.c && !u.solid && !last.solid) { last.t += u.t; last.w += u.w; continue; }
+      runs.push({ t: u.t, c: u.c, st: u.st, x: u.x, w: u.w, li, solid: !!u.solid });
+    }
+  });
+  const g = el("g", {}, parent);
+  for (const r of runs) {
+    const bx = o.x + r.x, by = o.y + r.li * o.lh + size;
+    Object.assign(r, { bx, by, top: by - size * 0.95, h: size * 1.3 });
+    r.g = el("g", {}, g);
+    if (r.c) r.rect = el("rect", { x: bx - 2, y: r.top, width: r.w + 4, height: r.h, rx: 4, fill: "none", opacity: 0 }, r.g);
+    const pad = r.st.padX ? r.st.padX + 3 : 0;
+    if (r.c === "math") r.text = T(r.g, bx + pad, by, mathParts(r.t)[0], { size, family: SERIF, italic: true, weight: 500, fill: o.fill || PAL.ink });
+    else r.text = T(r.g, bx + pad, by, r.t, { size, weight: r.st.weight, family: r.st.family, fill: o.fill || PAL.ink });
+    if (r.c === "del") r.strike = el("line", { x1: bx, x2: bx + r.w, y1: by - size * 0.32, y2: by - size * 0.32, stroke: PAL.rose, "stroke-width": 2.5, opacity: 0 }, r.g);
+  }
+  return { g, runs, height: lines.length * o.lh, lines: lines.length };
+}
+/** 审校样式：mark/del = 朱砂红批注，ins = 翠绿补丁，lock/math = 古铜锁定 */
+function paint(r, a = 1) {
+  if (!r.rect) return;
+  const sty = { mark: [PAL.roseBg, PAL.rose, "none"], del: [PAL.roseBg, PAL.rose, "none"], ins: [PAL.tealBg, PAL.teal, "none"],
+    lock: [PAL.amberBg, PAL.amber, PAL.amber], math: [PAL.amberBg, PAL.amber, PAL.amber] }[r.c];
+  if (!sty) return;
+  r.rect.setAttribute("fill", sty[0]); r.rect.setAttribute("stroke", sty[2]); r.rect.setAttribute("stroke-width", 1.5);
+  op(r.rect, a); r.text.setAttribute("fill", a > 0.45 ? sty[1] : PAL.ink);
+  if (r.strike) op(r.strike, a);
+}
+const markAll = (segs, words, cls = "mark") => {   // 在普通片段里把 words 标成 cls
+  const re = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  const out = [];
+  for (const [t, c] of segs) {
+    if (c) { out.push([t, c]); continue; }
+    let p = 0, m;
+    while ((m = re.exec(t))) { if (m.index > p) out.push([t.slice(p, m.index), ""]); out.push([m[0], cls]); p = m.index + m[0].length; }
+    if (p < t.length) out.push([t.slice(p), ""]);
+  }
+  return out;
+};
+
+// ===========================================================================
+// 暗房背景 + 片头冷开场（v10）：两版共用，文案来自各自场景段里的 INTRO
+// ===========================================================================
+const HORIZON = 690;   // 地平线 / 透视消失点所在高度
+function defsDark() {
+  const glow = el("radialGradient", { id: "bgGlow", cx: "50%", cy: "62%", r: "70%" }, DEFS);
+  el("stop", { offset: "0%", "stop-color": PAL.bgGlow }, glow); el("stop", { offset: "100%", "stop-color": PAL.bg }, glow);
+  const red = el("radialGradient", { id: "introGlow", cx: "50%", cy: "70%", r: "62%" }, DEFS);
+  el("stop", { offset: "0%", "stop-color": "#3A161B" }, red); el("stop", { offset: "55%", "stop-color": PAL.introGlow }, red);
+  el("stop", { offset: "100%", "stop-color": PAL.bg, "stop-opacity": 0 }, red);
+  // 主标题微光：文字轮廓模糊后染成白金色，叠在原文字下面
+  const tg = el("filter", { id: "titleGlow", x: "-20%", y: "-60%", width: "140%", height: "220%" }, DEFS);
+  el("feGaussianBlur", { in: "SourceAlpha", stdDeviation: 8, result: "b" }, tg);
+  el("feFlood", { "flood-color": "#FFE9C2", "flood-opacity": 0.55, result: "c" }, tg);
+  el("feComposite", { in: "c", in2: "b", operator: "in", result: "g" }, tg);
+  const mg = el("feMerge", {}, tg); el("feMergeNode", { in: "g" }, mg); el("feMergeNode", { in: "SourceGraphic" }, mg);
+  const sg = el("filter", { id: "softGlow", x: "-20%", y: "-60%", width: "140%", height: "220%" }, DEFS);
+  el("feGaussianBlur", { in: "SourceAlpha", stdDeviation: 6, result: "b" }, sg);
+  el("feFlood", { "flood-color": "#FFFFFF", "flood-opacity": 0.35, result: "c" }, sg);
+  el("feComposite", { in: "c", in2: "b", operator: "in", result: "g" }, sg);
+  const m2 = el("feMerge", {}, sg); el("feMergeNode", { in: "g" }, m2); el("feMergeNode", { in: "SourceGraphic" }, m2);
+  // 字幕：不画底框，只给文字一层柔和暗影
+  const sd = el("filter", { id: "subShadow", x: "-10%", y: "-40%", width: "120%", height: "180%" }, DEFS);
+  el("feDropShadow", { dx: 0, dy: 2, stdDeviation: 6, "flood-color": "#000", "flood-opacity": 0.85 }, sd);
+  const bk = el("filter", { id: "bokeh", x: "-50%", y: "-50%", width: "200%", height: "200%" }, DEFS);
+  el("feGaussianBlur", { stdDeviation: 5 }, bk);
+}
+/** 背景：深色底 + 中心径向微光 + 片头暗红光晕 + 极淡的地平线与透视线 + 地平线上的散景光点 */
+function buildBackdrop(parent) {
+  el("rect", { x: 0, y: 0, width: W, height: H, fill: PAL.bg }, parent);
+  el("rect", { x: 0, y: 0, width: W, height: H, fill: "url(#bgGlow)" }, parent);
+  const red = el("rect", { x: 0, y: 0, width: W, height: H, fill: "url(#introGlow)" }, parent);
+  const lines = el("g", { stroke: PAL.ink, "stroke-width": 1.4, fill: "none" }, parent);
+  el("line", { x1: 0, x2: W, y1: HORIZON, y2: HORIZON }, lines);
+  [-2.6, -1.55, -0.85, -0.3, 0.3, 0.85, 1.55, 2.6].forEach(k => el("line", { x1: 960 + k * 18, y1: HORIZON, x2: 960 + k * 760, y2: H }, lines));
+  const bok = el("g", { filter: "url(#bokeh)" }, parent);
+  [[250, -26, 10], [420, -14, 7], [560, -32, 12], [740, -18, 8], [1180, -22, 9], [1340, -34, 12], [1500, -16, 7], [1680, -28, 10]]
+    .forEach(([x, dy, r]) => el("circle", { cx: x, cy: HORIZON + dy, r, fill: "#FFFFFF", opacity: 0.45 }, bok));
+  return t => {
+    const k = seg(t, INTRO_T - 0.6, INTRO_T + 1.4);           // 片头结束后，光晕和透视线退到很淡
+    op(red, 1 - k); op(lines, lerp(0.2, 0.06, k)); op(bok, lerp(0.55, 0, k));
+  };
+}
+/** 冷开场：三行设问（0.3 / 1.4 / 2.6s 依次浮现）→ 4.8s 第一次亮出主标题与金句 → 9.0s 切入第 1 章 */
+function buildIntro(parent, C) {
+  const g = el("g", {}, parent);
+  const q = el("g", {}, g);
+  const lines = C.lines.map(([s, size, fill, weight, glow], i) => {
+    const y = (C.ys || [306, 400, 522])[i];
+    const e = T(q, W / 2, y, s, { size: fit(s, size, 1760, weight, SERIF), family: SERIF, weight, fill, anchor: "middle" });
+    if (glow) e.setAttribute("filter", "url(#softGlow)");
+    const lg = el("g", {}, q); lg.appendChild(e);
+    return lg;
+  });
+  const tt = el("g", {}, g);
+  const title = T(tt, W / 2, C.titleY || 536, C.title, { size: fit(C.title, C.titleSize, 1760, C.titleWeight, SERIF), family: SERIF, weight: C.titleWeight, fill: PAL.ink, anchor: "middle" });
+  title.setAttribute("filter", "url(#titleGlow)");
+  const quote = T(tt, W / 2, C.quoteY || 620, C.quote, { size: C.quoteSize, family: SERIF, weight: 500, italic: true, fill: PAL.teal, anchor: "middle" });
+  const qg = el("g", {}, tt); qg.appendChild(quote);
+  return {
+    update(t) {
+      const on = apply(g, vis(t, null, INTRO_T - 0.32, { lout: 0.3 }), W / 2, 540);
+      if (!on) return;
+      trc(g, 960, 540, 1 + 0.035 * eio(seg(t, 0, INTRO_T)) * (1 - seg(t, INTRO_T - 0.32, INTRO_T)));
+      op(g, 1 - eo(seg(t, INTRO_T - 0.32, INTRO_T)));
+      if (apply(q, vis(t, null, 4.45, { lout: 0.32 }), W / 2, 450))
+        lines.forEach((l, i) => { const v = vis(t, [0.3, 1.4, 2.6][i] - 0.08, null, { lin: 0.45 }); op(l, v.o); tr(l, 0, 14 * (1 - v.o)); });
+      if (apply(tt, vis(t, 4.8, null, { lin: 0.5, blur: 14 }), W / 2, 600)) op(qg, eo(seg(t, 5.5, 6.1)));
+    },
+  };
+}
+
+// ===========================================================================
+// 1. AI's dialect (0–26s)
+// ===========================================================================
+const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
+function buildC1(g) {
+  const SC = D.showcase;
+  // 1-a the status-update paragraph: redline each jargon phrase, then wipe to the final text
+  const a = el("g", {}, g);
+  const PX = 130, PY = 150, PW = 1660, PAD = 64, size = 36, lh = 58;
+  const before = el("g", {}, a), after = el("g", {}, a);
+  const Rb = rich(before, SC.before, { x: PX + PAD, y: PY + 104, width: PW - PAD * 2, size, lh });
+  const Ra = rich(after, SC.after, { x: PX + PAD, y: PY + 104, width: PW - PAD * 2, size, lh });
+  const PH = 104 + Math.max(Rb.height, Ra.height) + 36;
+  before.insertBefore(card(before, PX, PY, PW, PH, { fill: PAL.panel2, accent: PAL.rose }), before.firstChild);
+  after.insertBefore(card(after, PX, PY, PW, PH, { fill: PAL.panel, accent: PAL.teal }), after.firstChild);
+  T(before, PX + PAD, PY + 62, "update.md · the model's original reply", { size: AUX, fill: PAL.dim });
+  tag(before, PX + PW - 260, PY + 62, "[REDLINE]", PAL.rose, PAL.roseBg);
+  T(after, PX + PAD, PY + 62, "no-ai-fluff · final", { size: AUX, fill: PAL.teal, weight: 500 });
+  tag(after, PX + PW - 230, PY + 62, "[PATCH]", PAL.teal, PAL.tealBg);
+  const cA = el("clipPath", { id: "c1A" }, DEFS), cB = el("clipPath", { id: "c1B" }, DEFS);
+  const rA = el("rect", { x: PX - 6, y: PY - 6, height: PH + 16 }, cA), rB = el("rect", { y: PY - 6, height: PH + 16 }, cB);
+  after.setAttribute("clip-path", "url(#c1A)"); before.setAttribute("clip-path", "url(#c1B)");
+  const mA = el("rect", { x: PX - 6, y: PY - 6, height: PH + 16, fill: "none", "data-clipbox": "c1A" }, a);
+  const mB = el("rect", { y: PY - 6, height: PH + 16, fill: "none", "data-clipbox": "c1B" }, a);
+  after.setAttribute("data-clipref", "c1A"); before.setAttribute("data-clipref", "c1B");
+  const wipe = el("g", {}, a);
+  el("rect", { x: -1.5, y: PY - 26, width: 3, height: PH + 52, fill: PAL.ink }, wipe);
+  el("path", { d: `M-10 ${PY - 26} L10 ${PY - 26} L0 ${PY - 12} Z`, fill: PAL.ink }, wipe);
+  const marks = Rb.runs.filter(r => r.c === "mark"), insA = Ra.runs.filter(r => r.c === "ins");
+  const locks = [...Rb.runs, ...Ra.runs].filter(r => r.c === "lock");
+  insA.forEach(r => paint(r, 1));
+  const stats = chipRow(a, PY + PH + 54, [
+    { text: `Jargon ${SC.words} → ${SC.words_left}`, fill: PAL.teal, stroke: PAL.teal, bg: PAL.tealBg },
+    { text: `Words/sentence ${SC.wps[0].toFixed(1)} → ${SC.wps[1].toFixed(1)}`, fill: PAL.teal, stroke: PAL.teal, bg: PAL.tealBg },
+    { text: "Code, numbers kept", fill: PAL.amber, stroke: PAL.amber, bg: PAL.amberBg },
+    { text: `${SC.applied} edits · ${SC.rejected} rejected` },
+  ], 18);
+  // 1-b status-meeting speak vs one-on-one (an illustration; the right side is an explanation, not a red/green diff)
+  const b = el("g", {}, g);
+  title(b, "Same thing, two ways", 206, 60);
+  const L = { x: 120, w: 820 }, Rr = { x: 980, w: 820 }, top = 262;
+  const lq = markAll([["This week we drove alignment on the core path, closed the loop on fulfillment, and landed a scalable foundation by leveraging dual-side gating.", ""]],
+    ["drove alignment", "closed the loop", "landed", "scalable foundation", "leveraging", "dual-side gating"]);
+  const rq = [["Skip “alignment”, “closing the loop” and “leverage”. When we talk one-on-one about real work and code, I just want to know which endpoints you changed, which timeout bug you fixed, and what check you added.", ""]];
+  const left = el("g", {}, b), right = el("g", {}, b);
+  const lr = rich(left, lq, { x: L.x + 44, y: top + 96, width: L.w - 88, size: 38, lh: 64 });
+  const note = el("g", {}, left);
+  const nr = rich(note, [["The work is folded into slogans. It sounds organized, but you can't tell what they actually did.", ""]], { x: L.x + 44, y: top + 96 + lr.height + 24, width: L.w - 88, size: AUX, lh: 48, fill: PAL.dim });
+  const rr = rich(right, rq, { x: Rr.x + 44, y: top + 96, width: Rr.w - 88, size: 38, lh: 64 });
+  const CH = Math.max(96 + lr.height + 24 + nr.height + 30, 96 + rr.height + 40);
+  left.insertBefore(card(left, L.x, top, L.w, CH, { fill: PAL.panel2, accent: PAL.rose }), left.firstChild);
+  right.insertBefore(card(right, Rr.x, top, Rr.w, CH, { fill: PAL.panel, accent: PAL.ink }), right.firstChild);
+  T(left, L.x + 44, top + 62, "Status meeting · compressed jargon", { size: fit("Status meeting · compressed jargon", 34, L.w - 88, 700), weight: 700, fill: PAL.rose });
+  T(right, Rr.x + 44, top + 62, "One-on-one · what you want to hear", { size: fit("One-on-one · what you want to hear", 34, Rr.w - 88, 700), weight: 700, fill: PAL.ink });
+  lr.runs.forEach(r => paint(r, 1));
+  const foot = T(b, L.x, top + CH + 66, "Illustration · written to make the point, not run through the tool", { size: AUX, fill: PAL.dim });
+  return {
+    cam: t => t < 12 ? { s: kf([[0, 1], [5.4, 1.02], [7.6, 1.0], [11.8, 1.015]])(t), fx: 960, fy: 520 } : { s: kf([[12, 1], [25.8, 1.02]])(t), fx: 960, fy: 540 },
+    update(t) {
+      if (apply(a, vis(t, 0, 11.85), W / 2, 520)) {   // v10: dissolves in from the cold open
+        marks.forEach((r, i) => paint(r, S(t - MARK_T(i), ...SP.POP)));
+        const wx = lerp(PX - 4, PX + PW + 4, eio(seg(t, 5.6, 7.4)));
+        rA.setAttribute("width", Math.max(0, wx - PX + 6).toFixed(1)); mA.setAttribute("width", Math.max(0, wx - PX + 6).toFixed(1));
+        rB.setAttribute("x", wx.toFixed(1)); rB.setAttribute("width", Math.max(0, PX + PW + 10 - wx).toFixed(1));
+        mB.setAttribute("x", wx.toFixed(1)); mB.setAttribute("width", Math.max(0, PX + PW + 10 - wx).toFixed(1));
+        wipe.setAttribute("transform", `translate(${wx.toFixed(1)} 0)`); op(wipe, t > 5.4 && t < 7.7 ? 1 : 0);
+        locks.forEach(r => paint(r, S(t - 7.7, ...SP.POP)));
+        stats.forEach((c, i) => rise(c.g, t, CHIP_T(i), 10));
+      }
+      if (apply(b, vis(t, 11.93, null), W / 2, 540)) {
+        rise(left, t, 12.4); rise(right, t, 16.2); rise(note, t, 14.4, 12); rise(foot, t, 17.4, 10);
+      }
+    },
+  };
+}
+const N_MARKS = () => D.showcase.before.filter(s => s[1] === "mark").length;
+const MARK_T = i => 0.8 + i * (4.2 / Math.max(1, N_MARKS() - 1));   // redline timing (sound cues use it too)
+const CHIP_T = i => 8.3 + i * 0.36 - i * i * 0.04;
+
+// ===========================================================================
+// 2. The hypothesis (26–56s)
+// ===========================================================================
+function buildC2(g) {
+  const a = el("g", {}, g);
+  title(a, "Why would a model think shorter scores higher?", 196, 60);
+  const hyp = tag(a, 0, 260, "HYPOTHESIS · MY GUESS", PAL.amber, PAL.amberBg);
+  hyp.g.setAttribute("transform", `translate(${(W - hyp.w) / 2} 0)`);
+  const steps = [
+    ["STEP 01", "Physical limits", "Context length, compute cost", "A model can only read so much at once, and every token it writes costs compute, so training discourages long answers."],
+    ["STEP 02", "How it is scored", "Right answers pay, length costs", "In reinforcement learning the model doesn't learn what reads well, only what scores: right answers earn points, extra words lose them."],
+    ["STEP 03", "A side effect", "AI invents its own shorthand", "To fit the same logic into fewer words, it uses labels like “gate” and “probe”, and → instead of connecting words."],
+  ];
+  const cw = 520, gap = 40, x0 = (W - (cw * 3 + gap * 2)) / 2, y0 = 316;
+  const cards = steps.map(([k, h, sub, body], i) => {
+    const x = x0 + i * (cw + gap), cg = el("g", {}, a);
+    T(cg, x + 34, y0 + 56, k, { size: AUX, family: MONO, fill: PAL.dim });
+    T(cg, x + 34, y0 + 116, h, { size: fit(h, 42, cw - 68, 700, SERIF), weight: 700, family: SERIF });
+    T(cg, x + 34, y0 + 168, sub, { size: fit(sub, 34, cw - 68, 500), weight: 500, fill: i === 2 ? PAL.rose : PAL.ink });
+    const br = rich(cg, [[body, ""]], { x: x + 34, y: y0 + 196, width: cw - 68, size: AUX, lh: 46, fill: PAL.dim });
+    let hh = 196 + br.height + 30;
+    if (i === 2) {
+      const ex = rich(cg, [["probe down → circuit-break → loop closed", "mark"]], { x: x + 34, y: y0 + hh, width: cw - 68, size: AUX, lh: 50 });
+      ex.runs.forEach(r => paint(r, 1)); hh += ex.height + 20;
+    }
+    return { cg, x, hh };
+  });
+  const CH = Math.max(...cards.map(c => c.hh)) + 10;
+  cards.forEach((c, i) => c.cg.insertBefore(card(c.cg, c.x, y0, cw, CH, { accent: i === 2 ? PAL.rose : PAL.ink }), c.cg.firstChild));
+  const arrows = [0, 1].map(i => { const x = x0 + (i + 1) * (cw + gap) - gap / 2;
+    return el("path", { d: `M${x - 9} ${y0 + CH / 2 - 14} L${x + 7} ${y0 + CH / 2} L${x - 9} ${y0 + CH / 2 + 14}`, fill: "none", stroke: PAL.ink, "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }, a); });
+  // 2-b the paper and three lines of evidence
+  const b = el("g", {}, g);
+  const pc = el("g", {}, b);
+  card(pc, 120, 170, 1680, 290, { accent: PAL.scan });
+  T(pc, 170, 236, "arXiv:2610.29162 · Clark, Martin & Mahowald · 2026", { size: AUX, family: MONO, fill: PAL.scan });
+  T(pc, 170, 330, "Why is AI-generated language", { size: 68, family: SERIF, italic: true, weight: 500 });
+  T(pc, 170, 414, "so hard to understand?", { size: 68, family: SERIF, italic: true, weight: 500 });
+  const ev = [
+    ["01", "14 models, plus Olmo Base → Instruct → Think: more post-training, harder prose"],
+    ["02", "RL on a small model with a length penalty: it drifts to shorter constructions"],
+    ["03", "A round trip through another language keeps the meaning, drops the hard phrasing"],
+  ].map(([n, s], i) => {
+    const eg = el("g", {}, b), x = 140 + i * 60, y = 540 + i * 92;
+    T(eg, x, y, n, { size: 40, family: MONO, weight: 700, fill: PAL.teal });
+    T(eg, x + 70, y - 2, s, { size: fit(s, 36, 1720 - x - 70, 500), weight: 500 });
+    el("line", { x1: x, x2: x + 50, y1: y + 22, y2: y + 22, stroke: PAL.teal, "stroke-width": 2 }, eg);
+    return eg;
+  });
+  const bridgeS = "Their control was a round trip through Japanese. I turned it into a tool.";
+  const bridge = T(b, W / 2, 870, bridgeS, { size: fit(bridgeS, 44, 1640, 700, SERIF), family: SERIF, weight: 700, fill: PAL.teal, anchor: "middle" });
+  return {
+    cam: t => t < 15 ? { s: kf([[0, 1], [14.8, 1.02]])(t), fx: 960, fy: 540 } : { s: kf([[15, 1.0], [29.8, 1.02]])(t), fx: 960, fy: 520 },
+    update(t) {
+      if (apply(a, vis(t, 0, 14.85), W / 2, 540)) {
+        cards.forEach((c, i) => rise(c.cg, t, [0.6, 5.2, 10.0][i], 30));
+        arrows.forEach((ar, i) => op(ar, S(t - [4.9, 9.7][i], ...SP.SLOW)));
+      }
+      if (apply(b, vis(t, 14.93, null), W / 2, 520)) {
+        rise(pc, t, 15.1, 20);
+        ev.forEach((e, i) => rise(e, t, 17.6 + i * 3.0, 18));
+        rise(bridge, t, 26.4, 14);
+      }
+    },
+  };
+}
+
+// ===========================================================================
+// 3. Building it for English (56–86s)
+// ===========================================================================
+function buildC3(g) {
+  const TR = D.translators, TU = D.tuning, TS = D.test;
+  // 3-a the round trip and the translator pick
+  const a = el("g", {}, g);
+  title(a, "English → Japanese → English: three translators", 196, 58);
+  const rt = T(a, 140, 360, "EN → JA → EN", { size: 88, family: MONO, weight: 700 });
+  const rtc = el("g", {}, a);
+  rich(rtc, [["The paper used this round trip to rewrite text without changing what it says. I use the result as a plainer reference.", ""]], { x: 140, y: 392, width: 640, size: AUX, lh: 50, fill: PAL.dim });
+  const cols = [["failed segments", "seg_fallback_pct", v => `${v.toFixed(0)}%`], [`nominalizations /100w (orig ${D.orig_nominal})`, "nominal_per100", v => v.toFixed(1)], ["time / doc", "latency_p50_s", v => `${v.toFixed(1)}s`]];
+  const models = [["hy-mt2-30b", "tencent/hy-mt2-30b-a3b", true], ["gemma-4-26b", "google/gemma-4-26b-a4b-it", false], ["gemma-3-4b", "google/gemma-3-4b-it", false]];
+  const tx = 880, ty = 300, rowH = 84, colX = [tx + 410, tx + 630, tx + 835];
+  const hdr = el("g", {}, a);
+  T(hdr, colX[0], ty, "failed", { size: AUX, fill: PAL.dim, anchor: "middle" });
+  T(hdr, colX[1], ty, "nominalizations", { size: AUX, fill: PAL.dim, anchor: "middle" });
+  T(hdr, colX[2], ty, "time", { size: AUX, fill: PAL.dim, anchor: "middle" });
+  const rowsEl = models.map(([name, key, win], j) => {
+    const y = ty + 40 + j * (rowH + 12), rg = el("g", {}, a);
+    const bg = el("rect", { x: tx, y, width: 920, height: rowH, rx: 6, fill: PAL.panel, stroke: PAL.line, "stroke-width": 1.5 }, rg);
+    T(rg, tx + 64, y + rowH / 2 + 11, name, { size: AUX, family: MONO, weight: 700 });
+    cols.forEach(([, k, f], i) => T(rg, colX[i], y + rowH / 2 + 11, f(TR[key][k]), { size: 34, family: MONO, weight: 700, anchor: "middle",
+      fill: k === "seg_fallback_pct" && TR[key][k] > 0 ? PAL.rose : PAL.ink }));
+    return { rg, bg, win, gem3: key.includes("gemma-3") };
+  });
+  const winT = T(a, tx + 22, ty + 40 + rowH / 2 + 12, "✓", { size: 36, weight: 700, fill: PAL.teal });
+  const origNote = T(a, tx, ty + 40 + 3 * (rowH + 12) + 34, `nominalizations per 100 words · original text: ${D.orig_nominal}`, { size: AUX, fill: PAL.dim });
+  const notes = [
+    ["gemma-3-4b: a third of segments failed; it once pasted the user's question over a heading", PAL.dim, 400],
+    ["gemma-4-26b: three times faster, but kept phrases like “drove alignment” as they were", PAL.ink, 400],
+    ["hy-mt2: zero failed segments, and it cut nominalizations and stacked compounds the most", PAL.teal, 700],
+  ].map(([s, c, w], i) => T(a, 140, 724 + i * 60, s, { size: fit(s, AUX, 1640, w), fill: c, weight: w }));
+  // 3-b round trips drift → reference only; tuning en1 → en2
+  const b = el("g", {}, g);
+  title(b, "Round trips drift, so they are only a reference", 196, 58);
+  T(b, 140, 290, "Real drift from the translator test:", { size: 34, weight: 500 });
+  T(b, 140, 336, "first two from hy-mt2, the last from gemma-3-4b", { size: AUX, fill: PAL.dim });
+  const drift = D.drift.map(([o, r, m], i) => { const dg = el("g", {}, b), y = 412 + i * 68;
+    const shown = m === "gemma-3-4b" ? "the user's question, as a heading" : r;
+    const fam = o.startsWith("##") ? MONO : SANS, ds = 34;
+    T(dg, 160, y, o, { size: ds, family: fam });
+    const ow = mw(o, ds, 400, fam);
+    T(dg, 160 + ow + 18, y, "→", { size: ds, fill: PAL.dim });
+    const rx = 160 + ow + 64;
+    el("rect", { x: rx - 6, y: y - 34, width: mw(shown, ds) + 12, height: 46, rx: 4, fill: PAL.roseBg }, dg);
+    T(dg, rx, y, shown, { size: ds, fill: PAL.rose });
+    return dg; });
+  const sol = el("g", {}, b);
+  const solLines = [["① Patches land on the original text", 400], ["② Only code, paths and formulas are frozen", 400], ["③ The host fixes only what is hard to read", 700]];
+  let sy = 652;
+  const solR = solLines.map(([s, w]) => { const r = rich(sol, [[s, ""]], { x: 180, y: sy, width: 700, size: AUX, lh: 44, weight: w, fill: w === 700 ? PAL.teal : PAL.ink }); sy += r.height + 10; return r; });
+  sol.insertBefore(card(sol, 140, 626, 780, sy - 626 + 18, { accent: PAL.teal }), sol.firstChild);
+  const eff = el("g", {}, b);
+  card(eff, 1000, 270, 800, 600, { fill: PAL.panel });
+  T(eff, 1040, 332, "Tuning the rules: en1 → en2", { size: 38, weight: 700, family: SERIF });
+  T(eff, 1040, 380, `Tune set, ${TU.n} documents · lower is better`, { size: AUX, fill: PAL.dim });
+  const E = [["Words per sentence", TU.wps, 20, v => v.toFixed(1)], ["Sentences over 30 words", TU.long, 4, v => `${v.toFixed(1)}%`], ["Jargon per 1,000 words", TU.jargon, 40, v => v.toFixed(1)]];
+  const rows = E.map(([l, vals, max, f], i) => {
+    const y = 474 + i * 142, rg = el("g", {}, eff);
+    T(rg, 1040, y - 34, `${l} (original ${f(vals[0])})`, { size: AUX, weight: 500 });
+    const rl = el("rect", { x: 1040, y: y - 16, height: 26, rx: 3, fill: PAL.line }, rg);
+    const rh = el("rect", { x: 1040, y: y + 34, height: 26, rx: 3, fill: PAL.teal }, rg);
+    const tl = T(rg, 1040, y + 8, `en1 ${f(vals[1])}`, { size: AUX, family: MONO, fill: PAL.dim });
+    const th = T(rg, 1040, y + 58, `en2 ${f(vals[2])}`, { size: AUX, family: MONO, fill: PAL.teal, weight: 700 });
+    return { rg, rl, rh, tl, th, lo: vals[1] / max * 460, hi: vals[2] / max * 460 }; });
+  // 3-c a locked test set
+  const c = el("g", {}, g);
+  title(c, "A test set the tuning never saw", 196, 58);
+  const vs = [["probe", "7 documents", ""], ["pick", "hy-mt2", "via Japanese"], ["en1", "first rules", ""], ["en2", "split long", "sentences"], ["test", `${TS.n} documents`, "locked first"]];
+  const rx0 = 270, rstep = 345, ry = 316;
+  el("line", { x1: 170, x2: 1750, y1: ry, y2: ry, stroke: PAL.line, "stroke-width": 3 }, c);
+  const prog = el("line", { x1: 170, y1: ry, y2: ry, stroke: PAL.ink, "stroke-width": 3 }, c);
+  const vnodes = vs.map(([v, a1, a2], i) => { const x = rx0 + i * rstep, ng = el("g", {}, c);
+    const dot = el("circle", { cx: x, cy: ry, r: 13, fill: PAL.bg, stroke: PAL.ink, "stroke-width": 3 }, ng);
+    T(ng, x, ry - 34, v, { size: 38, family: MONO, weight: 700, anchor: "middle", fill: i === 4 ? PAL.amber : PAL.ink });
+    T(ng, x, ry + 62, a1, { size: AUX, anchor: "middle" });
+    if (a2) T(ng, x, ry + 108, a2, { size: AUX, anchor: "middle", fill: i === 4 ? PAL.amber : PAL.dim });
+    return { ng, dot, x }; });
+  const legendS = "Written or collected before tuning, locked by sha256, never read while tuning:";
+  const legend = T(c, 140, 520, legendS, { size: fit(legendS, 34, 1640, 500), weight: 500 });
+  const pw = 300, pg = 18, py = 552;
+  const prLabel = T(c, 140, py + 40, `${TS.repos.length} real Claude Code PRs`, { size: AUX, weight: 700, fill: PAL.teal });
+  const short = s => s.split("/")[1].replace("generator-", "");
+  const cellsR = TS.repos.map((r, i) => { const x = 140 + i * (pw + pg), k = el("g", {}, c);
+    card(k, x, py + 66, pw, 104, { accent: PAL.teal, shadow: false });
+    T(k, x + 24, py + 112, "GitHub PR", { size: AUX, fill: PAL.dim });
+    T(k, x + 24, py + 152, short(r), { size: fit(short(r), 34, pw - 40, 700, MONO), family: MONO, weight: 700 });
+    return k; });
+  const nAns = Object.values(TS.answers).reduce((s, v) => s + v, 0);
+  const ansLabel = T(c, 140, py + 222, `${nAns} assistant answers`, { size: AUX, weight: 700, fill: PAL.ink });
+  const AL = { teaching: "teaching", writing: "writing", discussion: "discussion", daily: "everyday", mixed: "formulas" };
+  const ansChips = chipRow(c, py + 272, Object.entries(TS.answers).map(([k, v]) => ({ text: `${AL[k]} ×${v}` })), 16, 140);
+  const lockT = tag(el("g", { transform: `translate(${rx0 + 4 * rstep - 190} ${ry + 158})` }, c), 0, 0, "[LOCKED] sha256", PAL.amber, PAL.amberBg);
+  return {
+    cam: t => t < 10 ? { s: kf([[0, 1], [9.8, 1.02]])(t), fx: 960, fy: 520 } : t < 20 ? { s: kf([[10, 1.0], [19.8, 1.015]])(t), fx: 960, fy: 540 } : { s: kf([[20, 1.0], [29.8, 1.015]])(t), fx: 960, fy: 520 },
+    update(t) {
+      if (apply(a, vis(t, 0, 9.85), W / 2, 520)) {
+        rise(rt, t, 0.5, 16); rise(rtc, t, 1.4, 12); rise(hdr, t, 2.6, 10);
+        rowsEl.forEach((r, j) => { rise(r.rg, t, 3.2 + j * 0.4, 16); const win = r.win && t > 7.6;
+          r.bg.setAttribute("fill", win ? PAL.tealBg : PAL.panel); r.bg.setAttribute("stroke", win ? PAL.teal : PAL.line); });
+        op(winT, S(t - 7.8, ...SP.SLOW)); rise(origNote, t, 4.6, 10);
+        notes.forEach((n, i) => rise(n, t, 5.2 + i * 0.8, 12));
+      }
+      if (apply(b, vis(t, 9.93, 19.85), W / 2, 540)) {
+        drift.forEach((d, i) => rise(d, t, 10.5 + i * 0.6, 14));
+        rise(sol, t, 13.0, 20); rise(eff, t, 14.4, 20);
+        rows.forEach((r, i) => { const k = S(t - 15.2 - i * 0.5, ...SP.MORPH);
+          r.rl.setAttribute("width", Math.max(0, r.lo * k).toFixed(1)); r.rh.setAttribute("width", Math.max(0, r.hi * k).toFixed(1));
+          r.tl.setAttribute("x", (1040 + r.lo * k + 16).toFixed(1)); r.th.setAttribute("x", (1040 + r.hi * k + 16).toFixed(1)); op(r.tl, k); op(r.th, k); });
+      }
+      if (apply(c, vis(t, 19.93, null), W / 2, 520)) {
+        const p = eio(seg(t, 20.4, 24.2)), px = lerp(170, rx0 + 4 * rstep, p);
+        prog.setAttribute("x2", px.toFixed(1));
+        vnodes.forEach((n, i) => { const on = px >= n.x - 2; op(n.ng, on ? 1 : 0.25); n.dot.setAttribute("fill", on ? (i === 4 ? PAL.amber : PAL.ink) : PAL.bg); });
+        rise(legend, t, 24.2, 10); rise(prLabel, t, 24.5, 10);
+        cellsR.forEach((k, i) => rise(k, t, RATCHET_T(i), 22, SP.POP));
+        rise(ansLabel, t, 26.6, 10);
+        ansChips.forEach((ch, i) => rise(ch.g, t, RATCHET_T(4 + i), 16, SP.POP));
+        op(lockT.g, S(t - 24.3, ...SP.POP));
+      }
+    },
+  };
+}
+const RATCHET_T = i => 24.7 + [0, 0.4, 0.75, 1.05, 2.3, 2.55, 2.78, 2.98, 3.15][i];
+
+// ===========================================================================
+// 4. Real examples (86–108s)
+// ===========================================================================
+function caseShot(g, data, head) {
+  const s = el("g", {}, g);
+  const x = 130, w = 1660, padTop = 86;
+  let ra, rb, yc, B;
+  for (const size of [42, 40, 38, 36, 34, 32]) {   // shrink step by step so the whole shot stays above the subtitle bar
+    s.textContent = "";
+    title(s, head, 196, 56);
+    const lh = Math.round(size * 1.56), A = el("g", {}, s);
+    B = el("g", {}, s);
+    ra = rich(A, data.before, { x: x + 56, y: 250 + padTop, width: w - 112, size, lh });
+    const ha = padTop + ra.height + 30;
+    A.insertBefore(card(A, x, 250, w, ha, { fill: PAL.panel2, accent: PAL.rose }), A.firstChild);
+    T(A, x + 56, 250 + 60, "Original", { size: AUX, fill: PAL.rose, weight: 500 });
+    tag(A, x + w - 220, 250 + 60, "[REDLINE]", PAL.rose, PAL.roseBg);
+    const yb = 250 + ha + 28;
+    rb = rich(B, data.after, { x: x + 56, y: yb + padTop, width: w - 112, size, lh });
+    const hb = padTop + rb.height + 30;
+    B.insertBefore(card(B, x, yb, w, hb, { accent: PAL.teal }), B.firstChild);
+    T(B, x + 56, yb + 60, "no-ai-fluff", { size: AUX, fill: PAL.teal, weight: 500 });
+    tag(B, x + w - 190, yb + 60, "[PATCH]", PAL.teal, PAL.tealBg);
+    yc = yb + hb + 52;
+    if (yc + 12 <= 905) break;
+  }
+  T(s, x, yc, data.src, { size: AUX, family: MONO, fill: PAL.dim });
+  const dels = ra.runs.filter(r => r.c === "del"), ins = rb.runs.filter(r => r.c === "ins");
+  const locks = [...ra.runs, ...rb.runs].filter(r => r.c === "lock" || r.c === "math");
+  const lkS = "[LOCKED] code untouched", lkW = mw(lkS, AUX, 500, MONO) + 24;
+  const lk = locks.length ? tag(el("g", { transform: `translate(${x + w - lkW} ${yc})` }, s), 0, 0, lkS, PAL.amber, PAL.amberBg) : null;
+  return (t, s0, e0) => {
+    if (!apply(s, vis(t, s0, e0), W / 2, 540)) return;
+    const lt = t - s0;
+    dels.forEach((r, i) => paint(r, S(lt - 0.6 - i * 0.12, ...SP.SLOW)));
+    op(B, S(lt - 1.3, ...SP.SLOW));
+    ins.forEach((r, i) => paint(r, S(lt - 1.8 - i * 0.18 + i * i * 0.008, ...SP.POP)));
+    locks.forEach(r => paint(r, S(lt - 3.0, ...SP.POP)));
+    if (lk) rise(lk.g, lt, 3.4, 0);
+  };
+}
+function buildC4(g) {
+  const [c1, c2, c3] = D.cases;
+  const cs = caseShot(g, c1, "PR description: the list moves out of the sentence");
+  const ts = caseShot(g, c2, "Technical explanation: one idea per sentence");
+  const ms = caseShot(g, c3, "Discussion: the hidden costs, said plainly");
+  const p = el("g", {}, g);
+  title(p, "Jargon becomes plain words", 196, 56);
+  T(p, 160, 290, "Original", { size: AUX, fill: PAL.rose, weight: 500 });
+  T(p, 800, 290, "no-ai-fluff", { size: AUX, fill: PAL.teal, weight: 500 });
+  T(p, 1390, 290, "Source", { size: AUX, fill: PAL.dim });
+  el("line", { x1: 130, x2: 1790, y1: 310, y2: 310, stroke: PAL.lineStrong, "stroke-width": 1.5 }, p);
+  const rows = D.pairs.map(([o, r, src], i) => {
+    const rg = el("g", {}, p), y = 384 + i * 88;
+    const s1 = fit(o, 36, 540), s2 = fit(r, 36, 540);
+    const w1 = mw(o, s1), w2 = mw(r, s2);
+    el("rect", { x: 152, y: y - 36, width: w1 + 16, height: 50, rx: 4, fill: PAL.roseBg }, rg);
+    T(rg, 160, y, o, { size: s1, fill: PAL.rose });
+    el("line", { x1: 160, x2: 160 + w1, y1: y - 12, y2: y - 12, stroke: PAL.rose, "stroke-width": 2 }, rg);
+    T(rg, 750, y, "→", { size: 36, fill: PAL.dim, anchor: "middle" });
+    el("rect", { x: 792, y: y - 36, width: w2 + 16, height: 50, rx: 4, fill: PAL.tealBg }, rg);
+    T(rg, 800, y, r, { size: s2, fill: PAL.teal });
+    T(rg, 1390, y, src, { size: fit(src, AUX, 400, 400, MONO), family: MONO, fill: PAL.dim });
+    el("line", { x1: 130, x2: 1790, y1: y + 30, y2: y + 30, stroke: PAL.line, "stroke-width": 1 }, rg);
+    return { rg };
+  });
+  return {
+    cam: t => ({ s: kf([[0, 1], [22, 1.02]])(t), fx: 960, fy: 540 }),
+    update(t) {
+      cs(t, 0, 5.35); ts(t, 5.43, 10.85); ms(t, 10.93, 16.35);
+      if (apply(p, vis(t, 16.43, null), W / 2, 540)) rows.forEach((r, i) => rise(r.rg, t, PAIR_T(i), 16));
+    },
+  };
+}
+const PAIR_T = i => 16.8 + i * 0.5 - i * i * 0.03;
+
+// ===========================================================================
+// 5. The judge (108–132s)
+// ===========================================================================
+function buildC5(g) {
+  const J = D.jev, TS = D.test;
+  // 5-a the judge and the two contenders
+  const a = el("g", {}, g);
+  title(a, "A third-party judge: original vs edited", 196, 58);
+  const judge = el("g", {}, a);
+  card(judge, 260, 250, 1400, 96, { fill: PAL.dark, stroke: PAL.dark });
+  const jS = "Independent third-party model judge JEV (typesafe/jev-1.14) — blind pairwise evaluation";
+  T(judge, W / 2, 312, jS, { size: fit(jS, 36, 1340, 500), fill: PAL.inkOnDark, anchor: "middle", weight: 500 });
+  const vsL = el("g", {}, a), vsR = el("g", {}, a);
+  card(vsL, 260, 390, 620, 200, { accent: PAL.teal });
+  T(vsL, 310, 456, "no-ai-fluff (en2)", { size: 44, weight: 700, family: SERIF, fill: PAL.teal });
+  T(vsL, 310, 510, "round-trip reference", { size: 34, weight: 500 });
+  T(vsL, 310, 558, "+ local patches", { size: AUX, fill: PAL.dim });
+  card(vsR, 1040, 390, 620, 200, { accent: PAL.ink });
+  T(vsR, 1090, 456, "The original AI text", { size: 44, weight: 700, family: SERIF });
+  T(vsR, 1090, 510, `${TS.repos.length} real PRs + ${Object.values(TS.answers).reduce((s, v) => s + v, 0)} answers`, { size: 34, weight: 500 });
+  T(vsR, 1090, 558, "locked test set", { size: AUX, fill: PAL.dim });
+  const vsT = T(a, W / 2, 506, "vs", { size: 56, family: SERIF, italic: true, anchor: "middle", fill: PAL.dim });
+  const hb = el("g", {}, a);
+  card(hb, 260, 640, 1400, 210, { fill: PAL.panel });
+  const big = T(hb, 310, 782, "", { size: 108, family: MONO, weight: 700, fill: PAL.teal });
+  T(hb, 760, 724, "of documents: the edit read better", { size: 40, weight: 700, family: SERIF });
+  T(hb, 760, 784, "each pair judged in both orders, then averaged", { size: AUX, fill: PAL.dim });
+  // 5-b verdict + does no harm + how JEV judges
+  const b = el("g", {}, g);
+  title(b, "The verdict, and nothing broken", 196, 58);
+  const res = [["Win rate vs the original", J.win], ["On real Claude Code PRs", J.pr_win]].map(([l, v], i) => {
+    const rg = el("g", {}, b), y = 290 + i * 150;
+    T(rg, 140, y, l, { size: 34, weight: 500 });
+    el("rect", { x: 140, y: y + 24, width: 470, height: 24, rx: 3, fill: PAL.panel2 }, rg);
+    const bar = el("rect", { x: 140, y: y + 24, height: 24, rx: 3, fill: PAL.teal }, rg);
+    el("line", { x1: 140 + 235, x2: 140 + 235, y1: y + 14, y2: y + 58, stroke: PAL.ink, "stroke-width": 2, "stroke-dasharray": "5 5" }, rg);
+    const num = T(rg, 640, y + 46, "", { size: 56, family: MONO, weight: 700, fill: PAL.teal });
+    return { rg, bar, num, v }; });
+  const safe = el("g", {}, b);
+  card(safe, 120, 548, 820, 316, { accent: PAL.amber });
+  T(safe, 160, 604, "Does no harm", { size: 38, weight: 700, family: SERIF, fill: PAL.amber });
+  T(safe, 160, 664, "Numbers: none changed, in any document", { size: fit("Numbers: none changed, in any document", 34, 740, 700), weight: 700 });
+  T(safe, 160, 710, "(every number checked against the original)", { size: AUX, fill: PAL.dim });
+  T(safe, 160, 776, "Code, paths, formulas: 100% verbatim", { size: fit("Code, paths, formulas: 100% verbatim", 34, 740, 700), weight: 700 });
+  T(safe, 160, 822, "(the one rejected patch repeated a frozen name)", { size: fit("(the one rejected patch repeated a frozen name)", AUX, 740), fill: PAL.dim });
+  const std = el("g", {}, b);
+  card(std, 980, 250, 820, 610, { accent: PAL.scan });
+  T(std, 1020, 312, "[JEV · how it judges]", { size: 34, family: MONO, weight: 700, fill: PAL.scan });
+  let yy = 372;
+  const rules = [["1", "6 accuracy checks: numbers, hedges, terms, omissions, additions, who does what"],
+    ["2", "Readability from 1 to 5, without seeing the original"],
+    ["3", "Each pair is judged twice in swapped A/B order and averaged to cancel position bias"]].map(([n, s]) => {
+    const rg = el("g", {}, std);
+    T(rg, 1020, yy + 32, n, { size: 40, family: MONO, weight: 700, fill: PAL.scan });
+    const rr = rich(rg, [[s, ""]], { x: 1080, y: yy, width: 680, size: 34, lh: 52 });
+    yy += rr.height + 34;
+    return rg; });
+  // 5-c same answer side by side
+  const c = el("g", {}, g);
+  title(c, "The same answer, side by side", 180, 58);
+  const th = D.two_col;
+  const cols2 = [["Original", th.orig, PAL.panel2, PAL.rose], ["no-ai-fluff (en2)", th.ours, PAL.panel, PAL.teal]];
+  // v11: a long, heavily rewritten paragraph, so the columns are wider and the two metrics sit on one line under the title
+  const mS = `Sentences over 30 words (test set): ${TS.long[0].toFixed(1)}% → ${TS.long[1].toFixed(1)}%   ·   Readability (JEV, 1–5): ${J.read[0].toFixed(2)} → ${J.read[1].toFixed(2)}`;
+  const m1 = T(c, W / 2, 238, mS, { size: fit(mS, 34, 1700, 500), weight: 500, anchor: "middle", fill: PAL.dim }), m2 = el("g", {}, c);
+  const cw3 = 846, gp3 = 20, x3 = (W - (cw3 * 2 + gp3)) / 2, cy3 = 262;
+  const colEls = cols2.map(([h, segs, fill, acc], i) => { const x = x3 + i * (cw3 + gp3), k = el("g", {}, c);
+    const rr = rich(k, segs, { x: x + 34, y: cy3 + 70, width: cw3 - 68, size: 32, lh: 44 });
+    k.insertBefore(card(k, x, cy3, cw3, 70 + rr.height + 30, { fill, accent: acc }), k.firstChild);
+    T(k, x + 34, cy3 + 50, h, { size: 34, weight: 700, fill: acc });
+    rr.runs.forEach(r => paint(r, 1));
+    return { k, h: 70 + rr.height + 30 }; });
+  return {
+    cam: t => t < 8 ? { s: kf([[0, 1.02], [7.8, 1.0]])(t), fx: 960, fy: 520 } : t < 16 ? { s: kf([[8, 1.0], [15.8, 1.015]])(t), fx: 960, fy: 540 } : { s: kf([[16, 1.0], [24, 1.015]])(t), fx: 960, fy: 540 },
+    update(t) {
+      if (apply(a, vis(t, 0, 7.85), W / 2, 540)) {
+        rise(judge, t, 0.4, -16); rise(vsL, t, 1.3, 20); rise(vsR, t, 1.6, 20); op(vsT, S(t - 1.9, ...SP.SLOW));
+        rise(hb, t, 3.0, 20);
+        big.textContent = pct(J.pref_share * S(t - 3.4, 7, 0.95));
+      }
+      if (apply(b, vis(t, 7.93, 15.85), W / 2, 540)) {
+        res.forEach((r, i) => { const k = S(t - 8.6 - i * 0.6, 8, 0.9); op(r.rg, clamp(k * 2));
+          r.bar.setAttribute("width", Math.max(0, 470 * r.v * k).toFixed(1)); r.num.textContent = pct(r.v * clamp(k, 0, 1)); });
+        rise(safe, t, 10.0, 16); rise(std, t, 9.4, 20);
+        rules.forEach((r, i) => rise(r, t, 10.6 + i * 0.9, 12));
+      }
+      if (apply(c, vis(t, 15.93, null), W / 2, 540)) {
+        colEls.forEach((o, i) => rise(o.k, t, 16.3 + i * 0.5, 20));
+        rise(m1, t, 18.6, 10); rise(m2, t, 19.2, 10);
+      }
+    },
+  };
+}
+
+// ===========================================================================
+// 6. Wrap-up (132–154s): where it helps → five cards → tagline
+// ===========================================================================
+function buildC6(g) {
+  const J = D.jev;
+  // 6-a where it helps
+  const a = el("g", {}, g);
+  title(a, "Where it helps", 196, 60);
+  const legS = "Win rate vs. the original AI text, by category · locked test set (JEV)";
+  const legend = T(a, W / 2, 252, legS, { size: fit(legS, AUX, 1640), fill: PAL.dim, anchor: "middle" });
+  // v11: five categories where the edit beats the original, sorted by win rate, laid out 3 + 2 like the summary cards
+  const tiles = [
+    ["PR descriptions", "PR summaries, change notes", J.by.coding], ["Discussion", "trade-offs and choices", J.by.discussion],
+    ["Tech explanations", "concepts, protocols, how-tos", J.by.teaching], ["Everyday questions", "plans and advice", J.by.daily],
+    ["Writing", "announcements, bios", J.by.writing],
+  ].sort((p, q) => q[2] - p[2]);
+  console.assert(tiles.every(t => t[2] > 0.5), "every tile shown must beat the original");
+  const tw = 520, thh = 236, tg = 30, tx0 = (W - (tw * 3 + tg * 2)) / 2, ty0 = 290;
+  const tpos = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];
+  const tileEls = tiles.map(([n, ex, v], i) => {
+    const x = tx0 + tpos[i][0] * (tw + tg), y = ty0 + tpos[i][1] * (thh + tg), k = el("g", {}, a), best = i === 0;
+    card(k, x, y, tw, thh, { accent: PAL.teal, fill: best ? PAL.panel : PAL.panel2 });
+    T(k, x + 36, y + 70, n, { size: fit(n, 44, tw - 72, 700, SERIF), weight: 700, family: SERIF });
+    T(k, x + 36, y + 128, ex, { size: fit(ex, 34, tw - 72), fill: PAL.dim });
+    tag(k, x + 36, y + 196, `${best ? "best at" : "win rate"} · ${pct(v)}`, PAL.teal, PAL.tealBg);
+    return k; });
+  const tailS = `All five beat the original AI text, led by PR descriptions at ${pct(tiles[0][2])}.`;
+  const tail = T(a, W / 2, 866, tailS, { size: fit(tailS, AUX, 1640), fill: PAL.dim, anchor: "middle" });
+  // 6-b five summary cards + tagline
+  const b = el("g", {}, g);
+  const cardsDef = [
+    ["01", "Hypothesis + paper", "Length penalties in RL reward compressed phrasing"],
+    ["02", "Code 100% intact", "Backticks, paths, formulas and versions are frozen first"],
+    ["03", "Round trip via Japanese", "The paper's paraphrase test, used as a plainer reference"],
+    ["04", "Checks + precise patches", "A regex radar, then JSON patches on the original"],
+    ["05", "Tested on a locked set", `Preferred in ${pct(J.pref_share)} of documents; no number changed`],
+  ];
+  const cw = 540, chh = 218, gx = 30, gy = 26;
+  const pos = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];
+  const ox = (W - (cw * 3 + gx * 2)) / 2, oy = 168;
+  const from = [[-600, -60], [0, 380], [600, -60], [-600, 240], [600, 240]];
+  const cards = cardsDef.map(([n, h, s], i) => {
+    const [cx, cy] = pos[i], x = ox + cx * (cw + gx), y = oy + cy * (chh + gy), k = el("g", {}, b);
+    card(k, x, y, cw, chh, { accent: i === 4 ? PAL.teal : PAL.amber });
+    T(k, x + 34, y + 54, n, { size: AUX, family: MONO, weight: 700, fill: PAL.amber });
+    T(k, x + 94, y + 56, h, { size: fit(h, 36, cw - 128, 700, SERIF), weight: 700, family: SERIF });
+    rich(k, [[s, ""]], { x: x + 34, y: y + 80, width: cw - 68, size: AUX, lh: 46, fill: PAL.dim });
+    return { k, cx: x + cw / 2, cy: y + chh / 2, from: from[i] }; });
+  const fin = el("g", {}, b);
+  el("line", { x1: 560, x2: 1360, y1: 686, y2: 686, stroke: PAL.ink, "stroke-width": 1.5 }, fin);
+  const finS = "The AI-dialect remover · no-ai-fluff";
+  T(fin, W / 2, 790, finS, { size: fit(finS, 84, 1700, 800, SERIF), family: SERIF, weight: 800, anchor: "middle" }).setAttribute("filter", "url(#titleGlow)");   // second title
+  const quote = T(b, W / 2, 878, "Less machine posture. More plain talk.", { size: 48, family: SERIF, weight: 600, italic: true, anchor: "middle", fill: PAL.teal });
+  return {
+    cam: t => t < 9 ? { s: kf([[0, 1.0], [8.8, 1.02]])(t), fx: 960, fy: 540 } : { s: kf([[9, 1.04], [17.4, 1.0]])(t), fx: 960, fy: kf([[9, 560], [17.4, 540]])(t) },
+    update(t) {
+      if (apply(a, vis(t, 0, 8.9), W / 2, 540)) {
+        op(legend, S(t - 0.5, ...SP.SLOW));
+        tileEls.forEach((k, i) => rise(k, t, TILE_T(i), 24, SP.POP));
+        rise(tail, t, 4.6, 10);
+      }
+      if (apply(b, vis(t, 8.98, null, { lin: 0.4 }), W / 2, 540)) {
+        cards.forEach((c, i) => { const k = S(t - END_T(i), 10, 0.74);
+          trc(c.k, c.cx, c.cy, 0.86 + 0.14 * k, c.from[0] * (1 - k), c.from[1] * (1 - k)); op(c.k, clamp(k * 2));
+          c.k.setAttribute("data-transit", Math.abs(1 - k) > 0.02 ? "1" : "0"); });
+        const fk = S(t - 13.0, 9, 0.8); op(fin, clamp(fk * 1.4)); trc(fin, W / 2, 760, 0.94 + 0.06 * fk);
+        rise(quote, t, 14.4, 14);
+      }
+    },
+  };
+}
+const TILE_T = i => 0.9 + [0, 0.45, 0.8, 1.6, 1.9, 2.12][i];
+const END_T = i => 9.5 + [0, 0.6, 1.05, 1.38, 1.6][i];
+
+// ---------------------------------------------------------------------------
+// Timeline and subtitles
+// ---------------------------------------------------------------------------
+const SCENES = [
+  { title: "1. AI's dialect", short: "AI'S DIALECT", start: 0, end: 26, build: buildC1 },
+  { title: "2. The hypothesis", short: "THE HYPOTHESIS", start: 26, end: 56, build: buildC2 },
+  { title: "3. Building it for English", short: "BUILDING IT FOR ENGLISH", start: 56, end: 86, build: buildC3 },
+  { title: "4. Real examples", short: "REAL EXAMPLES", start: 86, end: 108, build: buildC4 },
+  { title: "5. The judge", short: "THE JUDGE", start: 108, end: 132, build: buildC5 },
+  { title: "6. Wrap-up", short: "WRAP-UP", start: 132, end: 154, build: buildC6 },
+];
+const DURATION = INTRO_T + 154;
+const SUBS = [
+  [0.4, 5.4, "A typical AI update: you know every word."],
+  [5.6, 11.6, "Together it reads like a telegram."],
+  [12.4, 18.8, "In a status meeting, this sounds productive."],
+  [19.0, 25.6, "In a one-on-one, it is just hard to read."],
+  [26.4, 31.0, "My guess: context and compute are limited,"],
+  [31.2, 35.8, "training pays for right answers, not length,"],
+  [36.0, 40.8, "so models learned a compressed dialect."],
+  [41.4, 48.4, "This paper asks exactly my question."],
+  [48.6, 55.6, "More post-training, harder-to-read prose."],
+  [56.4, 61.0, "I turned their round trip into a tool."],
+  [61.2, 65.8, "hy-mt2 loosened the prose the most."],
+  [66.4, 70.8, "Round trips drift, so they are a reference."],
+  [71.0, 75.8, `Two rounds: ${D.tuning.wps[0].toFixed(1)} words a sentence down to ${D.tuning.wps[2].toFixed(1)}.`],
+  [76.4, 81.0, "Then a test set the tuning never saw:"],
+  [81.2, 85.8, "real Claude Code PRs and assistant answers."],
+  [86.4, 91.2, "PR description: the list gets its own sentence."],
+  [91.8, 96.6, "Explanation: one idea per sentence."],
+  [97.3, 102.1, "Discussion: the costs, said plainly."],
+  [102.8, 107.8, "Jargon becomes plain words."],
+  [108.4, 115.8, "The judge is JEV, a third-party model."],
+  [116.4, 123.8, "No number changed. Code stayed verbatim."],
+  [124.4, 131.8, "Shorter sentences, easier reading."],
+  [132.4, 136.8, "PRs and explanations are where it shines."],
+  [137.0, 140.8, "It also cleans up trade-offs, announcements, and everyday answers."],
+  [141.4, 146.6, "Guess, paper, experiments, a locked test."],
+];
+// one highlighted keyword per subtitle (parallel to SUBS): warm = coral (the problem), green = the result
+const SUB_HL = [
+  ["every word", "warm"], ["telegram", "warm"], ["sounds productive", "warm"], ["hard to read", "warm"],
+  ["limited", "warm"], ["not length", "warm"], ["compressed dialect", "warm"], ["exactly my question", "green"], ["harder-to-read", "warm"],
+  ["into a tool", "green"], ["the most", "green"], ["a reference", "warm"], [D.tuning.wps[2].toFixed(1), "green"], ["never saw", "green"],
+  ["real Claude Code PRs", "green"], ["its own sentence", "green"], ["one idea", "green"], ["said plainly", "green"], ["plain words", "green"],
+  ["third-party", "green"], ["No number changed", "green"], ["easier reading", "green"],
+  ["shines", "green"], ["everyday answers", "green"], ["a locked test", "green"],
+];
+// cold open (0–INTRO_T): three-line hook → first title + tagline; the wrap-up shows them a second time
+const INTRO = {
+  button: "0. Cold open",
+  lines: [
+    ["You know every single word on the screen,", 44, "#F5F2EB", 500, false],
+    ["yet it reads like “alignment, gating, and closing the loop” —", 48, "#E87A5D", 500, false],
+    ["Why is AI-generated writing so exhausting to read?", 64, "#FFFFFF", 800, true],
+  ],
+  title: "no-ai-fluff", titleSize: 92, titleWeight: 800,
+  quote: "Less machine posture. More plain talk.", quoteSize: 44,
+};
+
+// ---------------------------------------------------------------------------
+// 声音：只有音效，没有配乐。全部用 WebAudio 合成，和画面共用同一条时间轴（buildAudio 可在任意 (Offline)AudioContext 上排程）
+// 音效：标红=笔尖轻点、擦除线=气流声、锁定=金属轻响、卡片/胶囊落位=轻敲、换镜头=短气流、收尾卡=低沉落地、标语=钟音
+// ---------------------------------------------------------------------------
+const mhz = m => 440 * Math.pow(2, (m - 69) / 12);
+// v10：片头冷开场占 0–INTRO_T，六章与字幕整体顺延（场景内部用的都是相对时间，不受影响）
+SCENES.forEach(s => { s.start += INTRO_T; s.end += INTRO_T; });
+SUBS.forEach(c => { c[0] += INTRO_T; c[1] += INTRO_T; });
+function cueList() {
+  const L = [], at = (s, t) => SCENES[s].start + t;
+  for (let i = 0; i < N_MARKS(); i++) L.push([at(0, MARK_T(i)), "tick", 0.55]);
+  L.push([at(0, 5.5), "whoosh", 0.55], [at(0, 7.7), "clink", 0.45]);
+  for (let i = 0; i < 4; i++) L.push([at(0, CHIP_T(i)), "tap", 0.35]);
+  [11.93, 26, 40.93, 56, 65.93, 75.93, 86, 91.43, 96.93, 102.43, 108, 115.93, 123.93, 132, 140.98].forEach(t => L.push([INTRO_T + t - 0.12, "whoosh", 0.28]));
+  // 冷开场：三行设问各一声低频脉冲，第一次亮标题时钟鸣 + 低音落地，切入第 1 章时一声气流
+  [0.3, 1.4, 2.6].forEach((t, i) => L.push([t, "pulse", 0.6 + i * 0.15]));
+  L.push([4.8, "chime", 0.5], [4.8, "thump", 0.65], [INTRO_T - 0.12, "whoosh", 0.4]);
+  for (let i = 0; i < D.test.repos.length + Object.keys(D.test.answers).length; i++) L.push([at(2, RATCHET_T(i)), "tap", 0.3]);
+  for (let i = 0; i < D.pairs.length; i++) L.push([at(3, PAIR_T(i)), "tick", 0.4]);
+  for (let i = 0; i < 5; i++) L.push([at(5, TILE_T(i)), "tap", 0.32]);
+  for (let i = 0; i < 5; i++) L.push([at(5, END_T(i)), "thump", 0.5]);
+  L.push([at(5, 13.0), "chime", 0.6]);
+  return L;
+}
+window.buildAudio = async function (ctx) {
+  const sr = ctx.sampleRate, R = rng(7);
+  const noise = ctx.createBuffer(1, sr, sr), nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = R() * 2 - 1;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
+  const master = ctx.createGain(); master.gain.value = 0.8;
+  master.connect(comp); comp.connect(ctx.destination);
+  const env = (g, t, a, peak, d) => { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); };
+  const osc = (type, f, t, dur, peak, a = 0.005, out = master, f2 = null) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur * 0.6);
+    env(g, t, a, peak, dur); o.connect(g); g.connect(out); o.start(t); o.stop(t + a + dur + 0.05);
+  };
+  const nz = (t, dur, peak, type, f, q = 1, f2 = null, a = 0.002) => {
+    const s = ctx.createBufferSource(), b = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; s.loop = true; b.type = type; b.frequency.setValueAtTime(f, t); b.Q.value = q;
+    if (f2) b.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    env(g, t, a, peak, dur); s.connect(b); b.connect(g); g.connect(master); s.start(t); s.stop(t + a + dur + 0.05);
+  };
+  // 音效
+  for (const [t, kind, gn] of cueList()) {
+    if (t < 0 || t > DURATION) continue;
+    if (kind === "tick") nz(t, 0.035, 0.5 * gn, "bandpass", 3600, 1.2);
+    else if (kind === "tap") osc("sine", 880, t, 0.09, 0.35 * gn, 0.002, master, 640);
+    else if (kind === "clink") { osc("sine", 1568, t, 0.7, 0.25 * gn); osc("sine", 2349, t, 0.5, 0.15 * gn); }
+    else if (kind === "whoosh") nz(t, 0.5, 0.35 * gn, "bandpass", 400, 0.8, 3200, 0.18);
+    else if (kind === "thump") { osc("sine", 95, t, 0.32, 0.55 * gn, 0.003, master, 48); nz(t, 0.08, 0.12 * gn, "lowpass", 900); }
+    else if (kind === "pulse") { osc("sine", 74, t, 0.7, 0.4 * gn, 0.012, master, 50); nz(t, 0.05, 0.12 * gn, "bandpass", 2200, 1.1); }
+    else if (kind === "chime") for (const [m, a] of [[84, 0.3], [88, 0.2], [91, 0.16], [96, 0.08]]) osc("sine", mhz(m), t, 3.2, a * gn, 0.004);
+  }
+  // 结尾淡出
+  master.gain.setValueAtTime(0.8, DURATION - 3); master.gain.linearRampToValueAtTime(0, DURATION);
+};
+let AC = null, ABUF = null, ASRC = null, muted = false, ARENDER = null;
+function ensureAudio() {
+  if (!ARENDER) ARENDER = (async () => {
+    const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * DURATION), sr);
+    await window.buildAudio(off); ABUF = await off.startRendering(); return ABUF;
+  })();
+  return ARENDER;
+}
+function stopAudio() { if (ASRC) { try { ASRC.stop(); } catch (e) { /* 已停止 */ } ASRC.disconnect(); ASRC = null; } }
+function startAudio() {
+  stopAudio();
+  if (muted || !ABUF || !AC || !playing) return;
+  ASRC = AC.createBufferSource(); ASRC.buffer = ABUF; ASRC.connect(AC.destination); ASRC.start(0, Math.min(now, DURATION - 0.01));
+}
+
+let sceneEls = [], subG, subTx, backdrop, intro, subCue = null;
+function build() {
+  SVG.textContent = ""; FID = 0; subCue = null;
+  DEFS = el("defs", {}, SVG);
+  defsDark();
+  backdrop = buildBackdrop(el("g", {}, SVG));
+  // 无外框（v9）：场景内容整体放大 STAGE_S 倍铺满画面；顶部从 y=STAGE_TOP 开始
+  const centered = typeof CENTER_SHOTS !== "undefined" && CENTER_SHOTS;
+  const ty = centered ? STAGE_CY * (1 - STAGE_S) : STAGE_TOP - 130 * STAGE_S;
+  const root = el("g", { transform: `translate(${(960 * (1 - STAGE_S)).toFixed(2)} ${ty.toFixed(2)}) scale(${STAGE_S})` }, SVG);
+  sceneEls = SCENES.map(s => { const sg = el("g", {}, root), cg = el("g", {}, sg), api = s.build(cg); if (centered) centerShots(cg); return { sg, cg, api }; });
+  intro = buildIntro(SVG, INTRO);
+  // 暗房版（v10）：不挂章节眉标、不画进度线；字幕不画底框，只用文字暗影，核心词可跳色
+  subG = el("g", {}, SVG);
+  subTx = T(subG, W / 2, 1000, "", { size: SUB, anchor: "middle", fill: PAL.ink, weight: 600 });
+  subTx.setAttribute("filter", "url(#subShadow)");
+}
+/** 把场景里的每个镜头组整体平移到画面垂直中心（夹在安全带内）；镜头内部的相对位置不变 */
+function centerShots(cg) {
+  [...cg.children].forEach(shot => {
+    if (shot.tagName !== "g") return;
+    const b = shot.getBBox();
+    if (!b.height) return;
+    let dy = STAGE_CY - (b.y + b.height / 2);
+    if (b.y + dy < BAND[0]) dy = BAND[0] - b.y;
+    if (b.y + b.height + dy > BAND[1]) dy = Math.max(BAND[0] - b.y, BAND[1] - b.y - b.height);
+    const wrap = el("g", { transform: `translate(0 ${dy.toFixed(1)})` });
+    cg.insertBefore(wrap, shot); wrap.appendChild(shot);
+  });
+}
+/** 字幕：整句一个 <text>，核心词放进单独的 <tspan> 换色（SUB_HL 与 SUBS 一一对应） */
+function setSub(i) {
+  subTx.textContent = "";
+  const [, , s] = SUBS[i], hl = (typeof SUB_HL !== "undefined" && SUB_HL[i]) || null;
+  const k = hl ? s.indexOf(hl[0]) : -1;
+  if (k < 0) { subTx.textContent = s; return; }
+  const add = (str, fill) => { if (!str) return; const ts = el("tspan", fill ? { fill } : {}, subTx); ts.textContent = str; };
+  add(s.slice(0, k)); add(hl[0], hl[1] === "green" ? PAL.subGreen : PAL.subWarm); add(s.slice(k + hl[0].length));
+}
+function render(T_) {
+  const t = clamp(T_, 0, DURATION);
+  let camNow = { s: 1, fx: 960, fy: 540 };
+  SCENES.forEach((s, i) => {
+    const se = sceneEls[i], last = i === SCENES.length - 1;
+    const on = t >= s.start - 0.001 && (t < s.end || (last && t <= s.end));
+    se.sg.setAttribute("display", on ? "inline" : "none");
+    if (!on) return;
+    const lt = t - s.start, c = se.api.cam ? se.api.cam(lt) : camNow;
+    se.cg.setAttribute("transform", `translate(960 540) scale(${c.s.toFixed(5)}) translate(${(-c.fx).toFixed(2)} ${(-c.fy).toFixed(2)})`);
+    se.api.update(lt);
+    camNow = c;
+  });
+  backdrop(t);
+  intro.update(t);
+  const ci = SUBS.findIndex(c => t >= c[0] && t <= c[1]);
+  if (ci >= 0) {
+    const cue = SUBS[ci];
+    if (subCue !== ci) { setSub(ci); subCue = ci; }
+    op(subG, Math.min(eo(seg(t, cue[0], cue[0] + 0.22)), 1 - seg(t, cue[1] - 0.18, cue[1])));
+  } else op(subG, 0);
+}
+
+// ---------------------------------------------------------------------------
+// 播放控制、章节、?t= 定格
+// ---------------------------------------------------------------------------
+const qs = new URLSearchParams(location.search);
+const frozen = qs.has("t") || qs.has("render");
+let now = qs.has("t") ? Number(qs.get("t")) / 1000 : 0, playing = false, lastTs = 0;
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+function seek(sec) {
+  now = clamp(sec, 0, DURATION); render(now);
+  $("scrub").value = Math.round(now / DURATION * 1000);
+  $("time").textContent = `${fmt(now)} / ${fmt(DURATION)}`;
+  document.querySelectorAll("#chapters button").forEach((b, j) => {   // 第 0 个按钮是冷开场
+    const i = j - 1;
+    b.classList.toggle("on", i < 0 ? now < INTRO_T : now >= SCENES[i].start && (now < SCENES[i].end || (i === SCENES.length - 1 && now >= SCENES[i].start)));
+  });
+}
+function setPlaying(p) {
+  playing = p; $("play").textContent = p ? "❚❚" : "▶";
+  if (p && now >= DURATION) seek(0);
+  lastTs = performance.now();
+  if (p && !muted) {
+    try { AC = AC || new AudioContext(); AC.resume(); } catch (e) { AC = null; }
+    if (!ABUF) $("mute").textContent = "Sound loading";
+    ensureAudio().then(() => { $("mute").textContent = muted ? "Sound off" : "Sound on"; startAudio(); });
+  } else stopAudio();
+}
+/** 用户主动跳转（拖进度条、点章节、方向键）：画面跳过去，正在播放时声音也从新位置接上 */
+function userSeek(sec) { seek(sec); if (playing) startAudio(); }
+let lastFrame = 0;
+function tick() {
+  const ts = performance.now();
+  if (playing) { seek(now + (ts - lastTs) / 1000); if (now >= DURATION) setPlaying(false); }
+  lastTs = ts;
+}
+function loop() { lastFrame = performance.now(); tick(); requestAnimationFrame(loop); }
+setInterval(() => { if (!frozen && performance.now() - lastFrame > 200) tick(); }, 50);   // 后台或不出帧时兜底推进
+function initControls() {
+  const marks = $("marks"), chaps = $("chapters");
+  const b0 = document.createElement("button"); b0.textContent = INTRO.button; b0.onclick = () => userSeek(0); chaps.appendChild(b0);
+  SCENES.forEach((s, i) => {
+    const m = document.createElement("i"); m.style.left = `${s.start / DURATION * 100}%`; marks.appendChild(m);
+    const b = document.createElement("button"); b.textContent = s.title;
+    b.onclick = () => userSeek(s.start); chaps.appendChild(b);
+  });
+  $("play").onclick = () => setPlaying(!playing);
+  $("scrub").oninput = e => userSeek(e.target.value / 1000 * DURATION);
+  $("mute").onclick = () => { muted = !muted; $("mute").textContent = muted ? "Sound off" : "Sound on"; if (muted) stopAudio(); else if (playing) setPlaying(true); };
+  addEventListener("keydown", e => {
+    if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === "ArrowRight") userSeek(now + 5);
+    else if (e.key === "ArrowLeft") userSeek(now - 5);
+    else if (e.key === "m" || e.key === "M") $("mute").click();
+    else if (/^[1-6]$/.test(e.key)) userSeek(SCENES[Number(e.key) - 1].start);
+    else if (e.key === "0") userSeek(0);
+  });
+}
+
+/** 排版自检：可见文字不重叠、不出外框（拉杆两侧按裁剪框计算，飞入途中的卡片不计出框） */
+window.__audit = function (stepMs = 200) {
+  const issues = [];
+  const sr = SVG.getBoundingClientRect(), k = W / sr.width;
+  const box = r => ({ x0: (r.left - sr.left) * k, y0: (r.top - sr.top) * k, x1: (r.right - sr.left) * k, y1: (r.bottom - sr.top) * k });
+  const meta = e => {
+    let a = 1, clip = null, transit = false;
+    for (let n = e; n && n !== SVG; n = n.parentNode) {
+      if (n.getAttribute("display") === "none" || n.getAttribute("visibility") === "hidden") return { a: 0 };
+      if (n.getAttribute("data-transit") === "1") transit = true;
+      const o = n.getAttribute("opacity"); if (o !== null) a *= Number(o);
+      const cr = n.getAttribute("data-clipref");
+      if (cr && !clip) clip = box(SVG.querySelector(`[data-clipbox="${cr}"]`).getBoundingClientRect());
+    }
+    return { a, clip, transit };
+  };
+  for (let ms = 0; ms <= DURATION * 1000; ms += stepMs) {
+    render(ms / 1000);
+    const boxes = [];
+    SVG.querySelectorAll("text").forEach(e => {
+      if (!e.textContent.trim()) return;
+      const m = meta(e); if (m.a < 0.05) return;
+      let b = box(e.getBoundingClientRect());
+      if (m.clip) { b = { x0: Math.max(b.x0, m.clip.x0), x1: Math.min(b.x1, m.clip.x1), y0: b.y0, y1: b.y1 }; if (b.x1 - b.x0 < 3) return; }
+      b.s = e.textContent.slice(0, 16);
+      if (!m.transit && (b.x0 < SAFE - 1 || b.y0 < SAFE - 1 || b.x1 > W - SAFE + 1 || b.y1 > H - SAFE + 1)) issues.push({ ms, kind: "出框", a: b.s });
+      boxes.push(b);
+    });
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const p = boxes[i], q = boxes[j];
+      const ox = Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0), oy = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0);
+      if (ox > 3 && oy > 6) issues.push({ ms, kind: "重叠", a: p.s, b: q.s, ox: Math.round(ox), oy: Math.round(oy) });
+    }
+  }
+  render(now);
+  return issues;
+};
+window.__fontAudit = function () {
+  const small = new Set();
+  SVG.querySelectorAll("text").forEach(e => { const s = Number(e.getAttribute("font-size")); if (s < AUX && e.textContent.trim()) small.add(`${s}px ${e.textContent.slice(0, 12)}`); });
+  if (Number(subTx.getAttribute("font-size")) < SUB) small.add("字幕");
+  return [...small];
+};
+window.seekMs = ms => seek(ms / 1000);
+window.VIDEO = { w: W, h: H, duration: DURATION };
+
+async function start() {
+  build();
+  const all = Array.from(SVG.querySelectorAll("text")).map(e => e.textContent).join("") + SUBS.map(s => s[2]).join("")
+    + JSON.stringify(D) + "0123456789%→" + SCENES.map(s => s.title).join("");
+  if (document.fonts && document.fonts.load) {
+    const fam = [["Noto Sans SC", ["400", "500", "700"]], ["Noto Serif SC", ["600", "700", "900"]], ["Inter", ["400", "500", "600", "700"]],
+      ["Newsreader", ["500", "700", "800"]], ["JetBrains Mono", ["400", "500", "700"]]];
+    const loads = fam.flatMap(([f, ws]) => ws.map(w => document.fonts.load(`${w} 32px "${f}"`, all)))
+      .concat([document.fonts.load('italic 500 32px "Newsreader"', all), document.fonts.load('italic 600 32px "Noto Serif SC"', all)]);
+    await Promise.race([Promise.allSettled(loads), new Promise(r => setTimeout(r, 5000))]);
+    build();
+  }
+  if (frozen) { document.body.classList.add("capture"); render(now); }
+  else {
+    if (qs.has("clean")) document.body.classList.add("capture");
+    initControls(); seek(now);
+    if (qs.has("autoplay")) setPlaying(true);
+    requestAnimationFrame(loop);
+    setTimeout(() => ensureAudio(), 300);   // 后台预渲染配乐，点播放时不用等
+  }
+  window.__promoReady = true;
+}
+start();
+</script>
+</body>
+</html>

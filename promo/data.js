@@ -1148,7 +1148,15 @@ window.PROMO_DATA = {
   "vs_orig": 0.6366666666666667,
   "mixed": 0.611,
   "teaching": 0.562,
-  "coding": 0.549
+  "coding": 0.549,
+  "by_orig": {
+   "coding": 0.699,
+   "daily": 0.5399999999999999,
+   "discussion": 0.5890000000000001,
+   "mixed": 0.6,
+   "teaching": 0.6460000000000001,
+   "writing": 0.746
+  }
  },
  "hard_survival": 1.0,
  "hz_hard": 0.9912,

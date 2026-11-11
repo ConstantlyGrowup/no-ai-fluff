@@ -244,7 +244,9 @@ def main() -> None:
         "blind": blind(),
         "jev": {"overall": jev["overall"]["win_vs_base"], "vs_orig": jev["overall"]["win_vs_orig"],
                 "mixed": by["mixed"]["win_vs_base"], "teaching": by["teaching"]["win_vs_base"],
-                "coding": by["coding"]["win_vs_base"]},
+                "coding": by["coding"]["win_vs_base"],
+                # 第 6 章“在哪些地方用得上”：各场景相比 AI 原文的胜率（用户真实使用时只和原稿比）
+                "by_orig": {k: v["win_vs_orig"] for k, v in by.items()}},
         "hard_survival": summ["patched:hymt-ru"]["hard_placeholder_survival"],
         "hz_hard": summ["baseline:humanizer-zh"]["hard_placeholder_survival"],
         "rtt_cost_usd": summ["rtt:hymt-ru"]["cost_usd_mean"],
