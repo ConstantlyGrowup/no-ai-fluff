@@ -40,6 +40,7 @@ PROVIDERS: dict[str, dict] = {
         "url": TENCENT_URL, "key_env": ("TENCENTCLOUD_API_KEY", "TENCENT_API_KEY"), "default_model": "hy-mt2-pro",
         "extra": None, "batch_chars": 1200, "batch_segments": 8, "max_workers": 4,
         "max_segment_chars": 1200, "max_output_tokens": 4000,
+        "rpm": 60,  # 腾讯云 hy-mt2-pro 默认每分钟 60 次（超出返回 429，重试也计数）；可用 NO_AI_FLUFF_TENCENT_RPM 覆盖
     },
     "deepseek": {
         "url": DEEPSEEK_URL, "key_env": ("DEEPSEEK_API_KEY", "Deepseek_OFFICIAL_API_KEY", "DEEPSEEK_OFFICIAL_API_KEY"),
@@ -76,6 +77,46 @@ class ChatResult:
     cached: bool = False
 
 
+class RateLimiter:
+    """进程内滑动窗口限速：任意 60 秒内最多 rpm 次请求，超出时等待最早一次请求滑出窗口。"""
+
+    def __init__(self, rpm: int):
+        self.rpm = rpm
+        self._times: list[float] = []
+        self._lock = threading.Lock()
+
+    def wait(self, budget_s: float | None = None) -> None:
+        while True:
+            with self._lock:
+                now = time.monotonic()
+                self._times = [t for t in self._times if now - t < 60.0]
+                if len(self._times) < self.rpm:
+                    self._times.append(now)
+                    return
+                delay = 60.0 - (now - self._times[0]) + 0.05
+            if budget_s is not None and delay > budget_s:
+                raise TimeoutError("限速等待超出时限")
+            time.sleep(delay)
+
+
+_LIMITERS: dict[str, RateLimiter] = {}
+_LIMITERS_LOCK = threading.Lock()
+
+
+def provider_limiter(provider: str) -> RateLimiter | None:
+    rpm = PROVIDERS[provider].get("rpm")
+    env = os.environ.get(f"NO_AI_FLUFF_{provider.upper()}_RPM", "").strip()
+    if env.isdigit():
+        rpm = int(env)
+    if not rpm:
+        return None
+    with _LIMITERS_LOCK:
+        lim = _LIMITERS.get(provider)
+        if lim is None or lim.rpm != rpm:
+            lim = _LIMITERS[provider] = RateLimiter(rpm)
+        return lim
+
+
 def provider_key(provider: str) -> str:
     for name in PROVIDERS[provider]["key_env"]:
         if os.environ.get(name, "").strip():
@@ -110,6 +151,8 @@ class ChatClient:
         self.cache_dir = Path(cache_dir) if cache_dir else None
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # 自定义地址（如本地模型）不套用服务商的限速
+        self.limiter = provider_limiter(provider) if url in (None, spec["url"]) else None
 
     def _cache_path(self, payload: dict) -> Path | None:
         if not self.cache_dir:
@@ -148,7 +191,10 @@ class ChatClient:
         }
         last_err: Exception | None = None
         retries = self.max_retries if max_retries is None else max_retries
+        retry_after = 0.0
         for attempt in range(retries + 1):
+            if self.limiter:
+                self.limiter.wait(timeout or self.timeout)
             t0 = time.monotonic()
             try:
                 req = urllib.request.Request(self.url, data=body, headers=headers, method="POST")
@@ -181,12 +227,18 @@ class ChatClient:
                 # OpenRouter 在账户并发请求的预扣额度超出余额时返回 402 + in_flight，
                 # 属于暂时性限制，等在途请求结算后重试即可；其余 402（余额真的不足）不重试
                 transient_402 = e.code == 402 and b"in_flight" in err_body
+                if e.code == 429:  # 限流：按 Retry-After 等待，没有就至少等 2 秒，避免重试本身继续占额度
+                    try:
+                        retry_after = max(2.0, float(e.headers.get("Retry-After") or 0))
+                    except (TypeError, ValueError):
+                        retry_after = 2.0
                 if e.code not in (408, 409, 425, 429, 500, 502, 503, 504) and not transient_402:
                     break
             except (urllib.error.URLError, TimeoutError, OSError, OpenRouterError, json.JSONDecodeError) as e:
                 last_err = e
             if attempt < retries:
-                time.sleep(0.6 * (2**attempt))
+                time.sleep(max(retry_after * (2**attempt), 0.6 * (2**attempt)))
+                retry_after = 0.0
         raise OpenRouterError(f"{self.provider} 请求失败：{last_err}")
 
 
@@ -196,6 +248,15 @@ class OpenRouterClient(ChatClient):
     def __init__(self, api_key: str | None = None, url: str = OPENROUTER_URL, **kw):
         kw.setdefault("provider", "openrouter")
         super().__init__(api_key=api_key, url=url, **kw)
+
+
+def default_provider() -> str:
+    """翻译服务商的默认选择：优先 OpenRouter；读不到它的 Key 时改用腾讯云；两个都没有时仍报 OpenRouter（提示用户配置）。"""
+    if provider_key("openrouter"):
+        return "openrouter"
+    if provider_key("tencent"):
+        return "tencent"
+    return "openrouter"
 
 
 def make_client(provider: str = "openrouter", **kw) -> ChatClient:
@@ -210,7 +271,7 @@ _SENT_END_RE = re.compile(r"(?<=[。！？!?；;\n])")
 _SOFT_END_RE = re.compile(r"(?<=[，,、：:])")
 
 
-def split_long(text: str, max_chars: int) -> list[str]:
+def split_long(text: str, max_chars: int, sent_re: re.Pattern | None = None, soft_re: re.Pattern | None = None) -> list[str]:
     """把超长段落按句末标点切成不超过 max_chars 的若干块（尽量不切断句子，绝不切断 {{Pn}}）。
 
     拼接各块（"".join）严格等于原文。
@@ -230,11 +291,12 @@ def split_long(text: str, max_chars: int) -> list[str]:
         return out
 
     pieces: list[str] = []
-    for sent in [x for x in _SENT_END_RE.split(text) if x]:
+    sent_re, soft_re = sent_re or _SENT_END_RE, soft_re or _SOFT_END_RE
+    for sent in [x for x in sent_re.split(text) if x]:
         if len(sent) <= max_chars:
             pieces.append(sent)
             continue
-        for clause in [x for x in _SOFT_END_RE.split(sent) if x]:
+        for clause in [x for x in soft_re.split(sent) if x]:
             if len(clause) <= max_chars:
                 pieces.append(clause)
                 continue
@@ -361,6 +423,10 @@ class Deadline:
 
 
 class RoundTripTranslator:
+    # 子类（其他语言版本）可替换：翻译提示词、超长段落切分、回译校验（validate）
+    prompt_fn = staticmethod(build_prompt)
+    split_fn = staticmethod(split_long)
+
     def __init__(
         self,
         client: ChatClient,
@@ -410,7 +476,7 @@ class RoundTripTranslator:
             kwargs["max_retries"] = 0  # 合批失败直接二分拆小，比原地重试快得多
         res = self.client.chat(
             self.model,
-            [{"role": "user", "content": build_prompt(text, target, batched, context)}],
+            [{"role": "user", "content": self.prompt_fn(text, target, batched, context)}],
             temperature=self.temperature,
             max_tokens=min(self.max_output_tokens, 200 + len(text) * 4),
             timeout=timeout,
@@ -540,7 +606,7 @@ class RoundTripTranslator:
         pieces: list[str] = []
         owner: list[int] = []
         for i, s in enumerate(segs):
-            for piece in split_long(re.sub(r"\s*\n\s*", " ", s), self.max_segment_chars):
+            for piece in self.split_fn(re.sub(r"\s*\n\s*", " ", s), self.max_segment_chars):
                 pieces.append(piece)
                 owner.append(i)
         if len(pieces) == len(segs):

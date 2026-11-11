@@ -16,12 +16,14 @@ dev = ["pytest>=7"]
 
 [project.scripts]
 no-ai-fluff = "no_ai_fluff.cli:main"
+no-ai-fluff-en = "no_ai_fluff.en.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 "no_ai_fluff.adapters.claude_code" = ["*.md"]
+"no_ai_fluff.adapters.claude_code_en" = ["*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

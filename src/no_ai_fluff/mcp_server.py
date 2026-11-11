@@ -117,15 +117,43 @@ def format_finalize(res) -> str:
     return "\n".join(lines)
 
 
+MESSAGES = {
+    "text_empty": "text 不能为空",
+    "no_draft_id": "缺少 draft_id",
+    "draft_not_found": "找不到草稿 {draft_id}（可能已定稿或过期），请重新调用 prepare_rtt_draft",
+    "term_review": ("还差一步：有 {n} 处补丁把初稿的说法改回了原文用词，请单独复核。\n\n{prompt}\n\n"
+                    "判断后用同样的 patches 再调用 finalize_patched_delivery，并带上 term_review=上面的编号数组。"),
+    "unknown_tool": "未知工具：{name}",
+}
+INSTRUCTIONS = (
+    "交付给人类阅读的中文长回复/文档在定稿前：先调 prepare_rtt_draft，"
+    "按返回的规则只开局部 JSON 补丁，再调 finalize_patched_delivery 取定稿。"
+)
+
+
 class MCPServer:
+    """中文版 MCP Server。其他语言版本（no_ai_fluff.en）继承本类，替换下面几项类属性与两个格式化方法。"""
+
+    server_name = "no-ai-fluff"
+    tools = TOOLS
+    instructions = INSTRUCTIONS
+    messages = MESSAGES
+    pipeline_cls = Pipeline
+
     def __init__(self, pipeline: Pipeline | None = None):
         self._pipeline = pipeline
 
     @property
     def pipeline(self) -> Pipeline:
         if self._pipeline is None:
-            self._pipeline = Pipeline()
+            self._pipeline = self.pipeline_cls()
         return self._pipeline
+
+    def format_prepare(self, res) -> str:
+        return format_prepare(res)
+
+    def format_finalize(self, res) -> str:
+        return format_finalize(res)
 
     # -- 工具实现 ---------------------------------------------------------------
     def call_tool(self, name: str, args: dict) -> dict:
@@ -133,30 +161,29 @@ class MCPServer:
             if name == "prepare_rtt_draft":
                 text = args.get("text")
                 if not isinstance(text, str) or not text.strip():
-                    return _tool_error("text 不能为空")
+                    return _tool_error(self.messages["text_empty"])
                 res = self.pipeline.prepare(text, fmt=args.get("format", "auto"), exit=args.get("exit", "terminal"),
                                             question=args.get("question"))
                 payload = {k: v for k, v in res.to_dict().items() if k != "audit_prompt"}
-                return {"content": [{"type": "text", "text": format_prepare(res)}], "structuredContent": payload}
+                return {"content": [{"type": "text", "text": self.format_prepare(res)}], "structuredContent": payload}
             if name == "finalize_patched_delivery":
                 draft_id = args.get("draft_id")
                 if not isinstance(draft_id, str):
-                    return _tool_error("缺少 draft_id")
+                    return _tool_error(self.messages["no_draft_id"])
                 try:
                     if args.get("term_review") is None:
                         tr = self.pipeline.term_review(draft_id, args.get("patches", []))
                         if tr:
                             prompt, suspects = tr
-                            text = (f"还差一步：有 {len(suspects)} 处补丁把初稿的说法改回了原文用词，请单独复核。\n\n{prompt}\n\n"
-                                    f"判断后用同样的 patches 再调用 finalize_patched_delivery，并带上 term_review=上面的编号数组。")
+                            text = self.messages["term_review"].format(n=len(suspects), prompt=prompt)
                             return {"content": [{"type": "text", "text": text}], "structuredContent": {
                                 "status": "needs_term_review", "draft_id": draft_id,
                                 "pairs": [{"no": i, "left": sp.left, "right": sp.right} for i, sp in enumerate(suspects, 1)]}}
                     res = self.pipeline.finalize(draft_id, args.get("patches", []), term_reject=args.get("term_review"))
                 except DraftNotFound:
-                    return _tool_error(f"找不到草稿 {draft_id}（可能已定稿或过期），请重新调用 prepare_rtt_draft")
-                return {"content": [{"type": "text", "text": format_finalize(res)}], "structuredContent": res.to_dict()}
-            return _tool_error(f"未知工具：{name}")
+                    return _tool_error(self.messages["draft_not_found"].format(draft_id=draft_id))
+                return {"content": [{"type": "text", "text": self.format_finalize(res)}], "structuredContent": res.to_dict()}
+            return _tool_error(self.messages["unknown_tool"].format(name=name))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)
             return _tool_error(f"{type(e).__name__}: {e}")
@@ -176,16 +203,13 @@ class MCPServer:
                 result = {
                     "protocolVersion": version,
                     "capabilities": {"tools": {"listChanged": False}},
-                    "serverInfo": {"name": "no-ai-fluff", "version": __version__},
-                    "instructions": (
-                        "交付给人类阅读的中文长回复/文档在定稿前：先调 prepare_rtt_draft，"
-                        "按返回的规则只开局部 JSON 补丁，再调 finalize_patched_delivery 取定稿。"
-                    ),
+                    "serverInfo": {"name": self.server_name, "version": __version__},
+                    "instructions": self.instructions,
                 }
             elif method == "ping":
                 result = {}
             elif method == "tools/list":
-                result = {"tools": TOOLS}
+                result = {"tools": self.tools}
             elif method == "tools/call":
                 result = self.call_tool(params.get("name", ""), params.get("arguments") or {})
             elif method.startswith("notifications/"):
@@ -226,13 +250,13 @@ def _rpc_error(mid: Any, code: int, message: str) -> dict:
     return {"jsonrpc": "2.0", "id": mid, "error": {"code": code, "message": message}}
 
 
-def main() -> None:
+def main(server_cls: type | None = None) -> None:
     for stream in (sys.stdin, sys.stdout):
         try:
             stream.reconfigure(encoding="utf-8")  # Windows 控制台默认 GBK
         except (AttributeError, ValueError):
             pass
-    MCPServer().serve()
+    (server_cls or MCPServer)().serve()
 
 
 if __name__ == "__main__":

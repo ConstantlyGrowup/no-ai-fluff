@@ -151,14 +151,27 @@ def _terms_regex(terms: list[str]) -> re.Pattern[str] | None:
 
 
 class Masker:
-    """有状态的掩码器：同一文档内的占位符全局唯一编号。"""
+    """有状态的掩码器：同一文档内的占位符全局唯一编号。
+
+    子类可替换 combined（冻结规则）、capword_re（专有名词规则）、default_terms（术语表）和 soft_kind()，
+    用于其他语言的版本（如 no_ai_fluff.en）；中文版即本类默认值。
+    """
+
+    combined = _COMBINED
+    capword_re = _CAPWORD_RE
+    default_terms: list[str] = DEFAULT_TERMS
 
     def __init__(self, extra_terms: list[str] | None = None, freeze_proper_nouns: bool = True):
         self.placeholders: list[str] = []
-        self._terms_re = _terms_regex(DEFAULT_TERMS + list(extra_terms or []))
+        self._terms_re = _terms_regex(list(self.default_terms) + list(extra_terms or []))
         self.freeze_proper_nouns = freeze_proper_nouns
         self.soft: list[int] = []
         self._soft_spans: set[tuple[int, int]] = set()
+
+    def soft_kind(self, m: re.Match) -> bool:
+        """这处冻结是否为“软”保护（宿主可以去掉）。"""
+        # 整句英文、PM / ROI 这类缩写：宿主以“中英混杂”为由改成中文时允许去掉；API、SDK 等术语表里的词仍是硬保护
+        return m.lastgroup == "ensent" or (m.lastgroup == "acronym" and not self._is_term(m.group(0)))
 
     def _is_term(self, word: str) -> bool:
         return bool(self._terms_re and self._terms_re.fullmatch(word))
@@ -166,9 +179,8 @@ class Masker:
     def _spans(self, text: str) -> list[tuple[int, int]]:
         spans: list[tuple[int, int]] = []
         self._soft_spans = set()
-        for m in _COMBINED.finditer(text):
-            if m.lastgroup == "ensent" or (m.lastgroup == "acronym" and not self._is_term(m.group(0))):
-                # 整句英文、PM / ROI 这类缩写：宿主以“中英混杂”为由改成中文时允许去掉；API、SDK 等术语表里的词仍是硬保护
+        for m in self.combined.finditer(text):
+            if self.soft_kind(m):
                 self._soft_spans.add(m.span())
             if m.lastgroup == "hash":
                 tok = m.group(0)
@@ -179,7 +191,7 @@ class Masker:
         if self._terms_re is not None:
             extra += [m.span() for m in self._terms_re.finditer(text)]
         if self.freeze_proper_nouns:
-            for m in _CAPWORD_RE.finditer(text):
+            for m in self.capword_re.finditer(text):
                 if m.group(0).lower() not in LOOSE_CAPITALIZED:
                     extra.append(m.span())
                     self._soft_spans.add(m.span())
@@ -213,9 +225,9 @@ class Masker:
         return Slot(original=text, masked=masked, ids=ids)
 
 
-def mask_text(text: str, extra_terms: list[str] | None = None) -> tuple[str, list[str]]:
+def mask_text(text: str, extra_terms: list[str] | None = None, masker_cls: type = Masker) -> tuple[str, list[str]]:
     """便捷函数：对一段纯文本做行内冻结，返回 (掩码文本, 占位符表)。"""
-    m = Masker(extra_terms)
+    m = masker_cls(extra_terms)
     masked, _ = m.mask(text)
     return masked, m.placeholders
 
@@ -287,8 +299,8 @@ def _split_ws(s: str) -> tuple[str, str, str]:
     return s[:start], core, s[start + len(core):]
 
 
-def parse_markdown(text: str, extra_terms: list[str] | None = None) -> Document:
-    masker = Masker(extra_terms)
+def parse_markdown(text: str, extra_terms: list[str] | None = None, masker_cls: type = Masker) -> Document:
+    masker = masker_cls(extra_terms)
     slots: list[Slot] = []
     tpl: list[str] = []
 
@@ -370,8 +382,8 @@ HTML_SKIP_TAGS = {"script", "style", "code", "pre", "svg", "math", "textarea", "
 _VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
 
-def parse_html(text: str, extra_terms: list[str] | None = None) -> Document:
-    masker = Masker(extra_terms)
+def parse_html(text: str, extra_terms: list[str] | None = None, masker_cls: type = Masker) -> Document:
+    masker = masker_cls(extra_terms)
     slots: list[Slot] = []
     tpl: list[str] = []
     skip_stack: list[str] = []
@@ -408,8 +420,8 @@ def parse_html(text: str, extra_terms: list[str] | None = None) -> Document:
 # ---------------------------------------------------------------------------
 
 
-def parse_text(text: str, extra_terms: list[str] | None = None) -> Document:
-    masker = Masker(extra_terms)
+def parse_text(text: str, extra_terms: list[str] | None = None, masker_cls: type = Masker) -> Document:
+    masker = masker_cls(extra_terms)
     slots: list[Slot] = []
     tpl: list[str] = []
     for line in text.split("\n"):
@@ -434,13 +446,13 @@ def detect_format(text: str) -> str:
     return "text"
 
 
-def parse(text: str, fmt: str = "auto", extra_terms: list[str] | None = None) -> Document:
+def parse(text: str, fmt: str = "auto", extra_terms: list[str] | None = None, masker_cls: type = Masker) -> Document:
     """拆分入口。fmt: auto | markdown | html | text"""
     text = text.replace("\x00", "").replace("\r\n", "\n")
     if fmt == "auto":
         fmt = detect_format(text)
     if fmt == "html":
-        return parse_html(text, extra_terms)
+        return parse_html(text, extra_terms, masker_cls)
     if fmt == "text":
-        return parse_text(text, extra_terms)
-    return parse_markdown(text, extra_terms)
+        return parse_text(text, extra_terms, masker_cls)
+    return parse_markdown(text, extra_terms, masker_cls)

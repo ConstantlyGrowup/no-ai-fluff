@@ -52,17 +52,19 @@ def _put(path: Path, text: str, force: bool, rep: InstallReport) -> None:
     rep.written.append(path)
 
 
-def _merge_mcp_json(path: Path, force: bool, rep: InstallReport) -> None:
+def _merge_mcp_json(path: Path, force: bool, rep: InstallReport, name: str = SERVER_NAME,
+                     entry: dict | None = None) -> None:
+    entry = entry or MCP_ENTRY
     cfg = json.loads(path.read_text("utf-8")) if path.exists() else {}
     servers = cfg.setdefault("mcpServers", {})
-    current = servers.get(SERVER_NAME)
-    if current == MCP_ENTRY:
+    current = servers.get(name)
+    if current == entry:
         rep.unchanged.append(path)
         return
     if current is not None and not force:
         rep.skipped.append(path)
         return
-    servers[SERVER_NAME] = MCP_ENTRY
+    servers[name] = entry
     path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", "utf-8", newline="\n")
     rep.written.append(path)
 

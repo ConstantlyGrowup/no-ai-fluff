@@ -25,7 +25,7 @@ from typing import Any, Callable
 
 from . import telemetry
 from .config import env_float, load_dotenv
-from .masker import PLACEHOLDER_RE, Document, Slot, check_placeholders, parse
+from .masker import PLACEHOLDER_RE, Document, Masker, Slot, check_placeholders, parse
 from .cleanup import clean_punctuation
 from .patcher import (
     DEFAULT_AUDIT_RULES,
@@ -45,7 +45,7 @@ from .patcher import (
 )
 from .radar import scan, scan_single
 from .reversion import Suspect, build_term_review_prompt, find_suspects, parse_term_review
-from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult
+from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult, default_provider
 
 EXITS = ("terminal", "file")
 MODES = ("auto", "chat", "doc")
@@ -72,13 +72,14 @@ class PipelineConfig:
     audit_rules: str = DEFAULT_AUDIT_RULES  # 宿主审校规则版本，见 patcher.AUDIT_RULES
     rtt_context_chars: int = 300  # 往返翻译时附带的中文上文长度（官方上下文模板）；0 关闭
     min_rtt_chars: int = 8  # 短于该长度且不含英文的槽位（表头、短标题）不送往返翻译
+    source_lang: str = "zh"  # 待改文本的语言：往返翻译回程译回这种语言
     telemetry: bool = True
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "PipelineConfig":
         load_dotenv()
         values: dict[str, Any] = dict(
-            provider=os.environ.get("NO_AI_FLUFF_PROVIDER") or "openrouter",
+            provider=os.environ.get("NO_AI_FLUFF_PROVIDER") or default_provider(),
             model=os.environ.get("NO_AI_FLUFF_MODEL") or None,
             bridge=os.environ.get("NO_AI_FLUFF_BRIDGE") or DEFAULT_BRIDGE,
             chat_timeout_s=env_float("NO_AI_FLUFF_CHAT_TIMEOUT", 10.0),
@@ -265,6 +266,7 @@ def default_translator_factory(cfg: PipelineConfig) -> RoundTripTranslator:
         temperature=cfg.temperature,
         max_segment_chars=cfg.max_segment_chars,
         max_output_tokens=PROVIDERS[cfg.provider]["max_output_tokens"],
+        source=cfg.source_lang,
     )
 
 
@@ -349,6 +351,32 @@ class Pipeline:
         self.translator_factory = translator_factory or default_translator_factory
         self.store = store or DraftStore(self.config.store_dir, self.config.draft_ttl_s)
 
+    # -- 语言相关的钩子：中文版即默认实现；其他语言版本（no_ai_fluff.en）在子类里替换 --------------
+    masker_cls: type = Masker
+
+    def _parse(self, text: str, fmt: str) -> Document:
+        return parse(text, fmt, self.config.extra_terms, self.masker_cls)
+
+    def _needs_rtt(self, slot: Slot) -> bool:
+        return needs_rtt(slot, self.config.min_rtt_chars)
+
+    def _contexts(self, doc: Document, translated: list[int], question: str | None) -> list[str | None]:
+        return rtt_contexts(doc, translated, self.config.rtt_context_chars, question)
+
+    def _radar(self, orig_masked: list[str], rtt_slots: list[str], translated: list[int], rules: str):
+        if rules in ORIGINAL_BASE_RULES:
+            return scan_single(orig_masked)  # v6 补丁打在原文上：雷达报原文自己的疑点
+        return scan(orig_masked, rtt_slots, only=translated)
+
+    def _radar_counts(self, slots: list[str]) -> dict:
+        return scan_single(slots).counts
+
+    def _audit_prompt(self, original: str, rtt_text: str, radar_text: str, rules: str, question: str | None) -> str:
+        return build_audit_prompt(original, rtt_text, radar_text, rules, question)
+
+    def _clean(self, text: str, reference: str) -> tuple[str, int]:
+        return clean_punctuation(text, reference)
+
     # -- 握手 1 ---------------------------------------------------------------
     def prepare(
         self, text: str, fmt: str = "auto", exit: str = "terminal", mode: str = "auto", question: str | None = None
@@ -356,13 +384,13 @@ class Pipeline:
         """question：可选，用户的原始问题。v4 审校规则会用它判断轻重和是否跑题。"""
         cfg = self.config
         t0 = time.monotonic()
-        doc = parse(text, fmt, cfg.extra_terms)
+        doc = self._parse(text, fmt)
         original_text = doc.render()  # 规整后的原文（CRLF -> LF、去掉 \x00）
         if mode == "auto":
             mode = "doc" if exit == "file" or doc.fmt == "html" or len(original_text) > cfg.doc_chars else "chat"
         timeout_s = cfg.doc_timeout_s if mode == "doc" else cfg.chat_timeout_s
 
-        translated = [i for i, s in enumerate(doc.slots) if needs_rtt(s, cfg.min_rtt_chars)]
+        translated = [i for i, s in enumerate(doc.slots) if self._needs_rtt(s)]
         rtt_slots = [s.masked for s in doc.slots]
         fallback_reason: str | None = None
         rtt: RTTResult | None = None
@@ -373,7 +401,7 @@ class Pipeline:
                 ids = [doc.slots[i].ids for i in translated]
                 kw = {}
                 if "contexts" in inspect.signature(translator.round_trip).parameters:
-                    kw["contexts"] = rtt_contexts(doc, translated, cfg.rtt_context_chars, question)
+                    kw["contexts"] = self._contexts(doc, translated, question)
                 rtt = _run_with_hard_timeout(
                     lambda: translator.round_trip(segs, ids, timeout_s=timeout_s, **kw), timeout_s + 1.0
                 )
@@ -386,10 +414,7 @@ class Pipeline:
                 fallback_reason = f"{type(e).__name__}: {e}"
 
         orig_masked = [s.masked for s in doc.slots]
-        if cfg.audit_rules in ORIGINAL_BASE_RULES:
-            report = scan_single(orig_masked)  # v6 补丁打在原文上：雷达报原文自己的疑点
-        else:
-            report = scan(orig_masked, rtt_slots, only=translated)
+        report = self._radar(orig_masked, rtt_slots, translated, cfg.audit_rules)
         draft_id = time.strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(4)
         meta = {
             "original_text": original_text,
@@ -439,7 +464,7 @@ class Pipeline:
             rtt_draft=rtt_text,
             radar_hints=report.to_prompt(),
             radar=report.to_dict(),
-            audit_prompt=build_audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules, question),
+            audit_prompt=self._audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules, question),
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason,
             stats=stats,
@@ -508,7 +533,7 @@ class Pipeline:
         cleanups = 0
         for i, slot in enumerate(doc.slots):  # 只清理被改写过的槽位（往返翻译或补丁）；原样未动的不碰
             if new_slots[i] != slot.masked:
-                new_slots[i], n = clean_punctuation(new_slots[i], slot.masked)
+                new_slots[i], n = self._clean(new_slots[i], slot.masked)
                 cleanups += n
         reason = verify_final(doc, new_slots)
         if reason:
@@ -534,9 +559,9 @@ class Pipeline:
                 "term_suspects": n_suspects,
                 "term_rejected": len(term_rejected),
                 "fallback": fallback_reason is not None,
-                "radar_original": scan_single([doc.slots[i].masked for i in only]).counts,
-                "radar_rtt": scan_single([draft.rtt_slots[i] for i in only]).counts,
-                "radar_final": scan_single([new_slots[i] for i in only]).counts,
+                "radar_original": self._radar_counts([doc.slots[i].masked for i in only]),
+                "radar_rtt": self._radar_counts([draft.rtt_slots[i] for i in only]),
+                "radar_final": self._radar_counts([new_slots[i] for i in only]),
             })
         if not keep_draft:
             self.store.delete(draft_id)

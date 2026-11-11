@@ -59,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("input", nargs="?", default="-", help="输入文件，- 表示 stdin")
         p.add_argument("--format", dest="fmt", default="auto", choices=["auto", "markdown", "html", "text"])
         p.add_argument("--exit", default="terminal", choices=["terminal", "file"])
-        p.add_argument("--provider", choices=["openrouter", "tencent"], help="翻译小模型服务商（默认 openrouter）")
+        p.add_argument("--provider", choices=["openrouter", "tencent"], help="翻译小模型服务商（默认：有 OPENROUTER_API_KEY 用 openrouter，否则用腾讯云）")
         p.add_argument("--model")
         p.add_argument("--bridge", choices=["fr", "ja", "ru"], help="桥接语，默认 ru（M3 选型结果）")
 
