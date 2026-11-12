@@ -6,6 +6,7 @@
     radar    [FILE|-]                 surface radar only
     mcp                               start the stdio MCP server "no-ai-fluff-en"
     install  claude-code              install the Claude Code subagent, skill and MCP entry
+    install  codex|zcode|qoder|workbuddy|generic   install the portable skill and an AGENTS.md section
 """
 
 from __future__ import annotations
@@ -59,8 +60,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("radar", help="surface radar")
     p.add_argument("input", nargs="?", default="-")
     sub.add_parser("mcp", help="start the stdio MCP server")
-    p = sub.add_parser("install", help="install the Claude Code adapter (subagent + skill + MCP entry)")
-    p.add_argument("host", choices=["claude-code"])
+    p = sub.add_parser("install", help="install the agent adapter (Claude Code: subagent + skill + MCP entry; "
+                                        "other agents: portable skill + AGENTS.md section)")
+    p.add_argument("host", choices=["claude-code", "codex", "zcode", "qoder", "workbuddy", "generic"])
     p.add_argument("--scope", default="project", choices=["project", "user"])
     p.add_argument("--dir")
     p.add_argument("--force", action="store_true")
@@ -81,9 +83,14 @@ def main(argv: list[str] | None = None) -> int:
         mcp_main()
         return 0
     if args.cmd == "install":
+        from ..install import install_generic
         from .install import install_claude_code_en
 
-        print(install_claude_code_en(args.scope, Path(args.dir) if args.dir else None, args.force).render())
+        root = Path(args.dir) if args.dir else None
+        if args.host == "claude-code":
+            print(install_claude_code_en(args.scope, root, args.force).render())
+        else:
+            print(install_generic(args.host, args.scope, root, args.force, lang="en").render())
         return 0
     if args.cmd == "radar":
         from .radar import scan, surface

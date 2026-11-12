@@ -1,6 +1,6 @@
 # no-ai-fluff: setup guide for coding agents
 
-This page is written for an AI coding agent (Claude Code, Codex CLI, etc.) that has been asked to install no-ai-fluff for its user.
+This page is written for an AI coding agent (Claude Code, Codex, Qoder, WorkBuddy, ZCode, DeepSeek Harness, etc.) that has been asked to install no-ai-fluff for its user.
 Follow the steps in order. Ask the user only where a step says so.
 
 ## 0. Pick the edition
@@ -37,7 +37,11 @@ If the command is not found, pip installed it into a user scripts folder that is
 
 ## 3. Register with the agent
 
-For Claude Code, run this in the user's project root:
+First work out which agent you are running in (you usually know your own product name; otherwise look for its config folder in the user's home directory or project: `.claude/`, `.codex/`, `.qoder/`, `.workbuddy/`, `.zcode/`). Then follow the matching part below. If you are not sure, ask the user.
+
+### 3a. Claude Code
+
+Run this in the user's project root:
 
 ```bash
 no-ai-fluff install claude-code        # Chinese edition
@@ -52,7 +56,25 @@ This writes:
 
 Files that already exist with different content are not overwritten unless `--force` is passed. For a user-level install use `--scope user` and then run the `claude mcp add -s user ...` command it prints.
 
-Other MCP clients: register a stdio server with command `no-ai-fluff` and argument `mcp` (or `no-ai-fluff-en` / `mcp`).
+### 3b. Other agents
+
+Agents other than Claude Code do not understand Claude Code's subagent files, so they get a portable skill instead (a `SKILL.md` in the Agent Skills format) plus a short section in `AGENTS.md`. Both tell the agent how to call the two MCP tools, to add the one-line "ask me to rewrite a paragraph" note after delivery, and the five rules for that rewrite. Run the line for your agent in the user's project root (use `no-ai-fluff-en` for the English edition):
+
+| Agent | Command | Skill goes to | Also writes | Register the MCP server |
+|---|---|---|---|---|
+| Codex | `no-ai-fluff install codex` | `.agents/skills/no-ai-fluff/` | `AGENTS.md` section | `codex mcp add no-ai-fluff -- no-ai-fluff mcp` |
+| ZCode | `no-ai-fluff install zcode` | `.agents/skills/no-ai-fluff/` | `AGENTS.md` section | ZCode's MCP settings |
+| Qoder | `no-ai-fluff install qoder` | `.qoder/skills/no-ai-fluff/` | `AGENTS.md` section | Qoder's MCP settings |
+| WorkBuddy | `no-ai-fluff install workbuddy` | `~/.workbuddy/skills/no-ai-fluff/` (user level only) | — | WorkBuddy's MCP settings |
+| DeepSeek Harness and anything else | `no-ai-fluff install generic` | `.agents/skills/no-ai-fluff/` | `AGENTS.md` section | the agent's MCP settings or plugin |
+
+Notes:
+
+- `--scope user` installs into the user's home folder instead (Codex and ZCode also get `~/.codex/AGENTS.md` / `~/.zcode/AGENTS.md`).
+- The `AGENTS.md` section sits between `<!-- no-ai-fluff:start -->` and `<!-- no-ai-fluff:end -->`; the rest of the file is left alone. Re-running is safe. If the user edited that section, it is not replaced unless `--force` is passed.
+- If your agent keeps skills or rules somewhere not listed here, run `no-ai-fluff install generic --dir <some temp folder>` and copy the generated `SKILL.md` (and the `AGENTS.md` section) to where your agent reads them. Tell the user where you put them.
+- Every MCP server entry is the same: a stdio server with command `no-ai-fluff` and argument `mcp` (or `no-ai-fluff-en` / `mcp`). In JSON configs: `{"mcpServers": {"no-ai-fluff": {"command": "no-ai-fluff", "args": ["mcp"]}}}`.
+- Even without the skill or `AGENTS.md`, the rewrite note still reaches the agent: `finalize_patched_delivery` returns it after the final text, together with the five rules.
 
 ## 4. Configure the API key (ask the user)
 
@@ -86,9 +108,9 @@ In the JSON output, `"fallback": false` means the key works. `"fallback": true` 
 
 ## 6. Finish
 
-Tell the user to restart the agent and approve the `no-ai-fluff` (or `no-ai-fluff-en`) MCP server when asked. From then on they can type `/no-ai-fluff` after a long reply or document, or say "finalize this with no-ai-fluff".
+Tell the user to restart the agent and approve the `no-ai-fluff` (or `no-ai-fluff-en`) MCP server when asked. From then on they can type `/no-ai-fluff` in Claude Code, or in any agent say "finalize this with no-ai-fluff" after a long reply or document.
 
-After a final text is delivered, the user can name a paragraph that is still too dense and ask for a full rewrite of just that part. The installed `/no-ai-fluff` command carries the rules for this: rewrite only the named part, keep code, paths, formulas and numbers exactly, and add nothing the original did not say.
+After a final text is delivered, the user can name a paragraph that is still too dense and ask for a full rewrite of just that part. The installed skill (and the `AGENTS.md` section, and the MCP result itself) carries the rules for this: rewrite only the named part, keep code, paths, formulas and numbers exactly, and add nothing the original did not say.
 
 Recommend running the reviewer subagent with high reasoning effort: in our tests, low effort missed factual errors in 5 of 5 documents, high effort in 1 of 5.
 

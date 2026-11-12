@@ -24,6 +24,8 @@ where = ["src"]
 [tool.setuptools.package-data]
 "no_ai_fluff.adapters.claude_code" = ["*.md"]
 "no_ai_fluff.adapters.claude_code_en" = ["*.md"]
+"no_ai_fluff.adapters.generic" = ["*.md"]
+"no_ai_fluff.adapters.generic_en" = ["*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -90,8 +90,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("mcp", help="启动 stdio MCP Server")
 
-    p = sub.add_parser("install", help="安装宿主适配（审校子智能体 + Skill + MCP 注册）")
-    p.add_argument("host", choices=["claude-code"])
+    p = sub.add_parser("install", help="安装宿主适配：claude-code 装子智能体 + Skill + MCP 注册；其他 agent 装通用 Skill + AGENTS.md 说明")
+    p.add_argument("host", choices=["claude-code", "codex", "zcode", "qoder", "workbuddy", "generic"])
     p.add_argument("--scope", default="project", choices=["project", "user"])
     p.add_argument("--dir", help="安装到的根目录；默认 project=当前目录，user=用户主目录")
     p.add_argument("--force", action="store_true", help="覆盖已存在且内容不同的文件")
@@ -114,9 +114,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "install":
-        from .install import install_claude_code
+        from .install import install_claude_code, install_generic
 
-        print(install_claude_code(args.scope, Path(args.dir) if args.dir else None, args.force).render())
+        root = Path(args.dir) if args.dir else None
+        if args.host == "claude-code":
+            print(install_claude_code(args.scope, root, args.force).render())
+        else:
+            print(install_generic(args.host, args.scope, root, args.force).render())
         return 0
 
     if args.cmd == "radar":

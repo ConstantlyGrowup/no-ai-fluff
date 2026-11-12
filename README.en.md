@@ -112,6 +112,8 @@ and help me set up the translation API key.
 
 Your agent installs the CLI, registers the MCP server, adds the reviewer subagent and the `/no-ai-fluff-en` command, asks you for an API key and writes it to `.env`. It finishes by running a sample through the round trip to confirm the key works.
 
+It works the same if you are not on Claude Code. The setup guide has the agent work out which product it is (Codex, Qoder, WorkBuddy, ZCode, DeepSeek Harness, etc.), install the portable skill where that agent reads skills, and add a short section to `AGENTS.md`.
+
 ### You need one API key
 
 The translation model, hy-mt2, is available from two providers. **We recommend OpenRouter.**
@@ -141,6 +143,16 @@ echo "OPENROUTER_API_KEY=sk-or-..." >> .env    # keep .env out of git
 ```
 
 Restart Claude Code and approve the `no-ai-fluff-en` MCP server. After a long reply or document, type `/no-ai-fluff-en` or just say "finalize this with no-ai-fluff".
+
+For other agents, replace the second line with the matching command, then register the MCP server in that agent (stdio, command `no-ai-fluff-en`, argument `mcp`):
+
+| Agent | Command | Skill goes to |
+|---|---|---|
+| Codex | `no-ai-fluff-en install codex`, then `codex mcp add no-ai-fluff-en -- no-ai-fluff-en mcp` | `.agents/skills/`, plus a section in `AGENTS.md` |
+| ZCode | `no-ai-fluff-en install zcode` | `.agents/skills/`, plus a section in `AGENTS.md` |
+| Qoder | `no-ai-fluff-en install qoder` | `.qoder/skills/`, plus a section in `AGENTS.md` |
+| WorkBuddy | `no-ai-fluff-en install workbuddy` | `~/.workbuddy/skills/` (user level only) |
+| DeepSeek Harness and others | `no-ai-fluff-en install generic` | `.agents/skills/`, plus a section in `AGENTS.md` |
 
 > Review quality depends on reasoning effort. In our tests, low effort missed factual errors in 5 of 5 documents; high effort missed them in 1. Run the reviewer subagent with high effort.
 
@@ -185,7 +197,7 @@ Once it is installed, there are two ways to have your agent pass a draft through
 - **Option A · slash command**: after a reply or document is written in Claude Code, type `/no-ai-fluff-en`, or `/no-ai-fluff-en path/to/doc.md` for a file.
 - **Option B · just ask**: add "run it through no-ai-fluff at the end" to your request, or ask afterwards, for example "Use no-ai-fluff to finalize docs/design.md". In Cursor, Codex and other MCP-capable clients it works the same way: the agent calls the `prepare_rtt_draft` and `finalize_patched_delivery` tools itself.
 
-If a paragraph of the final text still reads too dense, you can name it and have the agent rewrite just that paragraph. An illustrative conversation:
+If a paragraph of the final text still reads too dense, you can name it and have the agent rewrite just that paragraph. The note and the rewrite rules are in the skill and the `AGENTS.md` section, and they also come back with every `finalize_patched_delivery` result, so agents without skill support follow them too. An illustrative conversation:
 
 > **Turn 1: the normal pass**
 >

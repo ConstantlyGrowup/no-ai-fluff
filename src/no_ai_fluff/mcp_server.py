@@ -17,6 +17,7 @@ import traceback
 from typing import Any, TextIO
 
 from . import __version__
+from .delivery_note import host_note_zh
 from .pipeline import DraftNotFound, Pipeline
 
 SUPPORTED_PROTOCOLS = ("2025-06-18", "2025-03-26", "2024-11-05")
@@ -125,6 +126,7 @@ def format_finalize(res) -> str:
     lines.append(meta)
     for p in rejected[:10]:
         lines.append(f"- 拒收「{p['find'][:30]}」：{p['reject_reason']}")
+    lines.append("\n" + host_note_zh())
     return "\n".join(lines)
 
 
@@ -147,6 +149,8 @@ MESSAGES = {
 INSTRUCTIONS = (
     "交付给人类阅读的中文长回复/文档在定稿前：先调 prepare_rtt_draft，"
     "按返回的规则只开局部 JSON 补丁，再调 finalize_patched_delivery 取定稿。"
+    "定稿后面附有给宿主的交付说明：照它把定稿交给用户、在聊天里附一句可以点名整段重写的提示，"
+    "用户点名后按其中五条规则只重写那一段。"
 )
 
 
@@ -173,6 +177,9 @@ class MCPServer:
 
     def format_finalize(self, res) -> str:
         return format_finalize(res)
+
+    def host_note(self) -> str:
+        return host_note_zh()
 
     def format_domain_triage(self, res) -> str:
         return format_domain_triage(res)
@@ -210,7 +217,8 @@ class MCPServer:
                     res = self.pipeline.finalize(draft_id, args.get("patches", []))
                 except DraftNotFound:
                     return _tool_error(self.messages["draft_not_found"].format(draft_id=draft_id))
-                return {"content": [{"type": "text", "text": self.format_finalize(res)}], "structuredContent": res.to_dict()}
+                return {"content": [{"type": "text", "text": self.format_finalize(res)}],
+                        "structuredContent": {**res.to_dict(), "host_note": self.host_note()}}
             return _tool_error(self.messages["unknown_tool"].format(name=name))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)

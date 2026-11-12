@@ -99,6 +99,8 @@ finalize_patched_delivery(id, patches)   → 定稿
 
 agent 会装好命令行工具，注册 MCP Server，安装审校子智能体和 `/no-ai-fluff` 命令，再向你要一个 API Key，写进 `.env`。最后用一段示例文本运行，确认往返翻译确实生效。
 
+用的不是 Claude Code 也没关系。安装指南会让 agent 先认出自己是哪个产品（Codex、Qoder、WorkBuddy、ZCode、DeepSeek Harness 等），再把通用 Skill 装到它读得到的目录，并在 `AGENTS.md` 里加一段说明。
+
 ### 你需要准备一个 API Key
 
 翻译小模型 hy-mt2 有两个来源，**推荐 OpenRouter**：
@@ -133,6 +135,16 @@ echo "OPENROUTER_API_KEY=sk-or-..." >> .env # 或 TENCENTCLOUD_API_KEY=...；.en
 ```
 
 重启 Claude Code，并同意加载项目里的 `no-ai-fluff` MCP Server。之后写完长回复或文档，输入 `/no-ai-fluff`，或者直接说“用 no-ai-fluff 定稿”。
+
+其他 agent 把第二行换成对应的命令，再在那个 agent 里注册 MCP Server（stdio，命令 `no-ai-fluff`，参数 `mcp`）：
+
+| Agent | 命令 | Skill 装到 |
+|---|---|---|
+| Codex | `no-ai-fluff install codex`，再运行 `codex mcp add no-ai-fluff -- no-ai-fluff mcp` | `.agents/skills/`，另在 `AGENTS.md` 加一段 |
+| ZCode | `no-ai-fluff install zcode` | `.agents/skills/`，另在 `AGENTS.md` 加一段 |
+| Qoder | `no-ai-fluff install qoder` | `.qoder/skills/`，另在 `AGENTS.md` 加一段 |
+| WorkBuddy | `no-ai-fluff install workbuddy` | `~/.workbuddy/skills/`（只支持用户级） |
+| DeepSeek Harness 等其他 agent | `no-ai-fluff install generic` | `.agents/skills/`，另在 `AGENTS.md` 加一段 |
 
 > 审校质量很依赖模型的推理强度。实验里同一批稿子，低推理强度时，5 篇稿子全都漏修了事实错误；改成高推理强度后只剩 1 篇。请让审校子任务以高推理强度运行。
 
@@ -178,7 +190,7 @@ print(fin.final_text)
 - **方式 A · 斜杠命令**：在 Claude Code 里写完回复或文档后，输入 `/no-ai-fluff`；要处理某个文件，就输入 `/no-ai-fluff path/to/doc.md`。英文版是 `/no-ai-fluff-en`。
 - **方式 B · 直接说一句**：提需求时顺带一句“最后用 no-ai-fluff 过一遍”，或者写完后追问“把上面这段用 no-ai-fluff 改成大白话”。在 Cursor、Codex 等其他支持 MCP 的客户端里也一样，agent 会自己调用 `prepare_rtt_draft` 和 `finalize_patched_delivery` 这两个工具。
 
-定稿交回来之后，如果某一段还是太绕，可以点名让 agent 只把那一段整段重写。下面是一段示意对话：
+定稿交回来之后，如果某一段还是太绕，可以点名让 agent 只把那一段整段重写。这句提示和重写规则写在 Skill 和 `AGENTS.md` 里，也会随 `finalize_patched_delivery` 的返回一起交给 agent，所以不认识 Skill 的 agent 也会照做。下面是一段示意对话：
 
 > **第 1 轮：正常定稿**
 >

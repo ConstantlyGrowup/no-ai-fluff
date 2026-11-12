@@ -143,7 +143,7 @@ English summary: see [the last section](#english-edition).
 
 ### 4.1 定稿之后：点名整段重写
 
-MCP 定稿只做局部修改。如果用户读完觉得某一段还是太密，可以点名让主会话只把那一段整段重写。这一步不经过 MCP 和补丁守卫，规则写在安装到用户项目里的斜杠命令模板中（`src/no_ai_fluff/adapters/claude_code/skill.md`、`claude_code_en/skill.md`），内容提炼自本页：
+MCP 定稿只做局部修改。如果用户读完觉得某一段还是太密，可以点名让主会话只把那一段整段重写。这一步不经过 MCP 和补丁守卫。规则和那句提示的唯一来源是 `src/no_ai_fluff/delivery_note.py`，内容提炼自本页，并通过三条路交给宿主：`finalize_patched_delivery` 的返回（定稿后的“给宿主的交付说明”，任何 MCP 客户端都看得到）、通用 Skill 与 `AGENTS.md` 段落（`adapters/generic*/`，供 Codex、Qoder、WorkBuddy、ZCode 等），以及 Claude Code 的斜杠命令模板（`adapters/claude_code*/skill.md`）。要点：
 
 - 只改点名的部分；
 - 代码、路径、URL、公式、版本号和数字一字不动，不补原文没写的机制和条件；

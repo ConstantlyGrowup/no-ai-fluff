@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ..delivery_note import host_note_en
 from ..mcp_server import MCPServer
 from ..mcp_server import main as _main
 from .pipeline import EnPipeline
@@ -100,6 +101,7 @@ def format_finalize_en(res) -> str:
     lines.append(meta)
     for p in [p for p in res.patches if not p["applied"]][:10]:
         lines.append(f"- rejected \"{p['find'][:30]}\": {p['reject_reason']}")
+    lines.append("\n" + host_note_en())
     return "\n".join(lines)
 
 
@@ -108,7 +110,10 @@ class EnMCPServer(MCPServer):
     tools = TOOLS_EN
     instructions = (
         "Before delivering a long English reply or document meant for people: call prepare_rtt_draft, write local JSON "
-        "patches on the original following the returned rules, then call finalize_patched_delivery for the final text."
+        "patches on the original following the returned rules, then call finalize_patched_delivery for the final text. "
+        "The final text is followed by delivery notes for the host: deliver the text as is, add the one-line note "
+        "offering a paragraph rewrite in the chat, and if the user names a paragraph, rewrite only that part by the "
+        "five rules given there."
     )
     messages = MESSAGES_EN
     pipeline_cls = EnPipeline
@@ -118,6 +123,9 @@ class EnMCPServer(MCPServer):
 
     def format_finalize(self, res) -> str:
         return format_finalize_en(res)
+
+    def host_note(self) -> str:
+        return host_note_en()
 
     def format_domain_triage(self, res) -> str:
         return format_domain_triage_en(res)
