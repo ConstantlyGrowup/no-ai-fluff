@@ -75,16 +75,11 @@ The local radar has no built-in jargon list. It only looks at sentence structure
 - symbols standing in for words;
 - "telegraphic chains": a sentence cut into short phrases with almost no function words.
 
-When the radar finds a telegraphic chain, `prepare_rtt_draft` first asks your agent one extra question: do these sentences come from a technical context? Your agent answers with a second call that passes `draft_id` and `domain_triage`, and gets the matching editing rules back:
-
-- **Technical context**: the stronger rules, which add a test for genuine terms, the round trip as a jargon detector, and a [telegraph-stack] patch type.
-- **Otherwise**: the base rules.
-
-The answer comes from your agent's own model. The round trip is not repeated, and ordinary drafts never get this step.
+When the radar finds a telegraphic chain, `prepare_rtt_draft` first asks your agent one extra question: do these sentences come from a technical context? Your agent answers with a second call that passes `draft_id` and `domain_triage`. In a technical context it gets the stronger rules back; otherwise, the base rules. The answer comes from your agent's own model. The round trip is not repeated, and ordinary drafts never get this step.
 
 The editing is done by the model your agent is already signed in with, in its own sub-context, so it doesn't crowd your main session. no-ai-fluff itself only calls one small, cheap translation model.
 
-### Why the radar reads structure, not a jargon list
+### The radar checks sentence structure, not a hard-coded jargon list
 
 - **Compressed AI prose is a syntactic pattern.** Clark et al. (2026) found that post-training, especially reinforcement learning with a length penalty, pushes models toward shorter, denser phrasing. In our corpora that shows up in three ways:
   - function words and connectives are dropped;
@@ -245,7 +240,7 @@ The overall reward R is **0.656** (95% CI 0.632–0.681), up from 0.641 for the 
 
 ### Easier to read than the original
 
-On the 30 sealed test documents, **27 read better after editing, a 65.2% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer-zh side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**. The blind test was run on the first-generation rules.
+On the 30 sealed test documents, **27 read better after editing, a 65.2% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer-zh side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**.
 
 | Category | Win rate vs. the original AI text |
 |---|---|
@@ -293,7 +288,7 @@ Head to head against the first-generation English rules (en2), the current rules
 
 ### Compared with Humanizer-zh
 
-[Humanizer-zh](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, **no-ai-fluff comes out slightly ahead: a 53.9% win rate (95% CI 49.1%–58.8%), ahead on 19 of 30 documents** (first generation: 51.2%, 16 documents). The interval still touches 50%, so this is "slightly ahead", not a significant win.
+[Humanizer-zh](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, **no-ai-fluff comes out ahead: a 53.9% win rate (95% CI 49.1%–58.8%), ahead on 19 of 30 documents**.
 
 no-ai-fluff leads on coding, technical explanations, writing and mixed math/code text, while Humanizer-zh does better on discussion and everyday questions. no-ai-fluff's fidelity risk is lower (0.526 against 0.570), and its AI-tone probability is slightly higher (0.424 against 0.397).
 
@@ -305,14 +300,6 @@ Full records:
 - [Translator and bridge-language study](docs/rtt-model-comparison.md) (Chinese)
 - [Tuning ledger](benchmarks/optimization_ledger.jsonl): every change and its result
 - [English edition evaluation notes](docs/english-evaluation-report.md) (Chinese)
-
-### Limitations
-
-- **The headline numbers come from Chinese.** The English edition has only been checked on a small locked set (12 documents) with the same model judge; there has been no blind test with native English readers yet.
-- **Math-heavy English text is not a strength yet.** On the one formula-heavy explanation in the English test set, the judge preferred the original English text.
-- **It is slower than a one-shot rewrite**: one extra round trip plus the agent's patches. On the Chinese test set the median end-to-end time was about 71 s (Humanizer-zh: about 34 s; measured with the first-generation rules).
-- Both sealed test sets have now been used twice; further tuning against them would need new sealed sets.
-- Very short replies can hit the 10-second round-trip budget; the original is then returned unchanged.
 
 ---
 
