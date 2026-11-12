@@ -999,6 +999,33 @@ window.PROMO_DATA = {
    "r12-dev": 24
   }
  },
+ "ratchet": [
+  {
+   "run": "dev",
+   "rules": "v6",
+   "win": 0.4921
+  },
+  {
+   "run": "r1-dev",
+   "rules": "v7",
+   "win": 0.5279
+  },
+  {
+   "run": "r2-dev",
+   "rules": "v7",
+   "win": 0.5494
+  },
+  {
+   "run": "r3-dev",
+   "rules": "v8",
+   "win": 0.5677
+  },
+  {
+   "run": "r12-dev",
+   "rules": "v16",
+   "win": 0.5775
+  }
+ ],
  "splits": {
   "train": 22,
   "dev": 24,
@@ -1047,43 +1074,6 @@ window.PROMO_DATA = {
     "自己骑电动车"
    ]
   ],
-  "ratchet": [
-   [
-    "r0",
-    "49.2%",
-    "基线"
-   ],
-   [
-    "r1",
-    "52.8%",
-    "KEEP"
-   ],
-   [
-    "r2",
-    "54.9%",
-    "KEEP"
-   ],
-   [
-    "r3",
-    "56.8%",
-    "KEEP"
-   ],
-   [
-    "r4",
-    "56.6%",
-    "REVERT"
-   ],
-   [
-    "r5",
-    "持平",
-    "REVERT"
-   ],
-   [
-    "r6",
-    "57.0%",
-    "REVERT"
-   ]
-  ],
   "hz_hard": 0.9912,
   "stars": {
    "hz": 22460,
@@ -1125,5 +1115,10 @@ window.PROMO_DATA = {
  "hard_survival": 1.0,
  "hz_hard": 0.9912,
  "rtt_cost_usd": 0.001962,
- "hz_hard_min": 0.8888888888888888
+ "hz_hard_min": 0.8888888888888888,
+ "num_mismatch": {
+  "ours": 1,
+  "hz": 2,
+  "n": 30
+ }
 };

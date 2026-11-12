@@ -190,13 +190,26 @@ DOC_FACTS = {
     "blind_bridge": {"ru": "5/8", "fr": "2/8", "ja": "0/8"},   # 同上 第九节 M3 人工盲测
     "effort": {"veto": ["5/5", "1/5"], "fid": [2.0, 4.0], "read": [3.2, 3.8]},  # 同上 第八节 m2v2hi
     "drift": [["45 分钟以内", "45~60 分钟之间"], ["运维", "运营"], ["景区电瓶车", "自己骑电动车"]],  # 同上 第七、八节
-    "ratchet": [["r0", "49.2%", "基线"], ["r1", "52.8%", "KEEP"], ["r2", "54.9%", "KEEP"], ["r3", "56.8%", "KEEP"],
-                ["r4", "56.6%", "REVERT"], ["r5", "持平", "REVERT"], ["r6", "57.0%", "REVERT"]],  # docs/evaluation-report.md 第 5 节
     "hz_hard": 0.9912,                      # results/holdout-v16/summary.json（下面直接读取并核对）
     "stars": {"hz": 22460, "ours": 0, "date": "2026-11-10"},  # GitHub API：op7418/Humanizer-zh；本仓库发布前为私有，0 星
     # 封存集唯一一处“数字报警”（teaching-012）：v8 与 v16 都删掉了重复的“（6 bits）”括注，“6 个比特位”仍在，没有改动任何数值
     "number_note": "唯一一处报警是删掉了重复的“6 bits”括注",
 }
+
+
+def ratchet() -> list[dict]:
+    """第 3 幕“五步打磨”：每一步保留下来的规则在 Dev 24 篇上对 Humanizer-zh 的 JEV 胜率（只列保留的步骤）。"""
+    steps = [("dev", "v6"), ("r1-dev", "v7"), ("r2-dev", "v7"), ("r3-dev", "v8"), ("r12-dev", "v16")]
+    out = []
+    for run, rules in steps:
+        assert json.loads((RES / run / "run.json").read_text("utf-8"))["rules"] == rules, run
+        o = json.loads((RES / run / "jev_summary.json").read_text("utf-8"))["overall"]
+        assert o["n"] == 24, run
+        out.append({"run": run, "rules": rules, "win": round(o["win_vs_base"], 4)})
+    wins = [x["win"] for x in out]
+    assert wins == sorted(wins), wins  # 只展示一路上升的保留步骤
+    assert [f"{w * 100:.1f}" for w in wins] == ["49.2", "52.8", "54.9", "56.8", "57.8"], wins
+    return out
 
 
 def tokenize_plain(text: str, locks: list[str]) -> list[list]:
@@ -245,6 +258,7 @@ def main() -> None:
                   pair("r12-dev", "discussion-007", "blocking 问题能闭环", "blocking 问题能跟踪到关闭")],
         "three": teaching_three(),
         "stats": jargon_stats(),
+        "ratchet": ratchet(),
         "splits": splits,
         "facts": DOC_FACTS,
         "blind": blind(),
@@ -259,6 +273,10 @@ def main() -> None:
         "hz_hard": summ["baseline:humanizer-zh"]["hard_placeholder_survival"],
         "rtt_cost_usd": summ["rtt:hymt-ru"]["cost_usd_mean"],
         "hz_hard_min": summ["baseline:humanizer-zh"]["hard_placeholder_min"],
+        # 数字和原文对不上的篇数（radar.number_mismatch 逐篇核对）；Humanizer-zh 30 篇里 2 篇
+        "num_mismatch": {"ours": round(summ["patched:hymt-ru"]["number_mismatch_rate"] * summ["patched:hymt-ru"]["n"]),
+                         "hz": round(summ["baseline:humanizer-zh"]["number_mismatch_rate"] * summ["baseline:humanizer-zh"]["n"]),
+                         "n": summ["baseline:humanizer-zh"]["n"]},
     }
     OUT.write_text("// 由 promo/build.py 从 benchmarks/results 生成，请勿手改\nwindow.PROMO_DATA = "
                    + json.dumps(data, ensure_ascii=False, indent=1) + ";\n", "utf-8", newline="\n")
