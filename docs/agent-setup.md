@@ -88,6 +88,8 @@ In the JSON output, `"fallback": false` means the key works. `"fallback": true` 
 
 Tell the user to restart the agent and approve the `no-ai-fluff` (or `no-ai-fluff-en`) MCP server when asked. From then on they can type `/no-ai-fluff` after a long reply or document, or say "finalize this with no-ai-fluff".
 
+After a final text is delivered, the user can name a paragraph that is still too dense and ask for a full rewrite of just that part. The installed `/no-ai-fluff` command carries the rules for this: rewrite only the named part, keep code, paths, formulas and numbers exactly, and add nothing the original did not say.
+
 Recommend running the reviewer subagent with high reasoning effort: in our tests, low effort missed factual errors in 5 of 5 documents, high effort in 1 of 5.
 
 ## Optional settings

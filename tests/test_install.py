@@ -13,6 +13,15 @@ def test_agent_template_names_real_mcp_tools():
     assert "subagent_type: \"no-ai-fluff\"" in template("skill.md")
 
 
+def test_skill_template_has_rewrite_fallback_and_guardrails():
+    skill = template("skill.md")
+    assert "subagent_type: \"no-ai-fluff\"" in skill  # 双握手入口保留
+    assert "只重写第 X 段" in skill and "绝对不要写进目标文件" in skill  # 聊天里的提示，不进落盘文件
+    for rule in ("只改点名的部分", "一字不差", "真术语保留", "拆开压缩句", "不编造"):
+        assert rule in skill, rule
+    assert "P99" in skill and "底座" in skill
+
+
 def test_project_install_writes_agent_skill_and_merges_mcp_json(tmp_path):
     (tmp_path / ".mcp.json").write_text(json.dumps({"mcpServers": {"other": {"command": "x"}}}), "utf-8")
     rep = install_claude_code("project", tmp_path)

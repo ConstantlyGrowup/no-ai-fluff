@@ -178,6 +178,39 @@ There is also a Chinese edition, `no-ai-fluff` (Chinese → Russian → Chinese)
 
 </details>
 
+### Using it in conversation
+
+Once it is installed, there are two ways to have your agent pass a draft through no-ai-fluff:
+
+- **Option A · slash command**: after a reply or document is written in Claude Code, type `/no-ai-fluff-en`, or `/no-ai-fluff-en path/to/doc.md` for a file.
+- **Option B · just ask**: add "run it through no-ai-fluff at the end" to your request, or ask afterwards, for example "Use no-ai-fluff to finalize docs/design.md". In Cursor, Codex and other MCP-capable clients it works the same way: the agent calls the `prepare_rtt_draft` and `finalize_patched_delivery` tools itself.
+
+If a paragraph of the final text still reads too dense, you can name it and have the agent rewrite just that paragraph. An illustrative conversation:
+
+> **Turn 1: the normal pass**
+>
+> **You**: Write the sprint update for the auth-gateway work, and run it through no-ai-fluff at the end.
+>
+> **Agent**: (writes the draft as usual, then hands it to no-ai-fluff: a round trip gives a plainer reference, only the hard-to-read sentences get small edits on the original, a program checks code and numbers, and the final text comes back)
+>
+> This sprint, we coordinated work across the identity platform workstream and shipped a consolidated token-validation path for `auth-gateway`. As a result, tail latency improved: p99 moved from 120ms to 45ms. The change uses a Redis-backed caching layer for session introspection that was rolled out across 2 regions. It reduces risk in the downstream consumer migration and positions us to look closely at our SLA commitments to partners next quarter. In short, this improves platform trust.
+>
+> For legacy clients, a graceful-degradation fallback path is now operationalized behind contract gating, with the error rate holding under `0.1%`.
+>
+> ---
+>
+> If any paragraph still feels dense or jargon-heavy and needs a full rewrite instead of light edits, just tell me which part to rewrite in plain English (or paste those sentences). I will rewrite only that part from scratch and keep all code, paths, formulas and numbers untouched.
+
+> **Turn 2: rewrite one paragraph**
+>
+> **You**: The second paragraph about legacy clients is still too dense. Rewrite it in plain English, and keep the numbers as they are.
+>
+> **Agent**: (uses the built-in rewrite rules on paragraph 2 only; paragraph 1 and every code span and number stay as they were)
+>
+> Older clients now fall back to a simpler, compatible behavior. A contract check sits in front of that fallback, and the error rate on it stays under `0.1%`.
+
+Paragraph 1 is the real output shown in "Before and after" above; paragraph 2 and the turn-2 rewrite were written for this example. The rewrite only happens when you ask for it, and its rules ship in the `/no-ai-fluff-en` command installed into your project: change only what you name, keep code, formulas and numbers exactly, and add nothing the original did not say.
+
 ---
 
 ## Evaluation

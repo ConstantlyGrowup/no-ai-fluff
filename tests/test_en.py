@@ -157,3 +157,13 @@ def test_install(tmp_path):
     cfg = json.loads((tmp_path / ".mcp.json").read_text("utf-8"))
     assert cfg["mcpServers"]["no-ai-fluff-en"] == {"command": "no-ai-fluff-en", "args": ["mcp"]}
     assert any("OPENROUTER_API_KEY" in s for s in rep.next_steps)
+
+
+def test_en_skill_template_has_rewrite_fallback_and_guardrails():
+    from no_ai_fluff.en.install import template as en_template
+
+    skill = en_template("skill.md")
+    assert 'subagent_type: "no-ai-fluff-en"' in skill
+    assert "which part to rewrite in plain English" in skill and "never put this note in the target file" in skill
+    for rule in ("Touch only what was named", "invent nothing", "Keep genuine terms", "about 25 words", "dropped \"that\""):
+        assert rule in skill, rule
