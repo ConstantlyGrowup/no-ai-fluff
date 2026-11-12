@@ -14,20 +14,31 @@ TOOLS_EN = [
             "Takes an English draft meant for human readers (Markdown / HTML / plain text), freezes code, formulas and "
             "paths, round-trips the prose through another language, and returns draft_id, the original, the round-trip "
             "reference, radar hints and the editing rules. Then write JSON patches on the original and call "
-            "finalize_patched_delivery."
+            "finalize_patched_delivery. A few drafts first return a domain-triage request (status=needs_domain_triage): "
+            "judge whether the listed sentences are technical, then call this tool again with draft_id and domain_triage "
+            "(no text needed) to get the rules."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "text": {"type": "string", "description": "the full draft"},
+                "text": {"type": "string", "description": "the full draft (omit it in the domain-triage follow-up call)"},
                 "format": {"type": "string", "enum": ["auto", "markdown", "html", "text"], "default": "auto"},
                 "question": {"type": "string", "description": "optional: the user's original question"},
                 "exit": {
                     "type": "string", "enum": ["terminal", "file"], "default": "terminal",
                     "description": "terminal = chat reply (10 s budget), file = document written to disk (60 s budget)",
                 },
+                "draft_id": {"type": "string", "description": "domain-triage follow-up: the draft_id from the first call"},
+                "domain_triage": {
+                    "description": ("domain-triage follow-up: whether the listed sentences come from a technical or "
+                                    "engineering context. One boolean, an array of booleans, or "
+                                    '[{"id": 1, "technical": true}] (or its JSON string)'),
+                    "oneOf": [{"type": "boolean"},
+                              {"type": "array", "items": {"oneOf": [{"type": "boolean"}, {"type": "object"}]}},
+                              {"type": "string"}],
+                },
             },
-            "required": ["text"],
+            "description": "Pass text on the first call; after a domain-triage request pass draft_id + domain_triage",
         },
     },
     {
@@ -59,9 +70,9 @@ TOOLS_EN = [
 
 MESSAGES_EN = {
     "text_empty": "text must not be empty",
+    "text_or_draft": "pass text (first call), or draft_id + domain_triage (follow-up after a domain-triage request)",
     "no_draft_id": "draft_id is missing",
     "draft_not_found": "draft {draft_id} not found (already finalized or expired); call prepare_rtt_draft again",
-    "term_review": "{prompt}",
     "unknown_tool": "unknown tool: {name}",
 }
 
@@ -71,6 +82,14 @@ def format_prepare_en(res) -> str:
         head += f"Note: the round trip did not run ({res.fallback_reason}); the reference equals the original. Review it anyway.\n"
     return (head + "\n" + res.audit_prompt
             + f'\n\nThen call finalize_patched_delivery(draft_id="{res.draft_id}", patches=<the JSON array>).')
+
+
+def format_domain_triage_en(res) -> str:
+    return (f"draft_id: {res.draft_id}\n"
+            "The round trip is done and saved as a draft. One more step: the radar found a few sentences cut into short "
+            "phrases. First decide whether they come from a technical or engineering context.\n\n"
+            + res.triage_prompt
+            + f'\n\nThen call prepare_rtt_draft(draft_id="{res.draft_id}", domain_triage=<the JSON array>) to get the rules.')
 
 
 def format_finalize_en(res) -> str:
@@ -99,6 +118,9 @@ class EnMCPServer(MCPServer):
 
     def format_finalize(self, res) -> str:
         return format_finalize_en(res)
+
+    def format_domain_triage(self, res) -> str:
+        return format_domain_triage_en(res)
 
 
 def main() -> None:

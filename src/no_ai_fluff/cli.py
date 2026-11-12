@@ -66,6 +66,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("prepare", help="握手 1")
     common(p)
     p.add_argument("--prompt-only", action="store_true", help="只输出审校提示词（给人或别的模型看）")
+    p.add_argument("--draft-id", help="领域分诊第二步：第一次 prepare 返回的 draft_id")
+    p.add_argument("--domain-triage", help='领域分诊第二步：true / false / [true,false] / [{"id":1,"technical":true}]')
 
     p = sub.add_parser("finalize", help="握手 2")
     p.add_argument("draft_id")
@@ -130,7 +132,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "prepare":
-        res = _pipeline(args).prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if args.draft_id:
+            from .pipeline import DraftNotFound
+
+            try:
+                res = _pipeline(args).complete_prepare(args.draft_id, args.domain_triage)
+            except DraftNotFound:
+                print(f"找不到草稿 {args.draft_id}（可能已定稿或过期）", file=sys.stderr)
+                return 2
+        else:
+            res = _pipeline(args).prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if res.needs_domain_triage:
+            print(f"draft_id: {res.draft_id}\n\n{res.triage_prompt}")
+            print(f"[no-ai-fluff] 需要领域分诊：判断后运行 prepare --draft-id {res.draft_id} --domain-triage '<JSON>'",
+                  file=sys.stderr)
+            return 0
         if args.prompt_only:
             print(f"draft_id: {res.draft_id}\n\n{res.audit_prompt}")
         else:
@@ -155,6 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "run":
         pipe = _pipeline(args)
         prep = pipe.prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if prep.needs_domain_triage:  # 一次跑完模式没有宿主可问：按技术语境保守处理（只影响审校规则，不影响补丁合并）
+            prep = pipe.complete_prepare(prep.draft_id, None)
         fin = pipe.finalize(prep.draft_id, _read_patches(args.patches))
         if args.json:
             _write(json.dumps({"prepare": prep.to_dict(), "finalize": fin.to_dict()}, ensure_ascii=False, indent=2), args.output)

@@ -1,6 +1,6 @@
 # no-ai-fluff 发布宣传片
 
-纯矢量 SVG 时间轴动画，1920×1080，163 秒（9 秒冷开场 + 154 秒正片），中文版和英文版各一部。中文版 6 章（1. AI的“方言” / 2. 方言现象的猜想 / 3. 中文场景的探索 / 4. 实际对比 / 5. 和主流热门SKILL的对比 / 6. 结尾）。视觉是暗房电影感（参照 `docs/video-skills-ref/opus-dark-ref-*.jpg`）：深曜石黑底加径向微光、象牙白文字、暖珊瑚红批注、翠绿补丁、琥珀锁定；片头三行设问后第一次亮出主标题与金句，第 6 章结尾第二次点题。音效由页面里的 `buildAudio` 用 WebAudio 合成，没有配乐（播放器有声音开关，快捷键 M），导出 MP4 时一起混入。画面是 `seek(t)` 的纯函数：每章有相机层，动效用闭式阻尼弹簧，镜头之间模糊溶解，规范参照 `docs/video-skills-ref/`。片中不出现安装命令、密钥或网址。画面不画外框、不挂章节眉标、不画进度线；字幕不画底框，只用文字暗影，每句最多一个核心词跳色；场景内容整体放大 1.07 倍铺满画面。分镜与口径见 [`docs/launch-narrative-pack.md`](../docs/launch-narrative-pack.md) 第 4 节。
+纯矢量 SVG 时间轴动画，1920×1080，163 秒（9 秒冷开场 + 154 秒正片），中文版和英文版各一部。中文版 6 章（1. AI的“方言” / 2. 方言现象的猜想 / 3. 中文场景的探索 / 4. 实际对比 / 5. 和主流热门SKILL的对比 / 6. 结尾）。视觉是暗房电影感（参照 暗色电影感参考图（未收入仓库））：深曜石黑底加径向微光、象牙白文字、暖珊瑚红批注、翠绿补丁、琥珀锁定；片头三行设问后第一次亮出主标题与金句，第 6 章结尾第二次点题。音效由页面里的 `buildAudio` 用 WebAudio 合成，没有配乐（播放器有声音开关，快捷键 M），导出 MP4 时一起混入。画面是 `seek(t)` 的纯函数：每章有相机层，动效用闭式阻尼弹簧，镜头之间模糊溶解，规范参照 暗色电影感参考图（未收入仓库）。片中不出现安装命令、密钥或网址。画面不画外框、不挂章节眉标、不画进度线；字幕不画底框，只用文字暗影，每句最多一个核心词跳色；场景内容整体放大 1.07 倍铺满画面。分镜与口径见 [`docs/launch-narrative-pack.md`](../docs/launch-narrative-pack.md) 第 4 节。
 
 ## 播放
 
@@ -25,12 +25,12 @@ python promo/build_en.py
 
 | 画面 | 结果文件 |
 |---|---|
-| 第 1 章状态更新案例 | `results/en-r2/` 的 en-tune-probe-showcase-001（调参集里人工构造的黑话段落，用 en2 跑出） |
+| 第 1 章状态更新案例 | `results/en-r5/` 的 en-tune-probe-showcase-001（调参集里人工构造的黑话段落，用最终版 en5 跑出） |
 | 第 3 章三个翻译模型、回译走样 | `results/en_probe/rtt_report.json`、`rtt.jsonl` |
-| 第 3 章 en1 → en2 | `results/en-r1/metrics.json`、`results/en-r2/metrics.json` |
+| 第 3 章调参 first → final | `results/en-r1/metrics.json`（first）、`results/en-r5/metrics.json`（final，en5） |
 | 第 3 章测试集构成 | `benchmarks/corpus/en_test.jsonl`、`benchmarks/splits/en_test.lock.json` |
-| 第 4 章三个案例与六组词对 | `results/en-test/rows.jsonl`、`results/en-r2/rows.jsonl`，`build_en.py` 逐条核对补丁确实生效 |
-| 第 5、6 章 JEV 与客观指标 | `results/en-test/jev_summary.json`、`metrics.json` |
+| 第 4 章三个案例与六组词对 | `results/en-test-en5/rows.jsonl`、`results/en-r5/rows.jsonl`，`build_en.py` 逐条核对补丁确实生效 |
+| 第 5、6 章 JEV 与客观指标 | `results/en-test-en5/jev_summary_vs_en-test.json`、`metrics.json` |
 
 英文版没有对比任何第三方英文工具（只和原文比），第 5 章与第 6 章的说明文字也写明了 JEV 的英文问题集未经英文人工校准。
 
@@ -44,12 +44,12 @@ python promo/build.py
 
 | 画面 | 结果文件 |
 |---|---|
-| 第 1 章网关案例 | `results/showcase/` 的 showcase-004（`benchmarks/showcase.py` 用锁定配置 v8-locked 跑出） |
+| 第 1 章网关案例 | `results/showcase-v16/` 的 showcase-004（最终版规则 v16 跑出）；幕 3 往返片段取自 `results/showcase/` |
 | 第 3 章语料划分 | `benchmarks/splits/*.json` |
 | 第 3 章桥接语、漂移、推理强度、r0–r6 | `promo/build.py` 里的 `DOC_FACTS`，逐条注明出自 `docs/rtt-model-comparison.md` / `docs/evaluation-report.md` 哪一节 |
-| 第 4 章四个案例 | `results/holdout/patch.jsonl`、`results/r3-dev/patch.jsonl`，逐字核对 |
-| 第 5 章盲测、JEV、存活率 | `results/holdout-blind/blind_votes.json`、`results/holdout/jev_summary.json`、`summary.json` |
-| 第 5 章 17 → 15 → 0、16 → 14 → 2 | `build.py` 的 `jargon_stats()` 按原文 / v8 / Humanizer-zh 逐字计数 |
+| 第 4 章四个案例 | `results/holdout-v16/patch.jsonl`、`results/r12-dev/patch.jsonl`，逐字核对 |
+| 第 5 章盲测、JEV、存活率 | `results/holdout-blind/blind_votes.json`（第一代 v8 上做的）、`results/holdout-v16/jev_summary.json`、`summary.json` |
+| 第 5 章 17 → 15 → 1、16 → 14 → 5 | `build.py` 的 `jargon_stats()` 按原文 / v16 / Humanizer-zh 逐字计数（侧面观察） |
 
 ## 排版自检
 

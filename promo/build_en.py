@@ -2,10 +2,11 @@
 
     python promo/build_en.py
 
-Reads:
-    results/en_probe/    translator comparison (EN -> JA -> EN), round-trip drift examples
-    results/en-r1/, en-r2/   tuning rounds on the tune set (en2 = shipped rules); en-r2 also holds the showcase paragraph
-    results/en-test/     the locked 12-document test set: rows, metrics, JEV summary
+Reads (final rules en5 = second generation: structure-only radar + domain triage):
+    results/en_probe/      translator comparison (EN -> JA -> EN), round-trip drift examples
+    results/en-r1/, en-r5/ first (en1) and final (en5) tuning rounds on the tune set; en-r5 also holds the showcase paragraph
+    results/en-test-en5/   the locked 12-document test set scored with en5: rows, metrics, JEV summary (incl. head-to-head
+                           against en2's earlier run on the same set, results/en-test)
 """
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ def strip_md(s: str) -> str:
 
 
 def showcase() -> dict:
-    r = rows("en-r2")["en-tune-probe-showcase-001"]
+    r = rows("en-r5")["en-tune-probe-showcase-001"]
     orig, final = r["original"], r["final"]
     jargon = ["drove alignment", "holistic", "consolidation", "unlocking", "step-function", "posture", "Leveraging",
               "de-risks", "runway", "double-click", "Net-net", "north-star-aligned", "meaningfully", "moves the needle"]
@@ -66,12 +67,12 @@ def case(run: str, doc: str, prefix: str, src: str) -> dict:
 def pairs() -> list[list[str]]:
     """Jargon -> plain wording, each pair checked against a real applied patch."""
     spec = [
-        ("en-r2", "en-tune-probe-showcase-001", "drove alignment", "aligned work", "tune · showcase"),
-        ("en-test", "en-test-teaching-01", "surfaces conceptually related results", "returns conceptually related results", "test · teaching"),
-        ("en-test", "en-test-discussion-01", "won't meaningfully change", "won't change your p99 much", "test · discussion"),
-        ("en-test", "en-test-discussion-02", "imposes a steep tax on it", "takes a large share of it", "test · discussion"),
-        ("en-test", "en-test-writing-01", "more meaningful opportunity", "chance", "test · writing"),
-        ("en-r2", "en-tune-teaching-01", "leverage", "use", "tune · teaching"),
+        ("en-r5", "en-tune-probe-showcase-001", "drove alignment", "coordinated work", "tune · showcase"),
+        ("en-test-en5", "en-test-teaching-01", "surfaces conceptually related results", "returns conceptually related results", "test · teaching"),
+        ("en-test-en5", "en-test-discussion-02", "imposes a steep tax on it", "consumes a lot of it", "test · discussion"),
+        ("en-test-en5", "en-test-writing-01", "more meaningful opportunity", "chance", "test · writing"),
+        ("en-test-en5", "en-test-writing-01", "help streamline our communication", "make communication smoother", "test · writing"),
+        ("en-r5", "en-tune-teaching-01", "leverage", "use", "tune · teaching"),
     ]
     out = []
     for run, doc, a, b, src in spec:
@@ -88,7 +89,7 @@ def pairs() -> list[list[str]]:
 def two_col() -> dict:
     """Chapter 5 side by side: the most rewritten long paragraph of en-test-discussion-02 (Kubernetes on day one)."""
     import difflib
-    r = rows("en-test")["en-test-discussion-02"]
+    r = rows("en-test-en5")["en-test-discussion-02"]
     pairs = [(o, f) for o, f in zip(r["original"].split("\n"), r["final"].split("\n")) if o != f and len(o.split()) >= 40]
     o, f = min(pairs, key=lambda p: difflib.SequenceMatcher(None, p[0].split(), p[1].split()).ratio())
     assert o.startswith("That said, there are legitimate exceptions") and f.startswith("That said, there are legitimate exceptions.")
@@ -112,10 +113,12 @@ def main() -> None:
     assert "## After the cache change, the checkout tests started failing." in rtt_text("google/gemma-3-4b-it", "en-coding-001")
 
     m1 = json.loads((RES / "en-r1" / "metrics.json").read_text("utf-8"))["summary"]
-    m2 = json.loads((RES / "en-r2" / "metrics.json").read_text("utf-8"))["summary"]
-    mt = json.loads((RES / "en-test" / "metrics.json").read_text("utf-8"))["summary"]
-    jv = json.loads((RES / "en-test" / "jev_summary.json").read_text("utf-8"))
-    test_rows = list(rows("en-test").values())
+    m2 = json.loads((RES / "en-r5" / "metrics.json").read_text("utf-8"))["summary"]  # final rules en5
+    assert json.loads((RES / "en-r5" / "run.json").read_text("utf-8"))["rules"] == "en5" and m1["n"] == m2["n"]
+    mt = json.loads((RES / "en-test-en5" / "metrics.json").read_text("utf-8"))["summary"]
+    jv = json.loads((RES / "en-test-en5" / "jev_summary_vs_en-test.json").read_text("utf-8"))
+    assert json.loads((RES / "en-test-en5" / "run.json").read_text("utf-8"))["rules"] == "en5"
+    test_rows = list(rows("en-test-en5").values())
     assert mt["docs_numbers_changed"] == 0 and mt["final_fallbacks"] == 0
     corpus = jl(ROOT / "benchmarks" / "corpus" / "en_test.jsonl")
     repos = [re.sub(r"^https://github.com/([^/]+/[^/]+)/pull/\d+$", r"\1", c["source"]) for c in corpus if c.get("source")]
@@ -143,17 +146,16 @@ def main() -> None:
                  "long": [mt["before"]["long_sentence_pct"], mt["after"]["long_sentence_pct"]],
                  "wps": [mt["before"]["words_per_sentence"], mt["after"]["words_per_sentence"]],
                  "applied": mt["patches_applied"], "rejected": mt["patches_rejected"], "numbers_changed": mt["docs_numbers_changed"]},
-        "jev": {"win": o["win_vs_orig"], "pref_share": o["docs_ours_preferred"] / o["n"],
+        "jev": {"win": o["win_vs_orig"], "pref_share": o["docs_ours_preferred"] / o["n"], "pref": [o["docs_ours_preferred"], o["n"]],
+                "risk": o["fidelity_risk_ours"], "vs_first": [o["win_vs_ref"], o["docs_beat_ref"], o["docs_lose_ref"]],
                 "read": [o["read_orig"], o["read_ours"]], "ai": [o["ai_tone_orig"], o["ai_tone_ours"]],
                 "pr_win": jv["by_source"]["real Claude Code PRs"]["win_vs_orig"],
                 "pr_share": jv["by_source"]["real Claude Code PRs"]["docs_ours_preferred"] / jv["by_source"]["real Claude Code PRs"]["n"],
                 "by": {k: v["win_vs_orig"] for k, v in jv["by_scenario"].items()}},
         "cases": [
-            case("en-test", "en-test-coding-01", "Callers of `getResolvedAddress`", "real PR · apache/hadoop · test set"),
-            case("en-test", "en-test-teaching-02", "Modern variants like CUBIC", "assistant answer · TCP congestion control · test set"),
-            case("en-test", "en-test-discussion-02", "In the early phase, your scarcest", "assistant answer · Kubernetes on day one · test set")
-            if any(p["find"].startswith("In the early phase, your scarcest") for p in rows("en-test")["en-test-discussion-02"]["patches"])
-            else case("en-test", "en-test-discussion-01", "**Rewrites carry substantial", "assistant answer · Python to Rust? · test set"),
+            case("en-test-en5", "en-test-coding-01", "Callers of `getResolvedAddress`", "real PR · apache/hadoop · test set"),
+            case("en-test-en5", "en-test-teaching-02", "Modern variants like CUBIC", "assistant answer · TCP congestion control · test set"),
+            case("en-test-en5", "en-test-discussion-02", "In the early phase, your scarcest", "assistant answer · Kubernetes on day one · test set"),
         ],
         "pairs": pairs(),
         "two_col": two_col(),

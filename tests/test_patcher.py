@@ -160,16 +160,17 @@ def test_patch_changing_structure_prefix_is_rejected():
 
 
 def test_audit_rules_versions():
-    from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES
+    from no_ai_fluff.patcher import AUDIT_RULES, DEFAULT_AUDIT_RULES, RULE_ALIASES, resolve_rules
 
-    assert DEFAULT_AUDIT_RULES == "v8"  # 优化闭环第 3 轮 Keep
-    v1 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v1")
-    v2 = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v2")
-    assert "严禁重写全文或润色本来正确的句子" in v1 and "翻译腔" not in AUDIT_RULES["v1"]
-    assert "翻译腔" in v2 and '"type"' in v2 and "原文X" in v2
-    assert len(v2) < 1800
-    with pytest.raises(ValueError):
-        build_audit_prompt("a", "b", "c", rules="v9")
+    assert DEFAULT_AUDIT_RULES == "v16"  # 第二代双通道门控（= v2）
+    assert set(AUDIT_RULES) == {"v1", "v2", "v8", "v16"} and RULE_ALIASES == {"v1": "v8", "v2": "v16"}
+    assert AUDIT_RULES["v1"] == AUDIT_RULES["v8"] and AUDIT_RULES["v2"] == AUDIT_RULES["v16"]
+    assert resolve_rules("v2") == "v16" and resolve_rules("v16") == "v16"
+    p = build_audit_prompt("原文X", "参考Y", "雷达Z", rules="v1")
+    assert "【原文】\n原文X" in p and "参考Y" in p and "雷达Z" in p and "上面十类之一" in p
+    for retired in ("v3", "v5", "v13", "v15"):
+        with pytest.raises(ValueError):
+            build_audit_prompt("a", "b", "c", rules=retired)
 
 
 def test_patch_type_parsed_and_optional():
@@ -195,9 +196,14 @@ def test_pipeline_uses_configured_rules(tmp_path):
 
             return RTTResult(list(segs), [""] * len(segs), [], {}, 2, 0.01)
 
-    for rules, marker in (("v1", "严禁重写全文"), ("v2", "翻译腔")):
+    plain, dense = "这是一段需要审校的中文。", "入口收紧准入门槛，挂载契约门禁和安全边界，控制并发水位与背压，避免上下文污染。"
+    for rules in ("v1", "v8"):
         pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), audit_rules=rules), translator_factory=lambda c: Echo())
-        assert marker in pipe.prepare("这是一段需要审校的中文。").audit_prompt
+        prep = pipe.prepare(dense)
+        assert not prep.needs_domain_triage and "11. [电报堆叠]" not in prep.audit_prompt
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), audit_rules="v2"), translator_factory=lambda c: Echo())
+    assert "11. [电报堆叠]" not in pipe.prepare(plain).audit_prompt  # 没有电报句：基础通道
+    assert pipe.prepare(dense).needs_domain_triage  # 有电报句：先请宿主做领域分诊
 
 
 TABLE = "| 阶段 | 时间 | 说明 |\n|---|---|---|\n| API v1 下线 | 发布后六个月。 | API v1 停止服务 |\n| 迁移期 | 半年 | 两版并存 |"
@@ -228,122 +234,34 @@ def test_table_row_patch_is_all_or_nothing():
     assert "| 迁移阶段 | 半年 | 两版并存 |" in out  # 第二条整条未生效，没有半改
 
 
-def test_v3_rules_cover_skill_principles_and_allow_paragraph_rewrites():
-    from no_ai_fluff.patcher import AUDIT_RULES, MAX_FIND_BY_RULES
-
-    v3 = AUDIT_RULES["v3"]
-    for kw in ("保真", "说人话", "尽量、通常、可能、建议、很", "原文本身就有的 AI 腔", "主谓完整", "翻译腔",
-               "口号式排比", "不扩写", "严禁把整句改回原文", "仍然是局部补丁", "每个只出现一次"):
-        assert kw in v3, kw
-    assert MAX_FIND_BY_RULES["v3"] > MAX_FIND_BY_RULES["v2"]
-    para = "这个方案打通了数据链路，" + "形成了完整的业务闭环，" * 20 + "极其关键。"
-    assert MAX_FIND_BY_RULES["v2"] < len(para) <= MAX_FIND_BY_RULES["v3"]
-    doc = parse(para)
-    texts = [s.masked for s in doc.slots]
-    _, res2 = apply_patches(doc, texts, [Patch(para, "这个方案统一了上报格式。", "整段重写")], MAX_FIND_BY_RULES["v2"])
-    _, res3 = apply_patches(doc, texts, [Patch(para, "这个方案统一了上报格式。", "整段重写")], MAX_FIND_BY_RULES["v3"])
-    assert not res2[0].applied and res3[0].applied
-
-
-def test_v3_paragraph_rewrite_may_move_protected_content_but_must_keep_it():
+def test_paragraph_rewrite_may_move_protected_content_but_must_keep_it():
     from no_ai_fluff.patcher import MAX_FIND_BY_RULES
 
-    text = "通过调用 `fetchUser()` 对 src/a.ts 中的数据进行读取处理操作。"
-    doc = parse(text)
+    src = "调用 `fetch()` 之后，系统会打通数据链路并形成闭环，再把结果写回。"
+    doc = parse(src)
     texts = [s.masked for s in doc.slots]
-    ok_patch = Patch(text, "src/a.ts 里的数据由 `fetchUser()` 读取。", "说人话")
-    bad_patch = Patch(text, "由 `fetchUser()` 读取数据。", "丢了路径")
-    new, res = apply_patches(doc, texts, [ok_patch], MAX_FIND_BY_RULES["v3"])
-    assert res[0].applied and doc.render(new) == "src/a.ts 里的数据由 `fetchUser()` 读取。"
-    _, res = apply_patches(doc, texts, [bad_patch], MAX_FIND_BY_RULES["v3"])
-    assert not res[0].applied and "丢失" in res[0].reason
+    ok_patch = Patch(src, "系统先把结果写回，再调用 `fetch()`。", "整句改写", "隐喻黑话")
+    bad_patch = Patch(src, "系统先把结果写回。", "丢了代码", "隐喻黑话")
+    new, res = apply_patches(doc, texts, [ok_patch], MAX_FIND_BY_RULES["v2"])
+    assert res[0].applied and "`fetch()`" in doc.render(new)
+    _, res = apply_patches(doc, texts, [bad_patch], MAX_FIND_BY_RULES["v2"])
+    assert not res[0].applied
 
 
-def test_v3_rejects_reverting_sentence_to_original_but_allows_term_restore():
-    from no_ai_fluff.patcher import REVERT_MIN_CHARS
+def test_second_generation_tables_and_gate():
+    from no_ai_fluff import patcher
 
-    original = "过去六个月，我们重点攻坚了三大核心战役，为下半年的业务爆发奠定了坚实基础。"
-    doc = parse(original)
-    # 往返翻译后的初稿（槽位已被拆松）
-    rtt = ["在过去六个月里，我们重点推进了三个关键方向，为下半年的业务增长做了准备。"]
-    revert = Patch(rtt[0], original, "保真")
-    term = Patch("三个关键方向", "三个方向", "术语")
-    new, res = apply_patches(doc, rtt, [revert, term], 300, REVERT_MIN_CHARS["v3"])
-    assert not res[0].applied and "改回了原文" in res[0].reason
-    assert res[1].applied and "三个方向" in new[0]
-
-
-def _v4_apply(text, rtt, *patches):
-    from no_ai_fluff.patcher import MAX_FIND_BY_RULES, REVERT_MIN_CHARS
-
-    doc = parse(text)
-    return apply_patches(doc, rtt or [s.masked for s in doc.slots], list(patches),
-                         MAX_FIND_BY_RULES["v4"], REVERT_MIN_CHARS["v4"], require_misread=True)
-
-
-@pytest.mark.parametrize("misread,ok", [
-    ("", False),
-    ("不一致", False),
-    ("与原文不一致", False),
-    ("原文是“尽量不超过”，所以要改", False),
-    ("和原文表述有差异", False),
-    ("读者会以为周末起床时间必须严格控制在 1 小时以内", True),
-])
-def test_v4_fidelity_patch_requires_concrete_misread(misread, ok):
-    _, res = _v4_apply("周末起床时间尽量不超过平时 1 小时。", ["周末起床时间不超过平时 1 小时。"],
-                       Patch("不超过平时", "尽量不超过平时", "语气", "保真", misread))
-    assert res[0].applied is ok, res[0].reason
-
-
-def test_v4_plain_language_patch_needs_no_misread():
-    _, res = _v4_apply("我们重点攻坚了三大核心战役。", ["我们重点推进了三个关键方向。"],
-                       Patch("重点推进了三个关键方向", "主要做了三件事", "去口号", "说人话"))
-    assert res[0].applied
-
-
-def test_v4_prompt_defines_reader_centric_fidelity_and_includes_question():
-    from no_ai_fluff.patcher import AUDIT_RULES
-
-    v4 = AUDIT_RULES["v4"]
-    for kw in ("会不会得出与原文不同的错误认识", "不是**保真问题", "misread", "严禁把整句改回原文", "仍然是局部补丁"):
-        assert kw in v4, kw
-    p = build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v4", question="怎么调作息？")
-    assert "【用户问题】\n怎么调作息？" in p and p.index("【用户问题】") < p.rindex("【原文】")
-    assert "\n\n【用户问题】\n" not in build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v3", question="怎么调作息？")
-    assert "\n\n【用户问题】\n" not in build_audit_prompt("原文X", "初稿Y", "雷达Z", rules="v4", question="  ")
-
-
-def test_patch_misread_roundtrips_in_results():
-    from no_ai_fluff.patcher import results_to_dicts
-
-    ps = parse_patches('[{"find":"a","replace":"b","type":"保真","misread":"读者会以为 a 是 b"}]')
-    doc = parse("这里有 a 字。")
-    _, res = apply_patches(doc, [s.masked for s in doc.slots], ps)
-    assert results_to_dicts(res)[0]["misread"] == "读者会以为 a 是 b"
-
-
-def test_v5_removes_copy_inducing_rule_and_puts_draft_first():
-    from no_ai_fluff.patcher import AUDIT_RULES
-
-    v5 = AUDIT_RULES["v5"]
-    assert "原文作者明确使用的说法" not in v5
-    for kw in ("外延判据", "指的不是同一个东西", "人员分析", "不超过 20 字", "不要从【AI 原始底稿】里搬词"):
-        assert kw in v5, kw
-    p = build_audit_prompt("底稿X", "初稿Y", "雷达Z", rules="v5", question="问题Q")
-    assert p.rindex("【用户问题】") < p.rindex("【RTT 初稿】") < p.rindex("【AI 原始底稿（含行话套话")
-    assert p.index("初稿Y") < p.index("底稿X")
-
-
-def test_v5_fidelity_patch_limited_to_minimal_phrase():
-    from no_ai_fluff.patcher import FIDELITY_MAX_FIND
-
-    doc = parse("预算三千左右，家里有猫，地板是木地板，最好选带自动集尘的型号。")
-    rtt = ["预算大约三千，家中养猫，地面为木地板，最好选择带有自动吸尘功能的型号。"]
-    short = Patch("自动吸尘", "自动集尘", "术语", "保真", "读者会以为是吸尘功能而不是集尘座")
-    long_ = Patch("地面为木地板，最好选择带有自动吸尘功能的型号", "地面为木地板，最好选带自动集尘的型号", "术语", "保真",
-                  "读者会以为是吸尘功能")
-    assert len(long_.find) > FIDELITY_MAX_FIND["v5"]
-    _, res = apply_patches(doc, rtt, [short], 300, 25, True, FIDELITY_MAX_FIND["v5"])
-    assert res[0].applied
-    _, res = apply_patches(doc, rtt, [long_], 300, 25, True, FIDELITY_MAX_FIND["v5"])
-    assert not res[0].applied and "最小词组" in res[0].reason
+    assert patcher.DEFAULT_AUDIT_RULES == "v16"
+    for table in (patcher.GATED_RULES, patcher.ROUTED_RULES, patcher.DENSE_RADAR_RULES,
+                  patcher.NO_CLICHE_RADAR_RULES, patcher.CJK_SPACE_RULES):
+        assert set(table) == {"v2", "v16"}
+    assert "电报堆叠" not in patcher.PROBLEM_TYPES["v1"] and patcher.PROBLEM_TYPES["v2"][-1] == "电报堆叠"
+    plain = "- [长句/定语堆积] 一句 72 字"
+    dense = plain + "\n- [电报式短句群] 一句切成 6 个短片段"
+    for q in (None, "用户问题"):
+        assert build_audit_prompt("原文", "参考", plain, "v16", q) == build_audit_prompt("原文", "参考", plain, "v8", q)
+        assert build_audit_prompt("原文", "参考", dense, "v16", q).startswith(patcher.AUDIT_INSTRUCTIONS_V16_DENSE)
+        assert (q or "") in build_audit_prompt("原文", "参考", dense, "v2", q)
+    d = patcher.AUDIT_INSTRUCTIONS_V16_DENSE
+    assert "拦下不合规" not in d and "通过和不通过" not in d and "一律不补" in d and "即使你觉得原文有误也不改" in d
+    assert patcher.effective_rules("v8", dense) == "v8"

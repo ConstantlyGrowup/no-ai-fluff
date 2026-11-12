@@ -104,3 +104,49 @@ def test_prompt_hint_limit_raised():
     r = RadarReport([Hint("cliche", 0, f"x{i}", "套话") for i in range(40)])
     lines = r.to_prompt().splitlines()
     assert len(lines) == 31 and "另有 10 条" in lines[-1]
+
+
+def test_telegraph_only_when_dense():
+    from no_ai_fluff.radar import scan_single
+    s = "入口收紧准入门槛，挂载契约门禁和安全边界；中间层编排多个分支，控制预算、并发水位与背压，避免上下文污染和链路阻塞。"
+    assert not [h for h in scan_slot(s) if h.kind == "telegraph"]
+    assert [h for h in scan_slot(s, dense=True) if h.kind == "telegraph"]
+    assert "telegraph" not in scan_single([s]).to_prompt()
+    assert "电报式短句群" in scan_single([s], dense=True).to_prompt()
+
+
+def test_telegraph_skips_connected_prose_and_short_lists():
+    prose = "如果请求没有通过检查，我们就把它拦下来，然后在日志里记一笔，这样以后排查的时候能知道是哪一步出了问题。"
+    assert not [h for h in scan_slot(prose, dense=True) if h.kind == "telegraph"]
+    assert not [h for h in scan_slot("苹果、香蕉、梨。", dense=True) if h.kind == "telegraph"]
+
+
+def test_telegraph_is_purely_statistical_and_keeps_showcase_targets():
+    from no_ai_fluff.radar import telegraph_sentences, telegraph_stats
+    # v14：雷达不再用正则排除行程罗列，交给分诊子 Agent 判断
+    assert telegraph_stats("4 天玩法：桂林市区象鼻山；漓江四星游船到阳朔；阳朔遇龙河边包车看田园，住一晚；返程。")
+    assert telegraph_sentences(["正常的一句话。", "入口收紧准入门槛，挂载契约门禁和安全边界；中间层编排多个分支，控制预算、并发水位与背压，避免上下文污染。"]) == [
+        (1, "入口收紧准入门槛，挂载契约门禁和安全边界；中间层编排多个分支，控制预算、并发水位与背压，避免上下文污染。")]
+    assert telegraph_stats("入口收紧准入门槛，挂载契约门禁和安全边界；中间层通过 {{P1}} 编排多 {{P2}} 分支，控制 {{P3}} 预算、并发水位与背压，避免上下文污染和链路阻塞。")
+    assert telegraph_stats("出口执行 smoke 冒烟测试、幂等校验、协议对齐与一致性审计，合法路径灰度放行，非合法路径隔离绕行。")
+    hint = [h for h in scan_slot("出口执行冒烟测试、幂等校验、协议对齐与一致性审计，合法路径灰度放行，非合法路径隔离绕行。", dense=True)
+            if h.kind == "telegraph"][0]
+    assert "不要脑补原文没写的条件或机制" in hint.message and "补出谁来做" not in hint.message
+
+
+def test_cliche_switch_only_drops_wordlist_hints():
+    from no_ai_fluff.radar import scan_single
+    s = "我们要打通链路、形成闭环，它的其它部分和它的其余部分都被它的配置影响，详见 config yaml 文件。"
+    on = scan_single([s])
+    off = scan_single([s], cliche=False)
+    assert on.counts["cliche"] >= 2 and off.counts["cliche"] == 0
+    assert [h for h in on.hints if h.kind != "cliche"] == off.hints  # 其余结构提示完全不变
+    assert [h for h in scan_slot(s, cliche=False) if h.kind == "cliche"] == []
+
+
+def test_second_generation_runs_without_wordlist():
+    from no_ai_fluff import patcher
+    assert patcher.effective_rules("v16", "x") == "v8" and "v16" in patcher.NO_CLICHE_RADAR_RULES
+    assert "v8" not in patcher.NO_CLICHE_RADAR_RULES and patcher.DEFAULT_AUDIT_RULES == "v16"
+    for table in (patcher.ROUTED_RULES, patcher.DENSE_RADAR_RULES, patcher.CJK_SPACE_RULES, patcher.ORIGINAL_BASE_RULES):
+        assert "v16" in table

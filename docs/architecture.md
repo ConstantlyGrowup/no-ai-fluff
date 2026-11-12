@@ -1,202 +1,239 @@
-# `no-ai-fluff` 顶层系统架构方案（v2 定稿版）
+# `no-ai-fluff` 架构
 
-> **核心设计命题**：基于 **“跨语系小模型往返翻译（RTT）句法粗解压 + 宿主模型独立子上下文（Subagent）全量语义审校与局部 JSON 补丁”** 的交付层语言净化架构。
-> - **对主任务轨迹零干扰**：主 Agent 保持原生推理与编码能力，不注入长篇文风约束；
-> - **零额外大模型 API 成本**：仅需一个极低成本的 OpenRouter 翻译小模型 API，语义审校 100% 借用宿主自身大模型（运行在用完即焚的独立子上下文中，不消耗主会话长历史额度）；
-> - **防大模型二次压缩**：强制宿主模型只输出局部替换 JSON 补丁，保留小模型解压出的自然松弛句式。
+> 一句话：**跨语种往返翻译（RTT）给出一份更松的参考稿，本地雷达只看句式结构；宿主模型在独立子上下文里对照原文和参考稿，只开局部 JSON 补丁；确定性代码负责守卫合并和兜底回退。**
+>
+> - **不干扰主任务**：主 Agent 照常推理和编码，不需要在主会话里注入长篇文风约束；
+> - **额外成本只有一个翻译小模型**：审校借用宿主自己的大模型，在用完即弃的子上下文里完成，不占主会话的上下文；
+> - **防止二次压缩**：宿主只能提交局部替换补丁，不能整篇重写，所以不会把往返翻译拆松的句子又压回去。
 
----
-
-## 一、理论依据与前置探针结论
-
-### 1. 病因拆解（Clark et al., 2026 & `humanize`）
-现代前沿大模型在数学、代码等可验证奖励强化学习（RLVR）与长度惩罚训练下，演化出了违背人类工作记忆与均匀信息密度（UID）的**高压缩方言**（连续名词堆叠、无生命主语配拟人动作动词、生造压缩代号、省略必要连接词），叠加中文语境下的散装中英混排、欧化翻译腔与互联网空洞大词，造成极高的阅读与 Review 负担。
-
-### 2. 语言类型学对照组设计（中文 P0 桥接语选型）
-针对中文“左分支超长前置定语（连环‘的’字）+ 汉字复合名词堆叠”的核心病灶，设立三组对照实验（以母语者最终阅读流畅度与语义零失真为唯一胜出标准，不以单纯拆句碎度论优劣）：
-- **实验组 A：日语（`ja`）** —— 黏着语 / SOV。断句意愿强，但与中文同属左分支前置定语且共享双字汉字词，易保留连环 `的` 字与生硬汉字直译（如前期单句探针中将 `non-trivial` 译为 `非平凡`）。
-- **实验组 B：法语（`fr`，核心破壁组）** —— 屈折语 / SVO / **严格中心语前置（右分支）**。语法级禁止名词直接堆叠、强制保留关系代词（`qui/que` 不可省）、零汉字同形词借用，强迫小模型彻底拆解压缩黑话与长定语（单句探针中将 `edge case` 与 `non-trivial overhead` 自然洗为 `极端情况下` 与 `不可忽视的开销`）。
-- **参考组 C：俄语（`ru`，原论文附录 B.5 对照语种）** —— 六格形态变位显式锁死施事主体、受事客体与工具角色，专治中文主客体指代模糊。
-
-### 3. 翻译小模型对比矩阵
-- **`tencent/hy-mt2-30b-a3b`**（MoE 架构，每次激活参数 **3B**，纯机器翻译专用模型，原生中文对齐与分隔符保护，`$0.074/M` 输入）
-- **`google/gemma-3-4b-it`**（4B 轻量多语底座，与论文附录 B.5 `TranslateGemma-4B` 同源，`$0.050/M` 输入；前期探针显示其在俄语桥接下偶发专业词幻觉，需在评测台定量对比）
+改写规则的细节（真术语判据、照妖镜、问题类型、补丁守卫）见 [内化规则参考](internalized-rules.md)。
 
 ---
 
-## 二、总体系统架构（v2：独立子上下文微创闭环）
+## 一、理论依据
 
-系统分为 **宿主主会话层**、**独立审校子上下文层（Isolated Subagent）**、**MCP 核心四阶引擎层** 与 **离线评测盲测台** 四部分：
+### 1. 病因
+
+Clark, Martin & Mahowald（2026）的论文《Why is AI-generated language so hard to understand?》发现三件事：
+
+- 后训练越多，模型越常用难懂的压缩写法；
+- 在小模型上做带长度惩罚的强化学习，模型会稳定地偏向更短的句式；
+- 把文本翻成外语再翻回来，意思不变，这些难懂的写法会明显变少。
+
+在中文语料里，我们看到的压缩方言主要是这几种：
+
+- 名词连排；
+- 用箭头和顿号代替“因为、然后”；
+- 抽象名词加跨界动词组成的包装说法（“挂载契约门禁”“控制并发水位”）；
+- 被逗号切成一串短片段、几乎没有虚词的“电报句”。
+
+此外还有中英混杂、欧化翻译腔和空洞大词。
+
+### 2. 为什么雷达只看结构
+
+压缩方言的共同点在句法骨架上：虚词和连接词少，句子被切成很多短片段，多步因果被压成箭头链。这些特征能用确定性规则零成本测量，而且跨领域稳定。
+
+具体的黑话词却一直在变，词表永远追不上。而且，如果同一张词表既驱动改写、又用来算分，评测就会变成照着词表刷分。
+
+所以第二代架构的分工是：
+
+- 雷达只测句法骨架和虚词密度；
+- 词汇层面的包装黑话，交给往返翻译照妖镜和宿主模型的语义判断。
+
+### 3. 翻译小模型与桥接语选型
+
+- 模型：`tencent/hy-mt2-30b-a3b`（OpenRouter）或 `hy-mt2-pro`（腾讯云 TokenHub）。
+- 中文桥接语：俄语。2 个模型 × 3 种桥接语（日、法、俄）的消融和人工盲测里，俄语最常被选中，过程见 [翻译模型与桥接语选型](rtt-model-comparison.md)。
+- 英文桥接语：日语，与论文一致；三个翻译模型的对比见 [英文版评测说明](english-evaluation-report.md)。
+
+---
+
+## 二、总体架构
 
 ```mermaid
 flowchart TD
-    subgraph MainCtx["宿主主会话 (Main Context - 80k+ tokens 原生编码/推理)"]
-        M_Work["主模型全速执行编码 / 推导 / 工具调用 (零文风干扰)"]
-        M_Draft["产出终态长总结 / 理工概念解释 / .md与.html交付草稿"]
-        M_Work --> M_Draft
+    subgraph MainCtx["宿主主会话"]
+        M_Draft["主模型照常工作，写出长回复 / .md / .html 草稿"]
     end
 
-    subgraph SubCtx["独立审校子上下文 (context: fork / Subagent - 仅 ~1.5k tokens 用完即焚)"]
-        S_Call1["第 1 次握手: 调 prepare_rtt_draft"]
-        S_Audit["宿主自身大模型: 对照【原文 + RTT初稿 + 雷达提示】全量语义排查"]
-        S_Patch["仅生成局部 JSON 补丁 (严禁全文重写，无问题则输出空数组)"]
-        S_Call2["第 2 次握手: 调 finalize_patched_delivery"]
-        S_Call1 --> S_Audit --> S_Patch --> S_Call2
+    subgraph SubCtx["审校子上下文（子智能体，用完即弃）"]
+        S_Call1["握手 1：prepare_rtt_draft"]
+        S_Triage["（仅在雷达扫到电报句时）宿主判断这几句是否出自技术语境，带 domain_triage 再调一次"]
+        S_Patch["宿主模型对照【原文 + 往返参考稿 + 雷达提示】，只开局部 JSON 补丁"]
+        S_Call2["握手 2：finalize_patched_delivery"]
+        S_Call1 --> S_Triage --> S_Patch --> S_Call2
     end
 
-    subgraph Engine["no-ai-fluff MCP 核心引擎 (确定性代码 + OpenRouter 小模型)"]
-        E0["Stage 0: 结构剥离与行内代码/公式掩码冻结 (Masker)"]
-        E1["Stage 1: OpenRouter 3B/4B 纯翻译小模型往返解压 (RTT)"]
-        E2["Stage 2a: 5 类明显通用表层雷达扫描 (仅标线索，不盲目放行)"]
-        E3["Stage 3: 安全打补丁 + 占位符 100% 校验与熔断回退 + stats 遥测"]
-        E0 --> E1 --> E2
+    subgraph Engine["no-ai-fluff MCP 引擎（确定性代码 + 翻译小模型）"]
+        E0["Stage 0 冻结：结构剥离 + 代码/公式/路径/URL 换成 {{Pn}}"]
+        E1["Stage 1 往返翻译：hy-mt2，中→俄→中 / 英→日→英"]
+        E2["Stage 2a 结构雷达：长句、散装英文、代词、电报句……（不带黑话词表）"]
+        E2b["Stage 2b 领域分诊 → 选择基础通道或强化通道的审校规则"]
+        E3["Stage 3 守卫合并 → 标点清理 → 定稿校验 → 失败则退回原文"]
+        E0 --> E1 --> E2 --> E2b
     end
 
-    M_Draft -- "仅移交几百字草稿 (隔离长历史)" --> S_Call1
+    M_Draft -- "只移交草稿" --> S_Call1
     S_Call1 --> E0
-    E2 -- "返回 原文 + RTT初稿 + 通用雷达线索" --> S_Audit
-    S_Call2 -- "提交 JSON 替换补丁" --> E3
-    E3 -- "子上下文销毁，仅向终端屏幕或目标文件输出定稿" --> Out["最终面向人类的人话交付物"]
+    E2b -- "原文 + 参考稿 + 雷达提示 + 审校规则" --> S_Patch
+    S_Call2 -- "JSON 补丁" --> E3
+    E3 -- "定稿" --> Out["终端输出或写入目标文件"]
 ```
 
 ---
 
-## 三、核心四阶流水线分工明细
+## 三、各阶段
 
-### Stage 0：结构感知拆分与确定性掩码层（`Masker`）
-1. **结构零触碰剥离**：
-   - **Markdown**：围栏代码块（```` ``` ````）、分割线、空行标记为不可翻译，**零 Token 消耗原样直通**；标题（`## `）、列表与复选框（`- [x] `）、表格分隔符剥离保护，仅提取纯正文槽位。
-   - **HTML 可视化材料**：跳过 `<script>`、`<style>`、`<code>`、`<pre>`、`<svg>` 及所有标签属性，仅抽取可见自然语言文本节点处理后原地回填。
-2. **行内冻结 vs 散装英语暴露**：
-   - **强制冻结为 `{{P0}}`, `{{P1}}`**：行内反引号代码、LaTeX 公式、URL、文件路径、Git Commit/PR 编号、驼峰/下划线标识符、复杂度符号 `O(n)`、通用工程大写缩写（`API`、`SDK`、`SQL`、`SSE`、`Mutex` 等）。
-   - **故意裸露（免规则清洗）**：非必要的日常散装英语（`edge case`、`non-trivial`、`overhead`、`trade-off`、`fallback`、`critical`、`sync`），交由跨语种往返自动转化为自然中文。
+### Stage 0：结构剥离与冻结（`masker.py`、`en/masker.py`）
 
-### Stage 1：OpenRouter 原生小模型往返解压层（`RTT`）
-- 读取环境变量 `OPENROUTER_API_KEY`，温度 `0.1`，纯翻译模式（不向小模型注入复杂风格指令）。
-- 使用段落分界符 `⟦0⟧`、`⟦1⟧` 合并批处理，保留跨句指代上下文，单次千字总结往返耗时控制在 **2~4 秒**；若分界符数量不一致则自动降级为单段重试。
+- **结构不送翻译**：
+  - Markdown 的围栏代码块、分割线、空行原样直通；
+  - 标题、列表、复选框、表格分隔符剥离保护，只取正文槽位；
+  - HTML 跳过 `<script>`、`<style>`、`<code>`、`<pre>`、`<svg>` 和标签属性，只处理可见文本节点。
+- **冻结为 `{{P0}}`、`{{P1}}`**：行内代码、LaTeX 公式、URL、文件路径、Commit / PR 编号、驼峰和下划线标识符、`O(n)`、`API` 这类工程缩写，以及 `NO_AI_FLUFF_TERMS` 指定的术语。
+- **故意不冻结**：`edge case`、`overhead`、`trade-off` 这类日常散装英文，交给往返翻译转成自然中文。
 
-### Stage 2：通用表层雷达 + 独立上下文全量语义微创审校（`Radar + Host Subagent`）
-明确划分 **“确定性代码雷达”** 与 **“宿主大模型语义审校”** 的职责边界：
+### Stage 1：往返翻译（`rtt.py`、`en/rtt.py`）
 
-#### Stage 2a：本地确定性雷达（5 类明显且通用的表层/结构规则 —— 仅作辅助高亮与客观统计，绝不盲目放行）
-1. **长句与定语堆积预警**：单逗分句长度超阈值（如 `> 40 字`）或单分句内含 `≥ 3 个“的”` 字连环套娃；
-2. **数字与量级一致性核对**：提取原文与 RTT 初稿中的阿拉伯数字/百分比集合做差集比对，防止翻译过程漏数字或篡改数值（如 `15秒`、`82.7%` 异变）；
-3. **典型高频套话与黑话提示**：匹配最显著的表层起承转合套话（`值得注意的是 / 综上所述 / 总的来说`）及高频空洞黑话（`赋能 / 闭环 / 抓手 / 底层逻辑`）；
-4. **散装英文残留提示**：检测正文里未被掩码保护却残留的散装日常英文词；
-5. **密集代词风险提示**：单分句或相邻短句重复出现多个 `它 / 其`。
+- 服务商：
+  - 有 `OPENROUTER_API_KEY` 时用 OpenRouter；
+  - 否则用腾讯云 `TENCENTCLOUD_API_KEY`，客户端按每分钟 60 次限速，遇到 429 按 Retry-After 退避。
+- 翻译方式：
+  - 温度 0.1，纯翻译，不向小模型注入风格指令；
+  - 每段附带最多 300 字上文；
+  - 多段用 `⟦0⟧`、`⟦1⟧` 分界符合并成一批；分界符对不上时降级为单段重试；
+  - 单段校验失败时，只把这一段退回原文。
+- 时限：终端回复 10 秒，落盘文档 60 秒。超时、未配置 Key、整体失败时，参考稿就用原文，宿主照样可以在原文上开补丁。
+- **往返稿只作参考**：它会走样，比如把“运维成本”译成“运营成本”。所以补丁永远打在原文上。
 
-#### Stage 2b：宿主模型（独立子上下文）全量语义排查与 JSON 补丁开具
-- **取消盲放行**：无论本地雷达是否报警，每一次 RTT 初稿都交由独立子上下文中的宿主大模型对照 `【原文】` 与 `【RTT 初稿】` 做全量语义审校。
-- **重点攻克纯语义病灶**（控制在 `< 800 字` 提示词甜点区内）：
-  1. **理工科专业术语校准（遵循标准 A）**：发现任何词表外的专业术语翻偏（如 `正定矩阵 → 积极确定矩阵`、`逃逸分析 → 逃跑分析`、`幂等闸门 → 幂等交换机`）立即修正，且首次出现的硬核学科概念统一按 `中文标准名（English Term）` 括注；
-  2. **因果方向与充要条件核查**：修正 RTT 可能造成的语气弱化（如“仅在…时”变成“通常在…时”）、因果倒置或必要中间推理步骤遗漏；
-  3. **隐蔽比喻与指代消歧**：将词表外的空间动作隐喻改回直白因果，把指代不明的“它/其”替换为明确的主体和客体名词。
-- **只准输出局部 JSON 补丁**：强制格式为 `[{"find": "初稿原片段", "replace": "修改后片段", "reason": "原因"}]`（若语义精准且通顺自然，则输出 `[]`）。**严禁重写全文**，从机制上封死宿主大模型复发 RLVR 压缩病的可能。
+### Stage 2a：结构雷达（`radar.py`、`en/radar.py`）
 
-### Stage 3：确定性补丁合并、100% 占位符熔断守卫与遥测（`Verifier & Stats`）
-- **安全合并补丁**：代码层逐条执行 `find -> replace`，若某条补丁破坏或丢失了 `{{Pn}}` 占位符或反引号代码，自动拒收该条补丁。
-- **100% 占位符还原校验**：解掩码并验证所有代码、公式、路径零缺失；一旦校验不通过或整体超时（对话 `> 10s`、文档 `> 60s`），无损回退至原始文本。
-- **工程侧 `stats` 遥测**：追加写入 `~/.no-ai-fluff/events.jsonl`，记录触发出口、模型/桥接语耗时、雷达命中项、宿主模型实际开具的补丁条数与回退率。
+- 只扫原文的句法和统计结构，结果作为“疑点提示”交给宿主核对，不据此自动改写。
+- 中文类别：
+  - 长句 / 定语堆积；
+  - 散装英文；
+  - 密集代词；
+  - 电报式短句群：至少 24 字，切成至少 4 段，平均每段 5～11 字，虚词与连接词占比不超过 4%。
+- 英文类别：
+  - long sentence；
+  - noun stack；
+  - nominal-heavy；
+  - symbol for word；
+  - label fragment；
+  - telegraphic sentence chain。
+- **运行时不跑黑话词表**。词表只留在评测脚本里，做事后统计。
+
+### Stage 2b：领域分诊与双通道门控（`telegraph_router.py`、`patcher.py`、`en/rules.py`）
+
+- 雷达没扫到电报句：走**基础通道**，审校提示词与第一代单通道规则逐字相同。
+- 扫到电报句：`prepare_rtt_draft` 先返回这几句，请宿主判断是否出自技术/工程语境。宿主带 `draft_id` 和 `domain_triage` 再调一次，往返翻译不重跑。
+  - 至少一句是技术语境 → **强化通道**：增加真术语判据、往返稿照妖镜、[电报堆叠] 类型；
+  - 全部不是（旅游攻略、生活叮嘱等误报）→ 去掉电报提示，走基础通道。
+- 判断结果按“分诊版本 + 模型 + 句子 sha256”缓存在本地，同样的句子以后不再问。
+- 生产路径不调用任何外部分诊 API。评测脚本可以显式注入 DeepSeek 分诊器。
+
+### Stage 2c：宿主审校（独立子上下文）
+
+- 宿主拿到原文、往返参考稿、雷达提示和审校规则，只输出 `[{"find", "replace", "type", "reason"}]`。没有要改的就输出 `[]`。
+- 每条补丁必须写明问题类型：
+  - 中文基础通道 10 类，强化通道再加 [电报堆叠]；
+  - 英文基础通道 11 类，强化通道再加 [telegraph-stack]。
+- 审校质量依赖推理强度：同一批稿子，低推理强度时 5 篇里有 5 篇漏修了严重事实错误，高推理强度时只剩 1 篇。
+
+### Stage 3：守卫合并、清理与回退（`patcher.py`、`pipeline.py`、`cleanup.py`）
+
+- 补丁逐条合并。以下情况整条拒收，其余补丁照常生效：
+  - `find` 找不到或有歧义；
+  - 跨行，或超过 400 字；
+  - 弄坏、丢失或复制了 `{{Pn}}`；
+  - 改了行首结构或表格列数；
+  - `type` 不在允许的类型里。
+- 只清理被改写过的槽位：重复标点、两个汉字之间多出来的空格等；原文本来就这样写的不动。
+- 定稿校验：解掩码后，所有受保护内容必须一个不少，否则整篇退回原文。
+- 遥测：写入 `~/.no-ai-fluff/events.jsonl`，只记录计数，比如雷达命中、补丁生效与拒收、回退原因，从不记录正文。
 
 ---
 
-## 四、多宿主无感接入时序（Claude Code 优先）
+## 四、接入时序（Claude Code）
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as 用户
-    participant Main as 主 Agent (主上下文)
-    participant Sub as 审校子智能体 (独立上下文 context: fork)
+    participant Main as 主 Agent
+    participant Sub as 审校子智能体
     participant MCP as no-ai-fluff MCP Server
-    participant OR as OpenRouter (3B/4B 翻译小模型)
+    participant TR as hy-mt2（OpenRouter / 腾讯云）
 
-    User->>Main: 发起编码改动任务或理工科提问
-    Main->>Main: 原生执行任务并拟定草稿 raw_draft
-    Main->>Sub: 委派交付审校 (仅传入 raw_draft，隔离主历史)
-    Sub->>MCP: [握手 1] prepare_rtt_draft(raw_draft)
-    MCP->>MCP: Stage 0 掩码冻结代码/公式
-    MCP->>OR: Stage 1 往返翻译 (中 -> 桥接语 -> 中)
-    OR-->>MCP: 返回解压初稿 rtt_draft
-    MCP->>MCP: Stage 2a 运行 5 类通用表层雷达生成 hints
-    MCP-->>Sub: 返回 draft_id + 原文 + rtt_draft + hints
-    Sub->>Sub: Stage 2b 宿主模型全量语义审校，生成局部 JSON patches (或 [])
-    Sub->>MCP: [握手 2] finalize_patched_delivery(draft_id, patches)
-    MCP->>MCP: Stage 3 安全打补丁 + 校验 {{Pn}} 100% 完整 + 记录 stats
-    MCP-->>Sub: 返回定稿 final_text
-    Sub-->>Main: 销毁子上下文，交回 final_text
-    Main->>User: 终端仅打印一次人话版 / 或直接落盘 .md 与 .html
+    User->>Main: 提问或布置任务
+    Main->>Main: 照常完成任务，写出草稿
+    Main->>Sub: 委派定稿（只传草稿）
+    Sub->>MCP: prepare_rtt_draft(text)
+    MCP->>MCP: 冻结代码 / 公式
+    MCP->>TR: 往返翻译
+    TR-->>MCP: 参考稿
+    MCP->>MCP: 结构雷达
+    alt 扫到电报句且本地没有分诊缓存
+        MCP-->>Sub: needs_domain_triage + 待判断的句子
+        Sub->>MCP: prepare_rtt_draft(draft_id, domain_triage)
+    end
+    MCP-->>Sub: 原文 + 参考稿 + 雷达提示 + 审校规则
+    Sub->>Sub: 高推理强度审校，生成 JSON 补丁
+    Sub->>MCP: finalize_patched_delivery(draft_id, patches)
+    MCP->>MCP: 守卫合并 + 清理 + 定稿校验
+    MCP-->>Sub: 定稿
+    Sub-->>Main: 交回定稿
+    Main->>User: 输出定稿，或写入 .md / .html
 ```
 
-### 三大目标宿主映射方式
-1. **Claude Code（P0 首发适配）**：
-   - 注册标准 `stdio` MCP Server（提供 `prepare_rtt_draft` 与 `finalize_patched_delivery`）；
-   - 配置带 `context: fork` 的轻量交付 Skill / `.claude/agents/no-ai-fluff.md` 子智能体（复用 Claude Code 当前登录模型，隔离主会话历史）；
-   - 可选加挂 `PreToolUse` 落盘守卫钩子，确保面向人类阅读的长篇 `.md` / `.html` 交付物不遗漏净化流程。
-2. **Codex CLI**：
-   - 挂载同一套 MCP Server，通过 `AGENTS.md` 路由终态长总结与交付文档走委派子任务完成两次握手。
-3. **DeepSeek Harness**：
-   - 支持挂载 MCP，或直接在 Harness 输出缓冲层调用 Python 核心库：内部自动用同一个 DeepSeek 客户端发起一次无历史的独立单轮 `messages=[...]` 请求生成 JSON 补丁，实现 100% 透明原地替换。
+- **Claude Code**：`no-ai-fluff install claude-code` 会安装三样东西：
+  - stdio MCP Server；
+  - `.claude/agents/no-ai-fluff.md` 审校子智能体；
+  - `/no-ai-fluff` 斜杠命令（`.claude/skills/no-ai-fluff/SKILL.md`）。
+
+  英文版用 `no-ai-fluff-en install claude-code`。
+- **其他 MCP 客户端**：注册命令为 `no-ai-fluff mcp`（或 `no-ai-fluff-en mcp`）的 stdio Server。
+- **Python**：`Pipeline().run(text, reviewer=...)`。reviewer 先回答分诊提示（如果有），再回答审校提示。
 
 ---
 
-## 五、评测与盲测选型方案（沉淀开源报告数据）
+## 五、规则版本
 
-为支撑后续技术报告撰写与 GitHub 开源发布，评测分三步闭环：
+只保留两个架构代际，其余实验轮次见 `benchmarks/optimization_ledger.jsonl` 与 git 历史：
 
-1. **真实多场景语料库（覆盖 4 大“AI 味”重灾区，严控 API 额度）**：
-   - **Coding**：直接采集 GitHub 开源仓库中真实的 Claude Code 中文 PR 总结（含多文件改动背景、根因与验证，零生成开销）；
-   - **教学（理工科概念解释）**：中英混杂 + 高密度压缩概念讲解（流形、特征值、协程、内存屏障等）；
-   - **写作**：技术规划方案、汇报文档、对外说明（重度互联网大词与连环长定语）；
-   - **讨论**：架构权衡（trade-off）、技术路线思辨（重度排比套话与结尾强行升华）。
-   - *注：优先复用互联网公开真实任务与模型原始回复；确需补充的样本仅构造精悍真实任务获取原生回复，完整记录出处与上下文。*
-2. **全因子选型对比矩阵**：
-   - 模型：`tencent/hy-mt2-30b-a3b` vs `google/gemma-3-4b-it`
-   - 桥接语：`日语 (ja)` vs `法语 (fr)` vs `俄语 (ru)`
-   - 链路消融：`原始输出` vs `纯 RTT 各组合` vs `RTT + 独立上下文 JSON 微创补丁`
-3. **三维度评估与盲测台**：
-   - **工程与通用表层统计**：占位符 100% 存活率、数字零篡改率、5 类通用表层雷达下降幅度、端到端延迟与单次成本；
-   - **LLM 自动双轴盲评**：语义与技术事实保真度（一票否决项） × 中文自然易读度；
-   - **本地交互式人工盲测网页（`blind_test_workbench.html`）**：隐去各版本真实身份并随机打乱顺序，供你对比调整前后的真实阅读体感，直接盲选胜出方案并导出选型统计报表。
+| 代际 | 中文 | 英文 | 要点 |
+|---|---|---|---|
+| 第一代 v1 | `v1` = 账本名 `v8` | `v1` = 账本名 `en2` | 单通道；补丁打在原文上；雷达含静态黑话词表 |
+| 第二代 v2（默认） | `v2` = 账本名 `v16` | `v2` = 账本名 `en5` | 结构雷达 + 领域分诊 + 双通道门控；运行时不带黑话词表 |
+
+评测结果见 [评测报告](evaluation-report.md) 和 [英文版评测说明](english-evaluation-report.md)。
 
 ---
 
-## 六、仓库规划与后续实施里程碑 (`ConstantlyGrowup/no-ai-fluff`)
+## 六、仓库结构
 
 ```text
 no-ai-fluff/
-├── .gitignore
-├── LICENSE
-├── README.md                          # 项目动机、论文理论支撑、选型实证与接入指南
-├── SKILL.md                           # 前期提炼的 Humanize 核心原则与正反案例基线
+├── README.md / README.en.md
 ├── docs/
-│   ├── architecture.md                # 本顶层系统架构方案（v2 定稿）
-│   └── evaluation-report.md           # 后续沉淀的模型/桥接语盲测与消融评测报告
-├── src/no_ai_fluff/                   # 核心四阶引擎与 MCP Server（零重型第三方依赖）
-│   ├── masker.py                      # Stage 0: Markdown/HTML 剥离与 {{Pn}} 掩码还原
-│   ├── rtt.py                         # Stage 1: OpenRouter 往返翻译客户端
-│   ├── radar.py                       # Stage 2a: 5 类明显通用的表层/数字一致性雷达
-│   ├── patcher.py                     # Stage 2b & 3: 独立上下文审校提示词与 JSON 补丁安全合并
-│   ├── telemetry.py                   # events.jsonl 运行遥测与 stats 统计表生成
-│   ├── pipeline.py                    # 核心编排与超时/异常无损回退
-│   └── mcp_server.py                  # 标准 stdio MCP Server (两次握手原子工具)
-├── adapters/                          # 多宿主即插即用适配层
-│   ├── claude-code/                   # context: fork 子智能体/Skill 配置 + 落盘守卫 Hook
-│   ├── codex-cli/                     # MCP 配置与 AGENTS.md 路由说明
-│   └── deepseek-harness/              # Python 独立上下文中间件封装
-├── benchmarks/                        # 真实语料、2x3 消融实验脚本与本地 HTML 盲测工作台
-└── tests/                             # 掩码安全、数字核对、补丁防破坏与熔断回退单元测试
+│   ├── architecture.md              # 本文
+│   ├── internalized-rules.md        # 内化规则参考
+│   ├── agent-setup.md               # 给 agent 的安装说明
+│   ├── evaluation-report.md         # 中文评测报告
+│   ├── english-evaluation-report.md # 英文版评测说明
+│   └── rtt-model-comparison.md      # 翻译模型与桥接语选型
+├── src/no_ai_fluff/
+│   ├── masker.py      # Stage 0
+│   ├── rtt.py         # Stage 1
+│   ├── radar.py       # Stage 2a
+│   ├── telegraph_router.py  # Stage 2b 领域分诊
+│   ├── patcher.py     # 审校规则 + Stage 3 守卫合并
+│   ├── cleanup.py     # 定稿标点清理
+│   ├── pipeline.py    # 两次握手编排与回退
+│   ├── mcp_server.py / cli.py / install.py / telemetry.py
+│   ├── adapters/      # Claude Code 子智能体与斜杠命令模板（中 / 英）
+│   └── en/            # 英文版：masker / rtt / radar / rules / cleanup / pipeline / mcp_server / cli
+├── benchmarks/        # 语料、数据切分、评测脚本、结果与调优账本
+├── promo/             # 宣传片（从评测结果生成数据）
+└── tests/
 ```
-
-### 下一步执行路线（留待后续实施 Session 按序推进）
-1. **Milestone 1**：实现 `src/no_ai_fluff/` 核心四阶模块（含 5 类通用雷达 `radar.py` 与 JSON 补丁安全合并 `patcher.py`）及完整单元测试，完成首次规范化 Git 提交。（已完成）
-2. **Milestone 2**：构建真实多场景样本集，跑完 `2 模型 × 3 桥接语` 消融实验与独立上下文微创补丁对比，验证消融数据。（已完成，见 `docs/rtt-model-comparison.md`）
-3. **Milestone 3**：生成本地交互式内部选型盲测网页，由人工盲测锁定默认翻译小模型与最佳桥接语言组合。（已完成：锁定 hy-mt2 + 俄语桥接 + 高推理强度宿主，见 `docs/rtt-model-comparison.md` 第九、十节）
-4. **Milestone 4（SOTA 横向打擂）**：对比 GitHub 最火开源标杆 `op7418/Humanizer-zh`（纯 Prompt 全文改写方案）。
-   - **分层抽检**：从评测集中跨场景随机抽取 10 组样本，同台对决（`Original` vs `Humanizer-zh 全文改写` vs `no-ai-fluff 最佳组合`）；
-   - **职责解耦的三维评价体系**：
-     1. **人类纯感性盲测（核心服务目标）**：人类不承担任何数字和规则统计负担，纯凭阅读直觉给出“哪篇更好读 / 哪个读起来最像人话、最不累”，进行 A/B/C 盲选投票；
-     2. **LLM 独立双轴盲评**：第三方评委模型打出保真度与易读度评分，严格执行技术事实错误一票否决；
-     3. **自动化客观工程雷达**：脚本全自动统计占位符 100% 存活率、数字零篡改率、5 类表层雷达命中降幅、Token 开销与端到端耗时；
-   - 沉淀终极评测报告 `docs/evaluation-report.md`。
-5. **Milestone 5**：完成 MCP Server 与 Claude Code（`context: fork` 子智能体 + Hook）、Codex CLI、DeepSeek Harness 多端封装及 `stats` 遥测验证，推送发布至 GitHub。

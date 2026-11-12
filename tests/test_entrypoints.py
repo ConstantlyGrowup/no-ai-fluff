@@ -7,7 +7,7 @@ from no_ai_fluff.pipeline import Pipeline, PipelineConfig
 
 
 def server(fake_translator, tmp_path, fn=lambda s: s.replace(" overhead ", "开销")):
-    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path / "d"), audit_rules="v5"), translator_factory=lambda c: fake_translator(fn))
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path / "d"), audit_rules="v8"), translator_factory=lambda c: fake_translator(fn))
     return MCPServer(pipe)
 
 
@@ -45,13 +45,13 @@ def test_mcp_two_handshakes(fake_translator, tmp_path):
                    "params": {"name": "prepare_rtt_draft", "arguments": {"text": "调用 `foo()` 的 overhead 很大。"}}})
     res = r1[0]["result"]
     draft_id = res["structuredContent"]["draft_id"]
-    assert "【RTT 初稿】" in res["content"][0]["text"] and draft_id in res["content"][0]["text"]
+    assert "【往返参考稿" in res["content"][0]["text"] and draft_id in res["content"][0]["text"]
     assert "调用 `foo()` 的开销很大。" == res["structuredContent"]["rtt_draft"]
     r2 = rpc(srv, {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
                    "params": {"name": "finalize_patched_delivery", "arguments": {
                        "draft_id": draft_id,
-                       "patches": [{"find": "很大", "replace": "较大", "reason": "去夸张"},
-                                   {"find": "`foo()`", "replace": "foo", "reason": "坏补丁"}]}}})
+                       "patches": [{"find": "的 overhead 很大", "replace": "的开销较大", "type": "中英混杂", "reason": "去夸张"},
+                                   {"find": "调用 `foo()`", "replace": "调用 foo", "type": "冗余", "reason": "坏补丁"}]}}})
     fin = r2[0]["result"]
     assert fin["structuredContent"]["final_text"] == "调用 `foo()` 的开销较大。"
     assert fin["structuredContent"]["applied"] == 1 and fin["structuredContent"]["rejected"] == 1
@@ -100,7 +100,7 @@ def test_cli_prepare_finalize_without_key(tmp_path, capsys):
     prep = json.loads(cap.out)
     assert prep["fallback"] and "RTT 回退" in cap.err
     assert cli.main(["finalize", prep["draft_id"], "--patches", '[{"find":"overhead","replace":"开销","type":"中英混杂"}]']) == 0
-    assert capsys.readouterr().out.strip() == "这个方案的 开销 很大。"
+    assert capsys.readouterr().out.strip() == "这个方案的开销很大。"  # v16 默认规则：清理补丁在两个汉字间留下的空格
     assert cli.main(["finalize", prep["draft_id"]]) == 2  # 已定稿
 
 

@@ -53,7 +53,7 @@
    0. 冷开场              0–9     三行设问（0.3/1.4/2.6s）→ 4.8s 第一次亮出主标题与金句
    1. AI的“方言”          9–35    网关案例：逐个标红 → 擦除线换成定稿；周会黑话 vs 一对一的说法（构造例子）
    2. 方言现象的猜想      35–65   三步因果链（猜想）→ 论文原题与三组证据
-   3. 中文场景的探索      65–95   语料与桥接矩阵 → 回译漂移与推理强度 → v1→v8 与 6 轮受控实验
+   3. 中文场景的探索      65–95   语料与桥接矩阵 → 回译漂移与推理强度 → 初版到最终版与 6 轮受控实验
    4. 实际对比            95–117  编程 / 技术讲解 / 公式混排 / 写作讨论黑话
    5. 和主流热门SKILL的对比 117–141 星数与第三方裁判 → 裁判结果与不误伤 → 同题三栏
    6. 结尾                141–163 用在哪里 → 五张总结卡 → 第二次亮出主标题与金句，静止 hold ≥ 5s
@@ -66,7 +66,7 @@ const SVG = document.getElementById("v");
 const SERIF = '"Newsreader","Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif';
 const SANS = '"Inter","Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif';
 const MONO = '"JetBrains Mono","Fira Code","SF Mono",Consolas,"Noto Sans SC",monospace';
-// 暗房色板（v10，参照 docs/video-skills-ref/opus-dark-ref-*.jpg）：深曜石黑底 + 中心/地平线径向微光，象牙白文字
+// 暗房色板（v10，参照一组暗色电影感参考图，未收入仓库）：深曜石黑底 + 中心/地平线径向微光，象牙白文字
 const PAL = {
   bg: "#090B10", bgGlow: "#141D2B", introGlow: "#1F1114", panel: "#121620", panel2: "#0D1017", dark: "#06070A",
   line: "#232A38", lineStrong: "#384357",
@@ -368,7 +368,7 @@ function buildC1(g) {
   after.insertBefore(card(after, PX, PY, PW, PH, { fill: PAL.panel, accent: PAL.teal }), after.firstChild);
   T(before, PX + PAD, PY + 62, "reply.md · 模型原始回复", { size: AUX, fill: PAL.dim });
   tag(before, PX + PW - 260, PY + 62, "[REDLINE]", PAL.rose, PAL.roseBg);
-  T(after, PX + PAD, PY + 62, "no-ai-fluff v8 定稿", { size: AUX, fill: PAL.teal, weight: 500 });
+  T(after, PX + PAD, PY + 62, "no-ai-fluff 定稿", { size: AUX, fill: PAL.teal, weight: 500 });
   tag(after, PX + PW - 230, PY + 62, "[PATCH]", PAL.teal, PAL.tealBg);
   const cA = el("clipPath", { id: "c1A" }, DEFS), cB = el("clipPath", { id: "c1B" }, DEFS);
   const rA = el("rect", { x: PX - 6, y: PY - 6, height: PH + 16 }, cA), rB = el("rect", { y: PY - 6, height: PH + 16 }, cB);
@@ -546,7 +546,7 @@ function buildC3(g) {
     return dg; });
   const sol = el("g", {}, b);
   card(sol, 140, 618, 780, 268, { accent: PAL.teal });
-  ["① 以原文为准，翻译稿只作参考", "② 本地检查标出黑话、箭头和长句", "③ 大模型只改有问题的几处"].forEach((s, i) =>
+  ["① 以原文为准，翻译稿只作参考", "② 句式雷达找压缩骨架，翻译稿照出黑话", "③ 大模型只改有问题的几处"].forEach((s, i) =>
     T(sol, 180, 690 + i * 72, s, { size: 38, weight: i === 2 ? 700 : 400, fill: i === 2 ? PAL.teal : PAL.ink }));
   const eff = el("g", {}, b);
   card(eff, 1000, 270, 800, 580, { fill: PAL.panel });
@@ -562,11 +562,11 @@ function buildC3(g) {
     const tl = T(rg, 1040, y + 8, `低 ${ls}`, { size: AUX, family: MONO, fill: PAL.dim });
     const th = T(rg, 1040, y + 58, `高 ${hs}`, { size: AUX, family: MONO, fill: PAL.teal, weight: 700 });
     return { rg, rl, rh, tl, th, lo: lo / max * 460, hi: hi / max * 460 }; });
-  // 3-c v1 → v8 与 6 轮受控实验
+  // 3-c 初版 → 最终版与 6 轮受控实验
   const c = el("g", {}, g);
-  title(c, "v1 → v8：每次只改一处", 196, 70, { weight: 900 });
-  const vs = [["v1–v2", "在翻译稿上", "修改"], ["v3–v5", "放开改写幅度，", "改动常落错地方"], ["v6", "改回在原文上改", "翻译稿只作参考"],
-    ["v7", "逐段检查", ""], ["v8", "补上省略的字", "定为最终版本"]];
+  title(c, "从初版到最终版：每次只改一处", 196, 70, { weight: 900 });
+  const vs = [["初版", "在翻译稿上修改", ""], ["放开改写", "改动常落错地方", ""], ["单通道", "改回在原文上改", "补上省略的字"],
+    ["结构雷达", "只看句式结构", "不背黑话词表"], ["领域分诊", "技术稿走强化规则", "定为最终版本"]];
   const rx0 = 270, rstep = 345, ry = 316;
   el("line", { x1: 170, x2: 1750, y1: ry, y2: ry, stroke: PAL.line, "stroke-width": 3 }, c);
   const prog = el("line", { x1: 170, y1: ry, y2: ry, stroke: PAL.ink, "stroke-width": 3 }, c);
@@ -586,8 +586,8 @@ function buildC3(g) {
     T(k, x + 24, cy + 104, v, { size: fit(v, 46, cw2 - 40, 700, MONO), family: MONO, weight: 700 });
     T(k, x + 24, cy + 146, DEC[d] || d, { size: AUX, weight: 700, fill: col });
     return k; });
-  const lockW = mw("[LOCKED] v8 最终版", AUX, 500, MONO) + 24;
-  const lockT = tag(el("g", { transform: `translate(${rx0 + 4 * rstep - lockW / 2 - 20} ${ry + 158})` }, c), 0, 0, "[LOCKED] v8 最终版", PAL.amber, PAL.amberBg);
+  const lockW = mw("[LOCKED] 最终版", AUX, 500, MONO) + 24;
+  const lockT = tag(el("g", { transform: `translate(${rx0 + 4 * rstep - lockW / 2 - 20} ${ry + 158})` }, c), 0, 0, "[LOCKED] 最终版", PAL.amber, PAL.amberBg);
   return {
     cam: t => t < 10 ? { s: kf([[0, 1], [9.8, 1.02]])(t), fx: 960, fy: 520 } : t < 20 ? { s: kf([[10, 1.0], [19.8, 1.015]])(t), fx: 960, fy: 540 } : { s: kf([[20, 1.0], [29.8, 1.015]])(t), fx: 960, fy: 520 },
     update(t) {
@@ -641,7 +641,7 @@ function caseShot(g, data, head) {
     rb = rich(B, data.after, { x: x + 56, y: yb + padTop, width: w - 112, size, lh });
     const hb = padTop + rb.height + 30;
     B.insertBefore(card(B, x, yb, w, hb, { accent: PAL.teal }), B.firstChild);
-    T(B, x + 56, yb + 60, "no-ai-fluff v8", { size: AUX, fill: PAL.teal, weight: 500 });
+    T(B, x + 56, yb + 60, "no-ai-fluff", { size: AUX, fill: PAL.teal, weight: 500 });
     tag(B, x + w - 190, yb + 60, "[PATCH]", PAL.teal, PAL.tealBg);
     yc = yb + hb + 52;
     if (yc + 12 <= 905) break;
@@ -668,7 +668,7 @@ function buildC4(g) {
   const p = el("g", {}, g);
   title(p, "写作和讨论：黑话改成大白话", 196, 70, { weight: 900 });
   T(p, 160, 290, "原文", { size: AUX, fill: PAL.rose, weight: 500 });
-  T(p, 800, 290, "no-ai-fluff v8", { size: AUX, fill: PAL.teal, weight: 500 });
+  T(p, 800, 290, "no-ai-fluff", { size: AUX, fill: PAL.teal, weight: 500 });
   T(p, 1390, 290, "来源", { size: AUX, fill: PAL.dim });
   el("line", { x1: 130, x2: 1790, y1: 310, y2: 310, stroke: PAL.lineStrong, "stroke-width": 1.5 }, p);
   const rows = D.pairs.map(([o, r, src], i) => {
@@ -709,7 +709,7 @@ function buildC5(g) {
   T(judge, W / 2, 312, "第三方大模型裁判 JEV（typesafe/jev-1.14）盲评", { size: 36, fill: PAL.inkOnDark, anchor: "middle", weight: 500 });
   const vsL = el("g", {}, a), vsR = el("g", {}, a);
   card(vsL, 260, 390, 620, 200, { accent: PAL.teal });
-  T(vsL, 310, 460, "no-ai-fluff（v8）", { size: 50, weight: 700, family: SERIF, fill: PAL.teal });
+  T(vsL, 310, 460, "no-ai-fluff", { size: 50, weight: 700, family: SERIF, fill: PAL.teal });
   T(vsL, 310, 510, `★ ${kStar(F.stars.ours)} · 今天刚开源`, { size: 36, family: MONO, weight: 700, fill: PAL.amber });
   T(vsL, 310, 558, "翻译参考 + 局部修改", { size: AUX, fill: PAL.dim });
   card(vsR, 1040, 390, 620, 200, { accent: PAL.ink });
@@ -756,7 +756,7 @@ function buildC5(g) {
   const c = el("g", {}, g);
   title(c, "同一段 Raft 选举：三版放在一起", 196, 70, { weight: 900 });
   const th = D.three, arrow = s => markAll([[s, ""]], ["→"]);
-  const cols = [["原文", arrow(th.orig), PAL.panel2, PAL.rose], ["Humanizer-zh", arrow(th.hz), PAL.panel2, PAL.ink], ["no-ai-fluff（v8）", D.teaching.after, PAL.panel, PAL.teal]];
+  const cols = [["原文", arrow(th.orig), PAL.panel2, PAL.rose], ["Humanizer-zh", arrow(th.hz), PAL.panel2, PAL.ink], ["no-ai-fluff", D.teaching.after, PAL.panel, PAL.teal]];
   const cw3 = 530, gp3 = 25, x3 = (W - (cw3 * 3 + gp3 * 2)) / 2;
   const colEls = cols.map(([h, segs, fill, acc], i) => { const x = x3 + i * (cw3 + gp3), k = el("g", {}, c);
     const rr = rich(k, segs, { x: x + 34, y: 316, width: cw3 - 68, size: 34, lh: 54 });
@@ -823,8 +823,8 @@ function buildC6(g) {
     ["01", "猜想与论文实证", "强化学习的长度惩罚，带来压缩说法"],
     ["02", "代码与公式 100% 保留", "用结构解析和正则冻住代码块与公式"],
     ["03", "跨语种往返翻译拆开句子", "语种差得越远，小模型越会先保住意思，句子结构也可能被重新组织"],
-    ["04", "本地检查 + 精确修改", "确定性扫描，加上 JSON 局部替换"],
-    ["05", "人工盲测 + 大模型辅助验证", `人工盲测首选率 ${pct(D.blind.first_ours)} · 6 个高频黑话清零`],
+    ["04", "句式雷达 + 领域分诊", "只看句法结构，技术稿走强化规则，再用 JSON 局部替换"],
+    ["05", "人工盲测 + 大模型辅助验证", `裁判胜率：对 Humanizer-zh ${pct(D.jev.overall)}，对原文 ${pct(D.jev.vs_orig)}`],
   ];
   const cw = 540, chh = 240, gx = 24, gy = 24;   // 三行说明也收在卡片里（v9 修正 03 号卡溢出；v11 字号放大）
   const pos = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];
@@ -889,12 +889,12 @@ const SUBS = [
   [61.2, 65.8, "6 种组合里，人工盲测最常选中俄语。"],
   [66.4, 70.8, "但翻译回来的稿子会走样，只能当参考。"],
   [71.0, 75.8, "推理强度调高后，严重错误从 100% 降到 20%。"],
-  [76.4, 81.0, "规则从 v1 改到 v8，每次只改一处。"],
+  [76.4, 81.0, "规则从初版改到最终版，每次只改一处。"],
   [81.2, 85.8, "6 轮实验：3 轮保留，3 轮撤回。"],
   [86.4, 91.2, "编程总结：箭头链展开成完整的话。"],
   [91.8, 96.6, "技术讲解：Raft 选举过程讲清楚了。"],
   [97.3, 102.1, "公式混排：变量原样不动，只换英文。"],
-  [102.8, 107.8, "写作和讨论：抓手、打通、心智负担都改掉了。"],
+  [102.8, 107.8, "写作和讨论：抓手、打通、沉淀都改掉了。"],
   [108.4, 115.8, "比较的是两个工具：no-ai-fluff 和 Humanizer-zh。"],
   [116.4, 123.8, "数字一个没改，代码和公式每篇都原样保留。"],
   [124.4, 131.8, "同一段 Raft：只有 no-ai-fluff 把箭头都展开了。"],

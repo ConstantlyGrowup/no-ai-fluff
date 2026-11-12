@@ -34,11 +34,11 @@ You know every word in an AI status update, yet it reads like a telegram: "drove
 >
 > This sprint, we drove alignment across the identity platform workstream and landed a holistic token-validation path consolidation for `auth-gateway`, unlocking a step-function improvement in tail-latency posture: p99 moved from 120ms to 45ms. Leveraging a Redis-backed session-introspection caching layer rolled out across 2 regions, the change de-risks the downstream consumer migration runway and positions us to double-click on partner-facing SLA commitments next quarter. Net-net: a north-star-aligned win that meaningfully moves the needle on platform trust.
 
-> **After no-ai-fluff** (actual output: 3 edits, 0 rejected)
+> **After no-ai-fluff** (actual output of the current default rules: 3 edits, 0 rejected)
 >
-> This sprint, we aligned work across the identity platform workstream and shipped a consolidated token-validation path for `auth-gateway`. That change cut tail latency: p99 moved from 120ms to 45ms. The change uses a Redis-backed caching layer for session introspection that is deployed in 2 regions. The change reduces the risk of migrating downstream consumers and positions us to focus on our SLA commitments to partners next quarter. This is a win that supports our main goal and improves platform trust.
+> This sprint, we coordinated work across the identity platform workstream and shipped a consolidated token-validation path for `auth-gateway`. As a result, tail latency improved: p99 moved from 120ms to 45ms. The change uses a Redis-backed caching layer for session introspection that was rolled out across 2 regions. It reduces risk in the downstream consumer migration and positions us to look closely at our SLA commitments to partners next quarter. In short, this improves platform trust.
 
-14 jargon phrases → 0. Average sentence length 24 → 15.6 words. `auth-gateway`, `p99`, `120ms → 45ms` and `2 regions` untouched.
+14 jargon phrases → 0. Average sentence length 24 → 14.6 words. `auth-gateway`, `p99`, `120ms → 45ms` and `2 regions` untouched.
 
 ### Why AI writes like this
 
@@ -52,7 +52,7 @@ no-ai-fluff turns that round trip into a tool. A round trip can drift, so the tr
 flowchart LR
     A["Draft from<br/>your agent"] --> B["① Freeze<br/>code, formulas,<br/>paths, URLs"]
     B --> C["② Round trip<br/>hy-mt2: English → Japanese → English<br/>a plainer reference"]
-    B --> D["③ Local radar<br/>flags jargon, long sentences,<br/>noun stacks, arrows"]
+    B --> D["③ Local radar<br/>sentence structure only: long sentences,<br/>noun stacks, arrows, telegraphic chains"]
     C --> E["④ Agent review<br/>small JSON patches<br/>on the original"]
     D --> E
     E --> F["⑤ Guarded merge<br/>rejects patches that break<br/>frozen content or are ambiguous"]
@@ -68,7 +68,33 @@ prepare_rtt_draft(text)                  → draft_id, original, round-trip refe
 finalize_patched_delivery(id, patches)   → final text
 ```
 
+The local radar has no built-in jargon list. It only looks at sentence structure:
+
+- long sentences;
+- noun stacks and buried verbs;
+- symbols standing in for words;
+- "telegraphic chains": a sentence cut into short phrases with almost no function words.
+
+When the radar finds a telegraphic chain, `prepare_rtt_draft` first asks your agent one extra question: do these sentences come from a technical context? Your agent answers with a second call that passes `draft_id` and `domain_triage`, and gets the matching editing rules back:
+
+- **Technical context**: the stronger rules, which add a test for genuine terms, the round trip as a jargon detector, and a [telegraph-stack] patch type.
+- **Otherwise**: the base rules.
+
+The answer comes from your agent's own model. The round trip is not repeated, and ordinary drafts never get this step.
+
 The editing is done by the model your agent is already signed in with, in its own sub-context, so it doesn't crowd your main session. no-ai-fluff itself only calls one small, cheap translation model.
+
+### Why the radar reads structure, not a jargon list
+
+- **Compressed AI prose is a syntactic pattern.** Clark et al. (2026) found that post-training, especially reinforcement learning with a length penalty, pushes models toward shorter, denser phrasing. In our corpora that shows up in three ways:
+  - function words and connectives are dropped;
+  - multi-step reasoning is squeezed into `→` chains or bare fragments;
+  - in English, actions get buried in -tion and -ment nouns under stacked modifiers.
+- **Readers have to rebuild the logic themselves.** Under the uniform information density (UID) hypothesis from psycholinguistics, function words and connectives spread information evenly. When they go missing and a sentence breaks into fragments, readers must supply "because", "then" and "so" from working memory.
+- **So the radar measures the skeleton.** Fragment count, fragment length and function-word share cost nothing to measure and hold across domains. For example, an English sentence of at least 12 words, cut into 3 or more phrases of 3–8 words on average, with function words at or below 30%, is flagged as a telegraphic chain.
+- **Jargon itself goes to the round trip and the host.** Jargon keeps changing, so a word list never catches up. And a list that both drives the edits and scores them only measures itself. Genuine terms survive the round trip almost unchanged, while coined jargon tends to come back as plain words; the host model decides from there.
+
+See [Architecture](docs/architecture.md) (Chinese) and [Internalized rules](docs/internalized-rules.md) (Chinese, with an English summary).
 
 ---
 
@@ -135,6 +161,7 @@ claude mcp add no-ai-fluff-en -- no-ai-fluff-en mcp  # register the MCP server o
 | `NO_AI_FLUFF_EN_PROVIDER` | auto | `openrouter` or `tencent`; unset means OpenRouter if its key exists, otherwise Tencent Cloud |
 | `NO_AI_FLUFF_EN_MODEL` | provider default | `tencent/hy-mt2-30b-a3b` on OpenRouter, `hy-mt2-pro` on Tencent Cloud |
 | `NO_AI_FLUFF_EN_BRIDGE` | `ja` | bridge language for the round trip |
+| `NO_AI_FLUFF_EN_RULES` | `en5` (= `v2`) | editing rules: `v2` / `en5` is the structure radar with domain triage; `v1` / `en2` is the first-generation single channel |
 | `NO_AI_FLUFF_EN_CHAT_TIMEOUT` / `_DOC_TIMEOUT` | `10` / `60` | round-trip time budget in seconds (chat reply / document) |
 | `NO_AI_FLUFF_TENCENT_RPM` | `60` | Tencent Cloud calls per minute (client-side limiter) |
 | `NO_AI_FLUFF_TELEMETRY` | `1` | `0` turns off local statistics (counts only, never text) |
@@ -155,19 +182,33 @@ There is also a Chinese edition, `no-ai-fluff` (Chinese → Russian → Chinese)
 
 ## Evaluation
 
-no-ai-fluff was first built and evaluated for Chinese: 76 real long-form AI replies, split into 22 training, 24 tuning and 30 sealed test documents. The test set stayed locked until tuning was over and was scored once. The judge is an independent model, JEV (`typesafe/jev-1.14`), which rates every pair twice with A and B swapped and averages the two; we also ran a human blind test. The numbers below are from that Chinese evaluation.
+no-ai-fluff was first built and evaluated for Chinese: 76 real long-form AI replies, split into 22 training, 24 tuning and 30 sealed test documents. Rules were designed and chosen on the training, tuning and probe sets only; the sealed set stayed locked until tuning was over. It has been scored twice: once for the first-generation rules (v8), and once for the current second-generation default (v16).
+
+Unless noted, the numbers below are the second generation on that sealed Chinese set (`benchmarks/results/holdout-v16`). The judge is an independent model, JEV (`typesafe/jev-1.14`), which rates every pair twice with A and B swapped and averages the two; we also ran a human blind test.
+
+### At a glance
+
+| Sealed Chinese test set, 30 documents | Original | Humanizer-zh | no-ai-fluff |
+|---|---|---|---|
+| Win rate against the original | – | 60.2% | **65.2%** (95% CI 61.3%–69.0%) |
+| Documents that read better than the original | – | 24 / 30 | **27 / 30** |
+| Readability (1–5) | 4.03 | 4.06 | **4.11** |
+| AI-tone probability (lower is better) | 0.451 | **0.397** | 0.424 |
+| Fidelity risk (lower is better) | – | 0.570 | **0.526** |
+
+The overall reward R is **0.656** (95% CI 0.632–0.681), up from 0.641 for the first generation. The paired difference CI is +0.001 to +0.032: it does not cross zero, but only just.
 
 ### Easier to read than the original
 
-On the 30 sealed test documents, **27 read better after editing, a 63.7% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer-zh side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**.
+On the 30 sealed test documents, **27 read better after editing, a 65.2% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer-zh side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**. The blind test was run on the first-generation rules.
 
 | Category | Win rate vs. the original AI text |
 |---|---|
-| Writing (proposals, weekly reports) | **74.6%** |
-| Coding (PR summaries, change notes) | **69.9%** |
-| Technical explanations | **64.6%** |
+| Writing (proposals, weekly reports) | **77.2%** |
+| Coding (PR summaries, change notes) | **71.6%** |
+| Technical explanations | **67.8%** |
+| Discussion (trade-offs, tech choices) | **60.3%** |
 | Math and algorithm derivations | **60.0%** |
-| Discussion (trade-offs, tech choices) | 58.9% |
 | Everyday questions | 54.0% |
 
 ### Code and formulas stay intact
@@ -177,18 +218,41 @@ On the 30 sealed test documents, **27 read better after editing, a 63.7% win rat
 | Code, paths, formulas and URLs kept verbatim | **100% in every document** | 99.1%; 88.9% in the worst document |
 | Documents with a changed number | 1 (a duplicated aside removed; no value changed) | 2 |
 
-### Less jargon, fewer compressed sentences
+### Jargon counts: a side observation only
 
-| Metric | Original | Humanizer-zh | no-ai-fluff |
+The runtime radar no longer carries a jargon word list. Counting "jargon removed" with that same list would only grade the tool against its own checklist, so the counts below are a rough side observation, not a score. Quality is judged by blind win rates, readability and fidelity risk.
+
+| Side observation | Original | Humanizer-zh | no-ai-fluff |
 |---|---|---|---|
-| 6 common Chinese buzzwords | 17 | 15 | **0** |
-| Arrows used instead of connectives (`A → B → C`) | 16 | 14 | **2** |
+| 6 common Chinese buzzwords | 17 | 15 | 1 |
+| Arrows used instead of connectives (`A → B → C`) | 16 | 14 | 5 |
 
-The first row counts 54 tuning and test documents; the second counts the 30 test documents.
+The first row counts 54 tuning and test documents; the second counts the 30 test documents. The first-generation radar named each listed buzzword, and the two rows were 0 and 2. The second generation does not, so most typical packaging words disappear through the round trip and the host's judgment, with no guarantee of zero.
+
+### English edition
+
+The English edition was tuned on 13 documents and checked on a locked set of 12: 4 real Claude Code PRs and 8 assistant answers (`benchmarks/results/en-test-en5`). Same JEV judge, no human blind test yet.
+
+| Locked English test set, 12 documents | Original | no-ai-fluff |
+|---|---|---|
+| Win rate against the original | – | **63.1%** (9 of 12 documents) |
+| On the 4 real Claude Code PRs | – | **71.6%** |
+| Readability (1–5) | 3.95 | **4.13** |
+| AI-tone probability | 0.30 | **0.253** |
+| Sentences over 30 words | 10.6% | **1.04%** |
+| Average sentence length | 16.3 words | **13.3 words** |
+| Patches applied / rejected | – | 54 / 1 |
+| Documents with a changed number / fallbacks | – | 0 / 0 |
+
+Head to head against the first-generation English rules (en2), the current rules (en5) win 51.9% on this set (6 wins, 3 losses, 3 ties) and 57.5% on the tune set (7 wins, 2 losses, 4 ties). The gains are small, and not uniform: on the real PRs en2 scored higher (75.4%).
 
 ### Compared with Humanizer-zh
 
-[Humanizer-zh](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, the two come out **about even overall, with no-ai-fluff slightly ahead (51.2%)**: no-ai-fluff leads on coding, technical explanations and mixed math/code text, while Humanizer-zh does better on writing, discussion and everyday questions. Humanizer-zh rewrites the whole text; no-ai-fluff only edits what is hard to read, which makes it safer on text full of code, formulas and terms.
+[Humanizer-zh](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, **no-ai-fluff comes out slightly ahead: a 53.9% win rate (95% CI 49.1%–58.8%), ahead on 19 of 30 documents** (first generation: 51.2%, 16 documents). The interval still touches 50%, so this is "slightly ahead", not a significant win.
+
+no-ai-fluff leads on coding, technical explanations, writing and mixed math/code text, while Humanizer-zh does better on discussion and everyday questions. no-ai-fluff's fidelity risk is lower (0.526 against 0.570), and its AI-tone probability is slightly higher (0.424 against 0.397).
+
+Humanizer-zh rewrites the whole text; no-ai-fluff only edits what is hard to read, which makes it safer on text full of code, formulas and terms.
 
 Full records:
 
@@ -199,16 +263,17 @@ Full records:
 
 ### Limitations
 
-- **The headline numbers come from Chinese.** The English edition was tuned and checked on a small locked set with the same model judge; there has been no blind test with native English readers yet.
-- **Math-heavy English text is not a strength yet.** On formula-heavy explanations, the judge preferred the original English text.
-- **It is slower than a one-shot rewrite**: one extra round trip plus the agent's patches. On the Chinese test set the median end-to-end time was about 71 s (Humanizer-zh: about 34 s).
+- **The headline numbers come from Chinese.** The English edition has only been checked on a small locked set (12 documents) with the same model judge; there has been no blind test with native English readers yet.
+- **Math-heavy English text is not a strength yet.** On the one formula-heavy explanation in the English test set, the judge preferred the original English text.
+- **It is slower than a one-shot rewrite**: one extra round trip plus the agent's patches. On the Chinese test set the median end-to-end time was about 71 s (Humanizer-zh: about 34 s; measured with the first-generation rules).
+- Both sealed test sets have now been used twice; further tuning against them would need new sealed sets.
 - Very short replies can hit the 10-second round-trip budget; the original is then returned unchanged.
 
 ---
 
 ## Learn more
 
-- [Architecture](docs/architecture.md) · [Setup guide for agents](docs/agent-setup.md) · [Writing principles (SKILL.md)](SKILL.md)
+- [Architecture](docs/architecture.md) · [Internalized rules](docs/internalized-rules.md) · [Setup guide for agents](docs/agent-setup.md)
 - Paper: Clark, Martin & Mahowald, 2026, *Why is AI-generated language so hard to understand?* ([arXiv 2610.29162](https://arxiv.org/html/2610.29162v1))
 
 If it saved you from a paragraph of "net-net", a ⭐ helps others find it.

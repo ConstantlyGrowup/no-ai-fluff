@@ -38,7 +38,7 @@ def test_finalize_applies_cleanup(tmp_path):
         def round_trip(self, segs, ids, timeout_s=None):
             return RTTResult(list(segs), [""] * len(segs), [], {}, 2, 0.01)
 
-    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v5"), translator_factory=lambda c: Echo())
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v8"), translator_factory=lambda c: Echo())
     prep = pipe.prepare("规划的重点是下面三点：拆分、观测、治理。")
-    fin = pipe.finalize(prep.draft_id, [{"find": "重点是下面三点：", "replace": "重点是：：", "reason": "测试"}])
+    fin = pipe.finalize(prep.draft_id, [{"find": "重点是下面三点：", "replace": "重点是：：", "type": "冗余", "reason": "测试"}])
     assert fin.final_text == "规划的重点是：拆分、观测、治理。" and fin.cleanups == 1

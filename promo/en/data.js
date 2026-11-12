@@ -617,7 +617,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "aligned",
+    "coordinated",
     "ins"
    ],
    [
@@ -661,23 +661,15 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "That",
+    "As",
     "ins"
    ],
    [
-    " ",
+    " a ",
     ""
    ],
    [
-    "change",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "cut",
+    "result,",
     "ins"
    ],
    [
@@ -697,6 +689,14 @@ window.PROMO_DATA = {
     "ins"
    ],
    [
+    " ",
+    ""
+   ],
+   [
+    "improved",
+    "ins"
+   ],
+   [
     ": p99 moved from 120ms to 45ms. ",
     ""
    ],
@@ -705,11 +705,19 @@ window.PROMO_DATA = {
     "ins"
    ],
    [
-    " a Redis-backed caching layer ",
+    " a Redis-backed caching layer",
     ""
    ],
    [
-    "for",
+    " for session introspection that was",
+    "ins"
+   ],
+   [
+    " rolled out across 2 ",
+    ""
+   ],
+   [
+    "regions.",
     "ins"
    ],
    [
@@ -717,7 +725,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "session",
+    "It",
     "ins"
    ],
    [
@@ -725,23 +733,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "introspection that is deployed in",
-    "ins"
-   ],
-   [
-    " 2 ",
-    ""
-   ],
-   [
-    "regions. The change reduces",
-    "ins"
-   ],
-   [
-    " the ",
-    ""
-   ],
-   [
-    "risk",
+    "reduces",
     "ins"
    ],
    [
@@ -749,7 +741,15 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "of",
+    "risk in",
+    "ins"
+   ],
+   [
+    " the downstream consumer migration and positions us to ",
+    ""
+   ],
+   [
+    "look",
     "ins"
    ],
    [
@@ -757,31 +757,15 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "migrating",
+    "closely",
     "ins"
    ],
    [
-    " downstream ",
+    " ",
     ""
    ],
    [
-    "consumers",
-    "ins"
-   ],
-   [
-    " and positions us to ",
-    ""
-   ],
-   [
-    "focus",
-    "ins"
-   ],
-   [
-    " on ",
-    ""
-   ],
-   [
-    "our",
+    "at our",
     "ins"
    ],
    [
@@ -797,15 +781,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "This is",
-    "ins"
-   ],
-   [
-    " a win that ",
-    ""
-   ],
-   [
-    "supports",
+    "In",
     "ins"
    ],
    [
@@ -813,7 +789,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "our",
+    "short,",
     "ins"
    ],
    [
@@ -821,7 +797,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "main",
+    "this",
     "ins"
    ],
    [
@@ -829,15 +805,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "goal",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "and improves",
+    "improves",
     "ins"
    ],
    [
@@ -849,7 +817,7 @@ window.PROMO_DATA = {
   "words_left": 0,
   "wps": [
    24.0,
-   15.6
+   14.6
   ],
   "applied": 3,
   "rejected": 0
@@ -897,12 +865,12 @@ window.PROMO_DATA = {
   "wps": [
    16.28,
    15.99,
-   13.81
+   13.63
   ],
   "long": [
    3.53,
    3.53,
-   1.54
+   0.0
   ],
   "jargon": [
    33.9,
@@ -928,36 +896,46 @@ window.PROMO_DATA = {
   },
   "long": [
    10.6,
-   0.69
+   1.04
   ],
   "wps": [
    16.32,
-   13.32
+   13.27
   ],
-  "applied": 58,
+  "applied": 54,
   "rejected": 1,
   "numbers_changed": 0
  },
  "jev": {
-  "win": 0.6179,
-  "pref_share": 0.8333333333333334,
+  "win": 0.6312,
+  "pref_share": 0.75,
+  "pref": [
+   9,
+   12
+  ],
+  "risk": 0.5296,
+  "vs_first": [
+   0.5188,
+   6,
+   3
+  ],
   "read": [
    3.9483,
    4.1308
   ],
   "ai": [
    0.2958,
-   0.2592
+   0.2533
   ],
-  "pr_win": 0.7538,
-  "pr_share": 1.0,
+  "pr_win": 0.7163,
+  "pr_share": 0.75,
   "by": {
-   "coding": 0.7538,
+   "coding": 0.7163,
    "daily": 0.53,
-   "discussion": 0.625,
-   "mixed": 0.34,
-   "teaching": 0.6125,
-   "writing": 0.5275
+   "discussion": 0.6425,
+   "mixed": 0.335,
+   "teaching": 0.58,
+   "writing": 0.7
   }
  },
  "cases": [
@@ -972,12 +950,20 @@ window.PROMO_DATA = {
      "lock"
     ],
     [
-     " (RM web app URLs, web proxy and AM filter URI bases, the timeline collector address)",
+     " ",
+     ""
+    ],
+    [
+     "(",
      "del"
     ],
     [
-     " now get a valid ",
+     "RM web app URLs, web proxy and AM filter URI bases, the timeline collector ",
      ""
+    ],
+    [
+     "address) now get a valid ",
+     "del"
     ],
     [
      "[IPv6]:port",
@@ -985,7 +971,7 @@ window.PROMO_DATA = {
     ],
     [
      ", matching the format ",
-     ""
+     "del"
     ],
     [
      "SecurityUtil.buildTokenService",
@@ -993,7 +979,7 @@ window.PROMO_DATA = {
     ],
     [
      " already uses.",
-     ""
+     "del"
     ]
    ],
    "after": [
@@ -1006,8 +992,12 @@ window.PROMO_DATA = {
      "lock"
     ],
     [
-     " now get a valid ",
+     " ",
      ""
+    ],
+    [
+     "now get a valid ",
+     "ins"
     ],
     [
      "[IPv6]:port",
@@ -1015,10 +1005,6 @@ window.PROMO_DATA = {
     ],
     [
      ", matching the format ",
-     ""
-    ],
-    [
-     "that ",
      "ins"
     ],
     [
@@ -1026,11 +1012,23 @@ window.PROMO_DATA = {
      "lock"
     ],
     [
-     " already uses.",
+     " already uses. The callers are ",
+     "ins"
+    ],
+    [
+     "RM web app URLs, web proxy and AM filter URI bases, ",
      ""
     ],
     [
-     " Those callers are the RM web app URLs, the URI bases for the web proxy and AM filter, and the timeline collector address.",
+     "and ",
+     "ins"
+    ],
+    [
+     "the timeline collector ",
+     ""
+    ],
+    [
+     "address.",
      "ins"
     ]
    ],
@@ -1063,23 +1061,15 @@ window.PROMO_DATA = {
      "del"
     ],
     [
-     " BBR, for instance, models bottleneck bandwidth and RTT directly ",
+     " BBR",
      ""
     ],
     [
-     "rather",
+     ", for instance,",
      "del"
     ],
     [
-     " ",
-     ""
-    ],
-    [
-     "than",
-     "del"
-    ],
-    [
-     " relying on loss as the primary ",
+     " models bottleneck bandwidth and RTT directly rather than relying on loss as the primary ",
      ""
     ],
     [
@@ -1121,27 +1111,11 @@ window.PROMO_DATA = {
      ""
     ],
     [
-     "significantly.",
+     "significantly. For example,",
      "ins"
     ],
     [
-     " BBR, for instance, models bottleneck bandwidth and RTT directly ",
-     ""
-    ],
-    [
-     "instead",
-     "ins"
-    ],
-    [
-     " ",
-     ""
-    ],
-    [
-     "of",
-     "ins"
-    ],
-    [
-     " relying on loss as the primary ",
+     " BBR models bottleneck bandwidth and RTT directly rather than relying on loss as the primary ",
      ""
     ],
     [
@@ -1153,7 +1127,7 @@ window.PROMO_DATA = {
      ""
     ],
     [
-     "This",
+     "This approach",
      "ins"
     ],
     [
@@ -1166,27 +1140,19 @@ window.PROMO_DATA = {
   {
    "before": [
     [
-     "Rewrites carry substantial hidden ",
+     "In the early phase, your scarcest resource is engineering time, and Kubernetes ",
      ""
     ],
     [
-     "costs:",
+     "imposes",
      "del"
     ],
     [
-     " feature freeze, re-establishing test coverage, team ",
+     " a ",
      ""
     ],
     [
-     "ramp-up",
-     "del"
-    ],
-    [
-     " on Rust's ownership ",
-     ""
-    ],
-    [
-     "model,",
+     "steep",
      "del"
     ],
     [
@@ -1194,45 +1160,45 @@ window.PROMO_DATA = {
      ""
     ],
     [
-     "and",
+     "tax",
      "del"
     ],
     [
-     " a long tail of behavioral differences that surface in production.",
+     " ",
+     ""
+    ],
+    [
+     "on",
+     "del"
+    ],
+    [
+     " ",
+     ""
+    ],
+    [
+     "it:",
+     "del"
+    ],
+    [
+     " cluster upgrades, networking and ingress configuration, RBAC, observability setup, and a learning curve that pulls focus from product development.",
      ""
     ]
    ],
    "after": [
     [
-     "Rewrites carry substantial hidden ",
+     "In the early phase, your scarcest resource is engineering time, and Kubernetes ",
      ""
     ],
     [
-     "costs. These include a",
+     "consumes",
      "ins"
     ],
     [
-     " feature freeze, re-establishing test coverage, ",
+     " a ",
      ""
     ],
     [
-     "and getting the ",
-     "ins"
-    ],
-    [
-     "team ",
-     ""
-    ],
-    [
-     "up to speed",
-     "ins"
-    ],
-    [
-     " on Rust's ownership ",
-     ""
-    ],
-    [
-     "model.",
+     "lot",
      "ins"
     ],
     [
@@ -1240,21 +1206,37 @@ window.PROMO_DATA = {
      ""
     ],
     [
-     "There is also",
+     "of",
      "ins"
     ],
     [
-     " a long tail of behavioral differences that surface in production.",
+     " ",
+     ""
+    ],
+    [
+     "it.",
+     "ins"
+    ],
+    [
+     " ",
+     ""
+    ],
+    [
+     "The burden includes",
+     "ins"
+    ],
+    [
+     " cluster upgrades, networking and ingress configuration, RBAC, observability setup, and a learning curve that pulls focus from product development.",
      ""
     ]
    ],
-   "src": "assistant answer · Python to Rust? · test set"
+   "src": "assistant answer · Kubernetes on day one · test set"
   }
  ],
  "pairs": [
   [
    "drove alignment",
-   "aligned work",
+   "coordinated work",
    "tune · showcase"
   ],
   [
@@ -1263,18 +1245,18 @@ window.PROMO_DATA = {
    "test · teaching"
   ],
   [
-   "won't meaningfully change",
-   "won't change your p99 much",
-   "test · discussion"
-  ],
-  [
    "imposes a steep tax on it",
-   "takes a large share of it",
+   "consumes a lot of it",
    "test · discussion"
   ],
   [
    "more meaningful opportunity",
    "chance",
+   "test · writing"
+  ],
+  [
+   "help streamline our communication",
+   "make communication smoother",
    "test · writing"
   ],
   [
@@ -1326,19 +1308,11 @@ window.PROMO_DATA = {
     "del"
    ],
    [
-    " Otherwise, design ",
+    " Otherwise, ",
     ""
    ],
    [
-    "for",
-    "del"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "portability — containerize",
+    "design for portability — containerize",
     "del"
    ],
    [
@@ -1362,15 +1336,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "— so that",
-    "del"
-   ],
-   [
-    " migrating later ",
-    ""
-   ],
-   [
-    "remains",
+    "—",
     "del"
    ],
    [
@@ -1378,35 +1344,27 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "a",
+    "so that",
     "del"
    ],
    [
-    " straightforward ",
+    " migrating later remains ",
     ""
    ],
    [
-    "exercise",
+    "a ",
     "del"
    ],
    [
-    " ",
+    "straightforward",
     ""
    ],
    [
-    "rather",
+    " exercise",
     "del"
    ],
    [
-    " ",
-    ""
-   ],
-   [
-    "than",
-    "del"
-   ],
-   [
-    " a re-architecture.",
+    " rather than a re-architecture.",
     ""
    ]
   ],
@@ -1428,11 +1386,11 @@ window.PROMO_DATA = {
     "ins"
    ],
    [
-    " if you're building infrastructure tooling where Kubernetes is the product",
+    " if you're building infrastructure tooling where Kubernetes is the product ",
     ""
    ],
    [
-    "'s",
+    "interface.",
     "ins"
    ],
    [
@@ -1440,15 +1398,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "main",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "interface. And it can be justified",
+    "It can also be justified",
     "ins"
    ],
    [
@@ -1464,23 +1414,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "keep your ",
-    "ins"
-   ],
-   [
-    "design ",
-    ""
-   ],
-   [
-    "portable.",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "Containerize",
+    "make",
     "ins"
    ],
    [
@@ -1488,7 +1422,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    " and",
+    " portable: containerize them and",
     "ins"
    ],
    [
@@ -1504,15 +1438,7 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "Then",
-    "ins"
-   ],
-   [
-    " migrating later ",
-    ""
-   ],
-   [
-    "will",
+    "That",
     "ins"
    ],
    [
@@ -1520,35 +1446,11 @@ window.PROMO_DATA = {
     ""
    ],
    [
-    "be",
+    "way,",
     "ins"
    ],
    [
-    " straightforward ",
-    ""
-   ],
-   [
-    "and",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "will",
-    "ins"
-   ],
-   [
-    " ",
-    ""
-   ],
-   [
-    "not require",
-    "ins"
-   ],
-   [
-    " a re-architecture.",
+    " migrating later remains straightforward rather than a re-architecture.",
     ""
    ]
   ],

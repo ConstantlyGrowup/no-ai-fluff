@@ -1,4 +1,4 @@
-"""v6：往返翻译带上下文、整句英文冻结、补丁打在原文上。"""
+"""往返翻译带上下文、整句英文冻结、补丁打在原文上（自 v6 起，第一代 v8 定型）。"""
 
 import json
 
@@ -57,14 +57,14 @@ class Plain:
 ORIG = "## 结论\n\n运维成本低，团队可以专注业务。\n\n本方案旨在对系统进行全面赋能。\n"
 
 
-def v6_pipe(tmp_path, tr):
-    return Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v6"),
+def base_pipe(tmp_path, tr):
+    return Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v8"),
                     translator_factory=lambda c: tr)
 
 
-def test_v6_prompt_puts_original_first_and_patches_original(tmp_path):
+def test_prompt_puts_original_first_and_patches_original(tmp_path):
     tr = Plain()
-    pipe = v6_pipe(tmp_path, tr)
+    pipe = base_pipe(tmp_path, tr)
     prep = pipe.prepare(ORIG, question="怎么选架构")
     assert tr.ctx is not None and tr.ctx[0].startswith("怎么选架构")
     ap = prep.audit_prompt
@@ -80,23 +80,21 @@ def test_v6_prompt_puts_original_first_and_patches_original(tmp_path):
     assert "哪类问题" in fin.patches[1]["reject_reason"]
 
 
-def test_v6_empty_patches_returns_original(tmp_path):
-    pipe = v6_pipe(tmp_path, Plain())
+def test_empty_patches_returns_original(tmp_path):
+    pipe = base_pipe(tmp_path, Plain())
     prep = pipe.prepare(ORIG)
     fin = pipe.finalize(prep.draft_id, "[]")
     assert fin.final_text == prep.original
 
 
-def test_v6_rules_text():
-    v6 = AUDIT_RULES["v6"]
-    assert "没有问题的句子一个字都不要动" in v6 and "不设上限" in v6 and "运营成本" in v6
-    p = build_audit_prompt("原文X", "参考Y", "雷达Z", rules="v6", question="问题Q")
+def test_v8_prompt_order():
+    p = build_audit_prompt("原文X", "参考Y", "雷达Z", rules="v8", question="问题Q")
     assert p.index("问题Q") < p.index("原文X") < p.index("参考Y") < p.index("雷达Z")
 
 
 def test_soft_english_can_be_translated_only_as_mixed_language_fix(tmp_path):
     text = "## 总结\n\n对于 20 人的团队：**Build a solid Monolith, don't build a Microservices platform.** 每周开一次 Office Hour。\n"
-    pipe = v6_pipe(tmp_path, Plain())
+    pipe = base_pipe(tmp_path, Plain())
     prep = pipe.prepare(text)
     ok = {"find": "**Build a solid Monolith, don't build a Microservices platform.**",
           "replace": "**先把单体做扎实，别急着搭微服务平台。**", "type": "中英混杂", "reason": "整句英文"}
@@ -108,7 +106,7 @@ def test_soft_english_can_be_translated_only_as_mixed_language_fix(tmp_path):
 
 
 def test_code_placeholder_never_droppable(tmp_path):
-    pipe = v6_pipe(tmp_path, Plain())
+    pipe = base_pipe(tmp_path, Plain())
     prep = pipe.prepare("这里调用 `get_user()` 读取用户数据，然后继续。\n")
     p = {"find": "调用 `get_user()` 读取", "replace": "调用接口读取", "type": "中英混杂", "reason": "x"}
     fin = pipe.finalize(prep.draft_id, json.dumps([p], ensure_ascii=False))
@@ -129,7 +127,7 @@ def test_empty_response_with_context_retries_without_context(fake_client):
 
 
 def test_find_with_trailing_space_still_applies(tmp_path):
-    pipe = v6_pipe(tmp_path, Plain())
+    pipe = base_pipe(tmp_path, Plain())
     prep = pipe.prepare("## 总结\n\n本方案旨在对系统进行全面赋能。 \n")
     p = {"find": "本方案旨在对系统进行全面赋能。 ", "replace": "这个方案要把系统整体改好。 ", "type": "空洞大词", "reason": "x"}
     fin = pipe.finalize(prep.draft_id, json.dumps([p], ensure_ascii=False))
@@ -142,22 +140,9 @@ def test_acronyms_soft_but_term_list_hard():
     assert {"PM", "ROI"} <= soft and "API" not in soft
 
 
-# ---- v7（优化闭环第 1 轮）：在 v6 基础上改“改多少”的姿态，沿用原文底本、九类问题与 400 字上限 ----
-
-
-def test_v7_registered_and_within_prompt_budget():
-    from no_ai_fluff.patcher import MAX_FIND_BY_RULES, ORIGINAL_BASE_RULES, PROBLEM_TYPES
-    v7 = AUDIT_RULES["v7"]
-    assert len(v7) <= 1600  # 交接文档：审校提示词上限 1,600 字
-    assert "v7" in ORIGINAL_BASE_RULES and PROBLEM_TYPES["v7"] == PROBLEM_TYPES["v6"] and MAX_FIND_BY_RULES["v7"] == 400
-    assert "逐段" in v7 and "雷达提示】里的每一条" in v7 and "一个字都不要动" not in v7
-    p = build_audit_prompt("原文X", "参考Y", "雷达Z", rules="v7", question="问题Q")
-    assert p.index("问题Q") < p.index("原文X") < p.index("参考Y") < p.index("雷达Z")
-
-
-def test_v7_patches_original_and_requires_type(tmp_path):
+def test_patches_original_and_requires_type(tmp_path):
     tr = Plain()
-    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v7"),
+    pipe = Pipeline(PipelineConfig(store_dir=str(tmp_path), telemetry=False, audit_rules="v8"),
                     translator_factory=lambda c: tr)
     prep = pipe.prepare(ORIG)
     patches = [
@@ -174,4 +159,3 @@ def test_v8_adds_compression_type():
     v8 = AUDIT_RULES["v8"]
     assert len(v8) <= 1600 and "10. [省略压缩]" in v8 and "上面十类之一" in v8
     assert "v8" in ORIGINAL_BASE_RULES and PROBLEM_TYPES["v8"][-1] == "省略压缩" and len(PROBLEM_TYPES["v8"]) == 10
-    assert v8.replace("；\n10. [省略压缩]", "").startswith(AUDIT_RULES["v7"][:200])

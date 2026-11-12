@@ -1,0 +1,19 @@
+{
+  "purpose": "v16（= v15 去掉运行时 CLICHES 词表）在 4 段演示黑话上对照 v15",
+  "samples": [
+    "showcase-001",
+    "showcase-002",
+    "showcase-003",
+    "showcase-004"
+  ],
+  "split": "showcase",
+  "locked_tag": "v8-locked",
+  "rules": "v16",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "patch_max_tokens": 40000,
+  "baseline_max_tokens": 48000,
+  "rtt_and_baseline_from": "showcase"
+}

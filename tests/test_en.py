@@ -114,7 +114,7 @@ def test_config_provider_order(monkeypatch):
     assert default_provider() == "openrouter"
     cfg = EnPipelineConfig.from_env()
     assert (cfg.provider, cfg.model, cfg.bridge, cfg.source_lang, cfg.audit_rules) == (
-        "openrouter", "tencent/hy-mt2-30b-a3b", "ja", "en", "en2")
+        "openrouter", "tencent/hy-mt2-30b-a3b", "ja", "en", "en5")
     monkeypatch.delenv("OPENROUTER_API_KEY")
     assert EnPipelineConfig.from_env().model == "hy-mt2-pro"
 

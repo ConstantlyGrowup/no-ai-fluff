@@ -1,6 +1,6 @@
 """核心编排：两次握手（prepare / finalize）+ 超时与异常的无损回退。
 
-    prepare_rtt_draft(text)                -> draft_id + 原文 + RTT 初稿 + 雷达提示 + 审校提示词
+    prepare_rtt_draft(text)                -> draft_id + 原文 + 往返参考稿 + 雷达提示 + 审校提示词
     finalize_patched_delivery(id, patches) -> 定稿
 
 回退原则（任何一步出问题，交付物都不能比原文更差）：
@@ -30,21 +30,23 @@ from .cleanup import clean_punctuation
 from .patcher import (
     DEFAULT_AUDIT_RULES,
     MAX_FIND_BY_RULES,
-    FIDELITY_MAX_FIND,
-    REQUIRE_MISREAD,
-    REVERT_MIN_CHARS,
-    ORIGINAL_BASE_RULES,
+    MAX_FIND_CHARS,
     PROBLEM_TYPES,
-    TERM_REVIEW_RULES,
     Patch,
     PatchFormatError,
     apply_patches,
     build_audit_prompt,
+    DENSE_RADAR_RULES,
+    NO_CLICHE_RADAR_RULES,
+    CJK_SPACE_RULES,
+    ROUTED_RULES,
+    resolve_rules,
+    tidy_cjk_spaces,
     parse_patches,
     results_to_dicts,
 )
-from .radar import scan, scan_single
-from .reversion import Suspect, build_term_review_prompt, find_suspects, parse_term_review
+from .radar import scan_single
+from .telegraph_router import ROUTER_SPECS, TelegraphRouter, host_router, parse_host_triage, route_report
 from .rtt import DEFAULT_BRIDGE, PROVIDERS, ChatClient, OpenRouterError, RoundTripTranslator, RTTResult, default_provider
 
 EXITS = ("terminal", "file")
@@ -223,6 +225,11 @@ class PrepareResult:
     fallback: bool
     fallback_reason: str | None
     stats: dict
+    # 第二代宿主分诊握手：雷达扫出疑似电报句、本地又没有分诊缓存时，先请宿主判断这些句子是否出自技术/工程语境，
+    # 再调用 Pipeline.complete_prepare(draft_id, domain_triage) 取回审校规则（往返翻译不重跑）。此时 audit_prompt 为空。
+    needs_domain_triage: bool = False
+    triage_prompt: str = ""
+    triage_sentences: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -238,8 +245,6 @@ class FinalizeResult:
     fallback: bool
     fallback_reason: str | None
     cleanups: int = 0  # 定稿前确定性标点清理的处数
-    term_suspects: int = 0  # 词对微筛的嫌疑补丁数
-    term_rejected: int = 0  # 被微筛判为“改回行话”而撤销的补丁数
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -340,16 +345,23 @@ def verify_final(doc: Document, slot_texts: list[str]) -> str:
     return ""
 
 
+_NO_TRIAGE = object()  # complete_prepare 之外调用 _finish_prepare 时的“未提供分诊结果”标记
+
+
 class Pipeline:
     def __init__(
         self,
         config: PipelineConfig | None = None,
         translator_factory: TranslatorFactory | None = None,
         store: DraftStore | None = None,
+        router: TelegraphRouter | None = None,
     ):
         self.config = config or PipelineConfig.from_env()
         self.translator_factory = translator_factory or default_translator_factory
         self.store = store or DraftStore(self.config.store_dir, self.config.draft_ttl_s)
+        # 电报句分诊：评测脚本可显式注入同步分诊器（如 DeepSeek）；生产路径不注入，改由宿主模型握手分诊，
+        # 绝不在 prepare() 里隐式连接外部 API
+        self.router = router
 
     # -- 语言相关的钩子：中文版即默认实现；其他语言版本（no_ai_fluff.en）在子类里替换 --------------
     masker_cls: type = Masker
@@ -364,9 +376,8 @@ class Pipeline:
         return rtt_contexts(doc, translated, self.config.rtt_context_chars, question)
 
     def _radar(self, orig_masked: list[str], rtt_slots: list[str], translated: list[int], rules: str):
-        if rules in ORIGINAL_BASE_RULES:
-            return scan_single(orig_masked)  # v6 补丁打在原文上：雷达报原文自己的疑点
-        return scan(orig_masked, rtt_slots, only=translated)
+        # 补丁打在原文上：雷达报原文自己的疑点；第二代加扫电报式短句群、不跑静态黑话词表
+        return scan_single(orig_masked, dense=rules in DENSE_RADAR_RULES, cliche=rules not in NO_CLICHE_RADAR_RULES)
 
     def _radar_counts(self, slots: list[str]) -> dict:
         return scan_single(slots).counts
@@ -381,7 +392,7 @@ class Pipeline:
     def prepare(
         self, text: str, fmt: str = "auto", exit: str = "terminal", mode: str = "auto", question: str | None = None
     ) -> PrepareResult:
-        """question：可选，用户的原始问题。v4 审校规则会用它判断轻重和是否跑题。"""
+        """question：可选，用户的原始问题，会附在审校提示里，帮宿主判断轻重和是否跑题。"""
         cfg = self.config
         t0 = time.monotonic()
         doc = self._parse(text, fmt)
@@ -413,8 +424,6 @@ class Pipeline:
             except Exception as e:  # noqa: BLE001 —— 任何异常都无损回退到原文
                 fallback_reason = f"{type(e).__name__}: {e}"
 
-        orig_masked = [s.masked for s in doc.slots]
-        report = self._radar(orig_masked, rtt_slots, translated, cfg.audit_rules)
         draft_id = time.strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(4)
         meta = {
             "original_text": original_text,
@@ -424,14 +433,11 @@ class Pipeline:
             "provider": cfg.provider,
             "model": cfg.model,
             "bridge": cfg.bridge,
-            "audit_rules": cfg.audit_rules,
+            "audit_rules": self._resolve_rules(cfg.audit_rules),
             "fallback": fallback_reason is not None,
             "fallback_reason": fallback_reason,
+            "question": question,
         }
-        draft = Draft(draft_id, time.time(), doc, rtt_slots, translated, meta)
-        self.store.put(draft)
-
-        rtt_text = draft.rtt_text()
         stats = {
             "fmt": doc.fmt,
             "mode": mode,
@@ -447,71 +453,102 @@ class Pipeline:
             "cost_usd": rtt.cost_usd if rtt else 0.0,
             "elapsed_s": round(time.monotonic() - t0, 3),
         }
+        meta["stats"] = stats
+        draft = Draft(draft_id, time.time(), doc, rtt_slots, translated, meta)
+        self.store.put(draft)  # 先落盘：需要宿主分诊时，第二步从这里接着走，不重跑往返翻译
+        return self._finish_prepare(draft)
+
+    def complete_prepare(self, draft_id: str, domain_triage: Any = None) -> PrepareResult:
+        """宿主分诊握手第二步：带上宿主对候选电报句的判断，取回审校规则。往返翻译不重跑。
+
+        domain_triage 可以是单个布尔、布尔数组、[{"id": 1, "technical": true}] 或其 JSON 字符串；
+        解析不了的句子按 true（技术语境，走强化通道）保守处理。
+        """
+        return self._finish_prepare(self.store.get(draft_id), domain_triage)
+
+    def _is_routed(self, rules: str) -> bool:
+        return rules in ROUTED_RULES
+
+    def _route_report(self, report, masked_slots: list[str], placeholders: list[str], router: TelegraphRouter):
+        return route_report(report, masked_slots, placeholders, router)
+
+    def _route(self, rules: str) -> TelegraphRouter:
+        want = ROUTER_SPECS.get(rules)
+        if self.router is not None and (want is None or self.router.spec is want):
+            return self.router  # 评测脚本显式注入的同步分诊器
+        return host_router(rules)  # 生产路径：只读写本地缓存，缺的判定交给宿主模型
+
+    def _finish_prepare(self, draft: "Draft", domain_triage: Any = _NO_TRIAGE) -> PrepareResult:
+        cfg = self.config
+        meta = draft.meta
+        rules = self._resolve_rules(meta.get("audit_rules") or cfg.audit_rules)
+        question = meta.get("question")
+        stats = dict(meta.get("stats") or {})
+        orig_masked = [s.masked for s in draft.doc.slots]
+        report = self._radar(orig_masked, draft.rtt_slots, draft.translated, rules)
+        rtt_text = draft.rtt_text()
+        fallback_reason = meta.get("fallback_reason")
+        if self._is_routed(rules) and any(h.kind == "telegraph" for h in report.hints):
+            router = self._route(rules)
+            rr = self._route_report(report, orig_masked, draft.doc.placeholders, router)
+            if rr.needs_host and domain_triage is not _NO_TRIAGE:
+                flags = parse_host_triage(domain_triage, len(rr.pending), router.spec.field)
+                known = [(x, f) for x, f in zip(rr.pending, flags) if f is not None]
+                router.record([x for x, _ in known], [f for _, f in known])
+                rr = self._route_report(report, orig_masked, draft.doc.placeholders, router)
+                stats["domain_triage"] = "host"
+            elif rr.needs_host:
+                return PrepareResult(
+                    draft_id=draft.draft_id, original=draft.original_text, rtt_draft=rtt_text,
+                    radar_hints=report.to_prompt(), radar=report.to_dict(), audit_prompt="",
+                    fallback=fallback_reason is not None, fallback_reason=fallback_reason, stats=stats,
+                    needs_domain_triage=True, triage_prompt=router.prompt_for(rr.pending),
+                    triage_sentences=rr.pending,
+                )
+            else:
+                stats["domain_triage"] = "cache" if not rr.calls else "router"
+            # 宿主给不出可解析的判定时，待定句按 true 处理（保守：整篇走强化通道）
+            report = rr.report
+            stats["domain_dense"] = rr.dense
         if cfg.telemetry:
             telemetry.log_event({
                 "event": "prepare",
-                "draft_id": draft_id,
-                "exit": exit,
+                "draft_id": draft.draft_id,
+                "exit": meta.get("exit"),
                 "fallback": fallback_reason is not None,
                 "fallback_reason": (fallback_reason or "").split(":", 1)[0] or None,
                 "radar_counts": report.counts,
-                "chars": len(original_text),
+                "chars": len(draft.original_text),
                 **stats,
             })
         return PrepareResult(
-            draft_id=draft_id,
-            original=original_text,
+            draft_id=draft.draft_id,
+            original=draft.original_text,
             rtt_draft=rtt_text,
             radar_hints=report.to_prompt(),
             radar=report.to_dict(),
-            audit_prompt=self._audit_prompt(original_text, rtt_text, report.to_prompt(), cfg.audit_rules, question),
+            audit_prompt=self._audit_prompt(draft.original_text, rtt_text, report.to_prompt(), rules, question),
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason,
             stats=stats,
         )
 
     # -- 握手 2 ---------------------------------------------------------------
+    def _resolve_rules(self, rules: str) -> str:
+        return resolve_rules(rules)
+
     def _apply(self, draft: "Draft", plist: list, rules: str, rejected: dict[int, str] | None = None):
-        base = [s.masked for s in draft.doc.slots] if rules in ORIGINAL_BASE_RULES else draft.rtt_slots
-        return apply_patches(
-            draft.doc, base, plist, MAX_FIND_BY_RULES.get(rules, 200), REVERT_MIN_CHARS.get(rules),
-            rules in REQUIRE_MISREAD, FIDELITY_MAX_FIND.get(rules), rejected, PROBLEM_TYPES.get(rules))
-
-    def term_review(
-        self, draft_id: str, patches: Any, audit_rules: str | None = None
-    ) -> tuple[str, list[Suspect]] | None:
-        """词对微筛的第一步：返回 (微筛提示, 嫌疑列表)；没有嫌疑或规则未启用时返回 None。
-
-        只在“本来会生效”的补丁里找嫌疑，避免把会被其他守卫拒收的补丁也送去复核。
-        """
-        draft = self.store.get(draft_id)
-        rules = audit_rules or draft.meta.get("audit_rules") or "v2"
-        if rules not in TERM_REVIEW_RULES:
-            return None
-        if isinstance(patches, list) and all(isinstance(x, Patch) for x in patches):
-            plist = patches  # finalize 内部调用时已经解析过
-        else:
-            try:
-                plist = parse_patches(patches if patches is not None else [])
-            except PatchFormatError:
-                return None
-        _, results = self._apply(draft, plist, rules)
-        applied = [k for k, r in enumerate(results) if r.applied]
-        suspects = find_suspects([plist[k] for k in applied], draft.original_text, draft.rtt_text())
-        for sp in suspects:
-            sp.patch_index = applied[sp.patch_index]
-        return (build_term_review_prompt(suspects), suspects) if suspects else None
+        base = [s.masked for s in draft.doc.slots]  # 补丁打在原文上（往返稿只作参考）
+        return apply_patches(draft.doc, base, plist, MAX_FIND_BY_RULES.get(rules, MAX_FIND_CHARS), rejected,
+                             PROBLEM_TYPES.get(rules))
 
     def finalize(
         self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None,
-        term_reject: Any = None,
     ) -> FinalizeResult:
         """audit_rules 决定补丁允许的改写范围；默认取 prepare 时记录的规则版本。
-
-        term_reject：词对微筛的结果（1 起始的编号列表，或模型原始输出），对应的嫌疑补丁会被撤销。
         """
         draft = self.store.get(draft_id)
-        rules = audit_rules or draft.meta.get("audit_rules") or "v2"  # 旧草稿没有记录，按 v2 处理
+        rules = self._resolve_rules(audit_rules or draft.meta.get("audit_rules") or self.config.audit_rules)
         doc = draft.doc
         format_error: str | None = None
         try:
@@ -519,22 +556,15 @@ class Pipeline:
         except PatchFormatError as e:
             plist, format_error = [], f"补丁格式错误，已忽略全部补丁：{e}"
 
-        term_rejected: dict[int, str] = {}
-        n_suspects = 0
-        if term_reject is not None and rules in TERM_REVIEW_RULES:
-            tr = self.term_review(draft_id, plist, rules)
-            if tr:
-                suspects = tr[1]
-                n_suspects = len(suspects)
-                for num in parse_term_review(term_reject, len(suspects)):
-                    sp = suspects[num - 1]
-                    term_rejected[sp.patch_index] = f"词对微筛：把直白说法改回了行话（{sp.left} -> {sp.right}）"
-        new_slots, results = self._apply(draft, plist, rules, term_rejected)
+        new_slots, results = self._apply(draft, plist, rules)
         cleanups = 0
         for i, slot in enumerate(doc.slots):  # 只清理被改写过的槽位（往返翻译或补丁）；原样未动的不碰
             if new_slots[i] != slot.masked:
                 new_slots[i], n = self._clean(new_slots[i], slot.masked)
                 cleanups += n
+                if rules in CJK_SPACE_RULES:  # 第二代：删掉夹杂英文后，两个汉字之间留下的多余空格
+                    new_slots[i], n = tidy_cjk_spaces(new_slots[i], slot.masked)
+                    cleanups += n
         reason = verify_final(doc, new_slots)
         if reason:
             final_text, fallback_reason = draft.original_text, f"verify: {reason}"
@@ -556,8 +586,6 @@ class Pipeline:
                 "patches_rejected": rejected,
                 "patch_format_error": format_error is not None,
                 "punctuation_cleanups": cleanups,
-                "term_suspects": n_suspects,
-                "term_rejected": len(term_rejected),
                 "fallback": fallback_reason is not None,
                 "radar_original": self._radar_counts([doc.slots[i].masked for i in only]),
                 "radar_rtt": self._radar_counts([draft.rtt_slots[i] for i in only]),
@@ -574,8 +602,6 @@ class Pipeline:
             fallback=fallback_reason is not None,
             fallback_reason=fallback_reason or format_error,
             cleanups=cleanups,
-            term_suspects=n_suspects,
-            term_rejected=len(term_rejected),
         )
 
     # -- 便捷：单进程一次跑完（DeepSeek Harness / 评测台） --------------------
@@ -588,24 +614,29 @@ class Pipeline:
         mode: str = "auto",
         question: str | None = None,
     ) -> tuple[PrepareResult, FinalizeResult]:
-        """reviewer(audit_prompt) -> JSON 补丁（字符串或列表）。不传 reviewer 时等价于纯 RTT。"""
+        """reviewer(audit_prompt) -> JSON 补丁（字符串或列表）。不传 reviewer 时等价于纯 RTT。
+
+        需要宿主分诊时，同一个 reviewer 先回答分诊提示（triage_prompt），再回答审校提示。
+        """
         prep = self.prepare(text, fmt=fmt, exit=exit, mode=mode, question=question)
         patches: Any = []
         reviewer_error: str | None = None
-        if reviewer is not None:
+        triage_error: str | None = None
+        if prep.needs_domain_triage:
+            triage: Any = None
+            if reviewer is not None:
+                try:
+                    triage = reviewer(prep.triage_prompt)
+                except Exception as e:  # noqa: BLE001 —— 分诊失败按技术语境保守处理，照常审校，但如实记录
+                    triage_error = f"domain triage error: {type(e).__name__}: {e}"
+            prep = self.complete_prepare(prep.draft_id, triage)
+        if reviewer is not None and not reviewer_error:
             try:
                 patches = reviewer(prep.audit_prompt)
             except Exception as e:  # noqa: BLE001 —— 审校失败按空补丁出初稿，但必须如实告知调用方
                 patches, reviewer_error = [], f"reviewer error: {type(e).__name__}: {e}"
-        term_reject: Any = None
-        if reviewer is not None and not reviewer_error:
-            tr = self.term_review(prep.draft_id, patches)
-            if tr:
-                try:
-                    term_reject = reviewer(tr[0])
-                except Exception as e:  # noqa: BLE001 —— 微筛失败不撤销任何补丁，但如实记录
-                    reviewer_error = f"term review error: {type(e).__name__}: {e}"
-        fin = self.finalize(prep.draft_id, patches, term_reject=term_reject)
+        fin = self.finalize(prep.draft_id, patches)
+        reviewer_error = "; ".join(x for x in (triage_error, reviewer_error) if x) or None
         if reviewer_error:
             fin.fallback_reason = "; ".join(x for x in (reviewer_error, fin.fallback_reason) if x)
             if self.config.telemetry:
