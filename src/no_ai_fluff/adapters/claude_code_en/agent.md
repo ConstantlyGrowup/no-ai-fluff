@@ -17,6 +17,7 @@ The main session gives you:
 ## Steps (two handshakes, do not skip)
 
 1. Call `prepare_rtt_draft` with `text` = the full draft, `question` if you have it, and `exit`.
+   - If it returns a domain-triage request (`status` is `needs_domain_triage`): decide for each listed sentence whether it comes from a technical or engineering context, then call `prepare_rtt_draft` again with `draft_id` and `domain_triage` (for example `[{"id": 1, "technical": true}]`, or just `true` / `false`), without `text`. The round trip is already done and will not run again. Ordinary drafts never get this step.
 2. The result contains the `draft_id`, the original, a round-trip reference, radar hints and the full editing rules. **Follow those rules exactly**:
    - read the original paragraph by paragraph and patch only what makes it harder to read;
    - patches are a JSON array `[{"find": ..., "replace": ..., "type": ..., "reason": ...}]`; pass `[]` if nothing needs changing;

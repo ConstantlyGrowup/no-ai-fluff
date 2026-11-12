@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, field
 
 from ..masker import PLACEHOLDER_RE
 
-KINDS = ("long_sentence", "noun_stack", "nominal_heavy", "jargon", "symbol_for_word", "label_fragment")
+KINDS = ("long_sentence", "noun_stack", "nominal_heavy", "jargon", "symbol_for_word", "label_fragment", "telegraph")
 KIND_LABELS = {
     "long_sentence": "long sentence",
     "noun_stack": "noun stack",
@@ -20,7 +20,9 @@ KIND_LABELS = {
     "jargon": "jargon / hype word",
     "symbol_for_word": "symbol standing in for a word",
     "label_fragment": "label instead of a sentence",
+    "telegraph": "telegraphic sentence chain",
 }
+TELEGRAPH_LABEL = KIND_LABELS["telegraph"]
 PROMPT_HINT_LIMIT = 30
 LONG_SENTENCE_WORDS = 30  # surface metric
 HINT_SENTENCE_WORDS = 25  # radar hint for the host (en2)
@@ -48,6 +50,38 @@ _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 _SYMBOL = re.compile(r"(?<=\w)\s*(?:→|->|=>|\+|/)\s*(?=\w)|(?<=\w)\s+[—–]\s+(?=\w)")
 _LABEL = re.compile(r"^\s*(?:[-*]\s+)?[A-Z][A-Za-z]*(?:\s+[A-Za-z]+)?:\s+\S")
 _CODEISH = re.compile(r"```.*?```|`[^`\n]+`|\$[^$\n]+\$", re.S)
+
+# Second generation (en5): telegraphic sentence chains, purely statistical (the English counterpart of the Chinese detector).
+# English jargon-dense prose is rarely a comma chain of two-word fragments the way Chinese is; it shows up as a sentence
+# cut into a few phrases with very few function words (0.17-0.30 on the tune set, against about 0.45 in plain prose).
+# So the English thresholds differ from the Chinese ones; whether a hit is worth the stronger rules is left to the
+# domain triage, exactly as in the Chinese edition.
+TELE_MIN_WORDS = 12
+TELE_MIN_FRAGS = 3
+TELE_AVG = (3.0, 8.0)
+TELE_MAX_FN = 0.30
+_TELE_SENT = re.compile(r"[^.!?\n]+[.!?]?")
+_TELE_SEP = re.compile(r"\s*[,;:]\s+|\s+[—–-]{1,2}\s+|\s*→\s*")
+_TELE_PREFIX = re.compile(r"^\s*(?:[-*>]|\d+\.)\s+")
+
+
+def telegraph_stats(sentence: str) -> tuple[int, float, float] | None:
+    """(fragments, words per fragment, function-word ratio) when the sentence is a telegraphic chain, else None."""
+    t = _TELE_PREFIX.sub("", PLACEHOLDER_RE.sub("X", sentence)).replace("**", "")
+    words = _WORD.findall(t)
+    frags = [f for f in _TELE_SEP.split(t) if _WORD.search(f)]
+    if len(words) < TELE_MIN_WORDS or len(frags) < TELE_MIN_FRAGS:
+        return None
+    avg = len(words) / len(frags)
+    fn = sum(1 for w in words if w.lower() in FUNCTION_WORDS) / len(words)
+    if TELE_AVG[0] <= avg <= TELE_AVG[1] and fn <= TELE_MAX_FN:
+        return len(frags), round(avg, 1), round(fn, 3)
+    return None
+
+
+def telegraph_sentences(slots: list[str]) -> list[tuple[int, str]]:
+    """(slot, masked sentence) for every telegraphic chain, in the same order as scan(dense=True) emits the hints."""
+    return [(i, m.group(0)) for i, s in enumerate(slots) for m in _TELE_SENT.finditer(s) if telegraph_stats(m.group(0))]
 
 
 @dataclass
@@ -106,7 +140,9 @@ def _noun_stacks(sentence: str) -> list[str]:
     return out
 
 
-def scan(slots: list[str]) -> EnRadarReport:
+def scan(slots: list[str], dense: bool = False, jargon: bool = True) -> EnRadarReport:
+    """dense=True adds telegraphic-chain hints (en5); jargon=False drops the static jargon word list (en5).
+    The defaults keep the first-generation (en2) radar and the benchmark surface metrics unchanged."""
     rep = EnRadarReport()
     for i, s in enumerate(slots):
         t = PLACEHOLDER_RE.sub("X", s)
@@ -121,11 +157,16 @@ def scan(slots: list[str]) -> EnRadarReport:
             for st in _noun_stacks(sent):
                 rep.hints.append(Hint("noun_stack", i, st))
         low = t.lower()
-        for w in sorted(JARGON):
+        for w in sorted(JARGON) if jargon else ():
             for m in re.finditer(r"(?<![A-Za-z-])" + re.escape(w) + r"(?![A-Za-z-])", low):
                 rep.hints.append(Hint("jargon", i, t[m.start():m.end()]))
         for m in _SYMBOL.finditer(t):
             rep.hints.append(Hint("symbol_for_word", i, t[max(0, m.start() - 15):m.end() + 15].strip()))
+        if dense:
+            for m in _TELE_SENT.finditer(s):
+                st = telegraph_stats(m.group(0))
+                if st:
+                    rep.hints.append(Hint("telegraph", i, PLACEHOLDER_RE.sub("X", m.group(0)).strip()[:100]))
     return rep
 
 

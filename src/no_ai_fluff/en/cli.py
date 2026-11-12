@@ -44,6 +44,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("prepare", help="handshake 1")
     common(p)
     p.add_argument("--prompt-only", action="store_true", help="print only the editing prompt")
+    p.add_argument("--draft-id", help="domain-triage follow-up: the draft_id from the first prepare")
+    p.add_argument("--domain-triage", help='domain-triage follow-up: true / false / [true,false] / [{"id":1,"technical":true}]')
     p = sub.add_parser("finalize", help="handshake 2")
     p.add_argument("draft_id")
     p.add_argument("--patches", help="patch file / - / inline JSON; omitted means []")
@@ -90,7 +92,21 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"counts": scan(text.split("\n")).counts, "surface": surface(text)}, indent=2))
         return 0
     if args.cmd == "prepare":
-        res = _pipeline(args).prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if args.draft_id:
+            from ..pipeline import DraftNotFound
+
+            try:
+                res = _pipeline(args).complete_prepare(args.draft_id, args.domain_triage)
+            except DraftNotFound:
+                print(f"draft {args.draft_id} not found (already finalized or expired)", file=sys.stderr)
+                return 2
+        else:
+            res = _pipeline(args).prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if res.needs_domain_triage:
+            print(f"draft_id: {res.draft_id}\n\n{res.triage_prompt}")
+            print(f"[no-ai-fluff-en] domain triage needed: answer it, then run prepare --draft-id {res.draft_id} "
+                  "--domain-triage '<JSON>'", file=sys.stderr)
+            return 0
         if args.prompt_only:
             print(f"draft_id: {res.draft_id}\n\n{res.audit_prompt}")
         else:
@@ -113,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "run":
         pipe = _pipeline(args)
         prep = pipe.prepare(_read(args.input), fmt=args.fmt, exit=args.exit)
+        if prep.needs_domain_triage:  # nobody to ask in one-shot mode: treat as technical (affects only the rules)
+            prep = pipe.complete_prepare(prep.draft_id, None)
         fin = pipe.finalize(prep.draft_id, _read_patches(args.patches))
         if args.json:
             _write(json.dumps({"prepare": prep.to_dict(), "finalize": fin.to_dict()}, ensure_ascii=False, indent=2), args.output)

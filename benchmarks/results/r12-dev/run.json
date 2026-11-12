@@ -1,0 +1,44 @@
+{
+  "purpose": "exp/radar-density-v11：v16 = v15 去掉运行时 CLICHES 黑话词表提示（单变量消融），Dev 24 篇",
+  "samples": [
+    "coding-004",
+    "teaching-005",
+    "writing-001",
+    "discussion-003",
+    "daily-003",
+    "daily-004",
+    "daily-005",
+    "daily-006",
+    "daily-008",
+    "daily-009",
+    "daily-010",
+    "daily-011",
+    "coding-008",
+    "coding-011",
+    "discussion-007",
+    "discussion-008",
+    "mixed-004",
+    "mixed-006",
+    "mixed-008",
+    "mixed-009",
+    "teaching-007",
+    "teaching-010",
+    "writing-006",
+    "writing-011"
+  ],
+  "split": "dev",
+  "judge_variants": [
+    "original",
+    "patched:hymt-ru",
+    "baseline:humanizer-zh"
+  ],
+  "labels": {
+    "patched:hymt-ru": "no-ai-fluff v16"
+  },
+  "rules": "v16",
+  "bridge": "ru",
+  "rtt_context": 300,
+  "host": "deepseek-flash",
+  "effort": "high",
+  "rtt_and_baseline_from": "r3-dev"
+}

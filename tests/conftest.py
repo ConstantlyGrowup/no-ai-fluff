@@ -7,6 +7,7 @@ from no_ai_fluff.rtt import RTTResult
 def isolated_home(tmp_path, monkeypatch):
     """所有测试的遥测与草稿都写进临时目录，且不读真实 Key。"""
     monkeypatch.setenv("NO_AI_FLUFF_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("NO_AI_FLUFF_ROUTER_CACHE", str(tmp_path / "telegraph_router"))  # 领域分诊缓存
     for k in ("OPENROUTER_API_KEY", "TENCENTCLOUD_API_KEY", "TENCENT_API_KEY"):
         monkeypatch.delenv(k, raising=False)
     return tmp_path / "home"

@@ -7,6 +7,7 @@
 3. cliche         典型套话 / 空洞黑话 / 无度量夸张修饰
 4. loose_english  未被掩码保护却残留在正文里的散装英文
 5. pronoun        密集代词：单句 ≥ 3 个「它/其」，或单分句 ≥ 2 个
+6. telegraph      电报式短句群（第二代规则，只在 dense=True 时扫描）：纯句法/密度规则，不依赖任何黑话词表
 """
 
 from __future__ import annotations
@@ -17,13 +18,14 @@ from dataclasses import asdict, dataclass, field
 
 from .masker import PLACEHOLDER_RE
 
-KINDS = ("long_clause", "number", "cliche", "loose_english", "pronoun")
+KINDS = ("long_clause", "number", "cliche", "loose_english", "pronoun", "telegraph")
 KIND_LABELS = {
     "long_clause": "长句/定语堆积",
     "number": "数字不一致",
     "cliche": "套话/黑话",
     "loose_english": "散装英文",
     "pronoun": "密集代词",
+    "telegraph": "电报式短句群",
 }
 
 LONG_CLAUSE_CHARS = 40
@@ -51,6 +53,38 @@ CLICHES = [
     "极其", "极度", "极为", "卓越", "颠覆性", "革命性", "前所未有", "全方位", "多维度",
 ]
 _CLICHE_RE = re.compile("|".join(f"(?:{c})" for c in CLICHES))
+
+# 6. 电报式短句群（v11）：黑话一直在变，静态词表抓不住，也不该无限扩表；这里只看句子的“形状”。
+# 一句话被逗号、顿号、分号、冒号切成很多短片段，片段平均只有几个字，又几乎不用虚词和连接词
+# （的、了、在、把、就、会、因为、如果、我们、这……都是封闭词类，不是黑话词表），读者只能看到一串
+# “动作 + 抽象名词”，看不到谁在做、什么条件下做、先后怎样。真正的并列罗列（地名、字段名、测试项）
+# 形状相同，所以这条只作提示，由宿主判断是否该拆。
+TELE_MIN_CHARS = 24       # 句子（去掉标点、空白、占位符）至少这么多字
+TELE_MIN_FRAGS = 4        # 至少切成这么多个片段
+TELE_AVG = (5, 11)        # 片段平均字数落在这个区间（太短多是名词罗列，太长就不是电报腔）
+TELE_MAX_FN = 0.04        # 虚词与连接词占比上限
+_TELE_SENT_RE = re.compile(r"[^。！？!?\n]+[。！？!?]?")
+_TELE_SEP_RE = re.compile(r"[，,、；;：:]")
+_TELE_STRIP_RE = re.compile(r"[\s“”\"'（）()*#>\-—…/【】\[\]]")
+_FUNCTION_RE = re.compile(
+    r"的|了|着|过|在|把|被|将|就|才|会|要|能|可以|可能|是|有|没|不|也|都|还|又|再|先|然后|如果|若|当|因为|由于"
+    r"|所以|因此|但|而|则|从|对|向|给|让|使|用|以|为|我|你|他|她|它|这|那|一个|一些|些|吗|呢|吧")
+
+
+def telegraph_stats(sentence: str) -> tuple[int, float, float] | None:
+    """电报式短句群判定：命中返回 (片段数, 平均字数, 虚词占比)，否则 None。sentence 为掩码文本。"""
+    vis = PLACEHOLDER_RE.sub("码", sentence)
+    frags = [_TELE_STRIP_RE.sub("", f) for f in _TELE_SEP_RE.split(vis.rstrip("。！？!?"))]
+    frags = [f for f in frags if f]
+    core = "".join(frags)
+    n = len(core)
+    if n < TELE_MIN_CHARS or len(frags) < TELE_MIN_FRAGS:
+        return None
+    avg = n / len(frags)
+    fn = sum(len(m.group(0)) for m in _FUNCTION_RE.finditer(core)) / n
+    if TELE_AVG[0] <= avg <= TELE_AVG[1] and fn <= TELE_MAX_FN:
+        return len(frags), round(avg, 1), round(fn, 3)
+    return None
 
 _CLAUSE_SPLIT_RE = re.compile(r"[，,。；;！!？?：:\n、（）()]")
 _SENT_SPLIT_RE = re.compile(r"[。！!？?；;\n]")
@@ -116,7 +150,11 @@ def extract_numbers(masked: str) -> Counter:
     return Counter(normalize_number(t) for t in _NUM_RE.findall(PLACEHOLDER_RE.sub(" ", masked)))
 
 
-def scan_slot(masked: str, slot: int | None = None) -> list[Hint]:
+def scan_slot(masked: str, slot: int | None = None, dense: bool = False, cliche: bool = True) -> list[Hint]:
+    """dense=True 时加扫第 6 类“电报式短句群”（第二代规则使用；第一代不扫，保证其提示词逐字一致）。
+
+    cliche=False 时不跑静态黑话词表（第二代：运行时只留结构型规则）；评测统计口径仍用默认的 True。
+    """
     hints: list[Hint] = []
     vis = _visible(masked)
     # 1. 长句与定语堆积
@@ -141,8 +179,9 @@ def scan_slot(masked: str, slot: int | None = None) -> list[Hint]:
                     hints.append(Hint("long_clause", slot, _clip(c),
                                       f"分句开头连列 {c.count('、') + 1} 项，读者要读到最后才知道要做什么；考虑先说动作，或写成完整句"))
     # 3. 套话 / 黑话
-    for m in _CLICHE_RE.finditer(masked):
-        hints.append(Hint("cliche", slot, m.group(0), "套话/空洞黑话/无度量修饰"))
+    if cliche:
+        for m in _CLICHE_RE.finditer(masked):
+            hints.append(Hint("cliche", slot, m.group(0), "套话/空洞黑话/无度量修饰"))
     # 4. 散装英文残留
     plain = PLACEHOLDER_RE.sub(" ", masked)
     words = []
@@ -158,6 +197,16 @@ def scan_slot(masked: str, slot: int | None = None) -> list[Hint]:
         worst_clause = max((len(_PRONOUN_RE.findall(c)) for c in re.split(r"[，,]", sent)), default=0)
         if k >= 3 or worst_clause >= 2:
             hints.append(Hint("pronoun", slot, _clip(sent), f"单句 {k} 个「它/其」"))
+    # 6. 电报式短句群（只看结构，不看词）
+    if dense:
+        for m in _TELE_SENT_RE.finditer(masked):
+            st = telegraph_stats(m.group(0))
+            if st:
+                k, avg, _fn = st
+                hints.append(Hint("telegraph", slot, _clip(_visible(m.group(0)), 40),
+                                  f"一句切成 {k} 个短片段、平均 {avg} 字、几乎没有连接词。若只是并列罗列事物（地名、景点、字段名、测试项）可以不改；"
+                                  "若是一串“动作 + 抽象名词”压成的电报，请拆成两三句完整的话，补上上下文里本来就有的主语和连接词，"
+                                  "把包装式行话换成字面本来的具体动作，但不要脑补原文没写的条件或机制"))
     return hints
 
 
@@ -234,11 +283,24 @@ def scan(original_slots: list[str], draft_slots: list[str], only: list[int] | No
     return report
 
 
-def scan_single(slots: list[str]) -> RadarReport:
-    """只扫描一份文本（用于对原文/定稿做表层统计，不含数字对照）。"""
+def telegraph_sentences(slots: list[str]) -> list[tuple[int, str]]:
+    """列出命中“电报式短句群”的句子 (槽位, 掩码句子)，顺序与 scan_single(dense=True) 里 telegraph 提示的顺序一致。
+
+    这些句子交给领域分诊（telegraph_router）判断是否出自技术/工程语境；雷达本身只看句法统计量。
+    """
+    out = []
+    for i, s in enumerate(slots):
+        for m in _TELE_SENT_RE.finditer(s):
+            if telegraph_stats(m.group(0)):
+                out.append((i, m.group(0)))
+    return out
+
+
+def scan_single(slots: list[str], dense: bool = False, cliche: bool = True) -> RadarReport:
+    """只扫描一份文本（用于对原文/定稿做表层统计，不含数字对照）。dense、cliche 见 scan_slot。"""
     report = RadarReport()
     for i, s in enumerate(slots):
-        report.hints += scan_slot(s, i)
+        report.hints += scan_slot(s, i, dense, cliche)
     return report
 
 

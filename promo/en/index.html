@@ -54,7 +54,7 @@
    0. Cold open                0–9     three-line hook (0.3/1.4/2.6 s) → 4.8 s first title + tagline
    1. AI's dialect             9–35    status-update case: redline → wipe to the final; meeting speak vs one-on-one (illustration)
    2. The hypothesis           35–65   three-step chain (my guess) → the paper and three lines of evidence
-   3. Building it for English  65–95   EN→JA→EN and three translators → drift and tuning en1→en2 → the locked test set
+   3. Building it for English  65–95   EN→JA→EN and three translators → drift and tuning first → final rules → the locked test set
    4. Real examples            95–117  PR / technical explanation / discussion / jargon pairs (test and tune sets)
    5. The judge                117–141 JEV vs the original → verdict and does-no-harm → the same answer side by side
    6. Wrap-up                  141–163 where it helps → five cards → second title + tagline, still hold ≥ 5 s
@@ -67,7 +67,7 @@ const SVG = document.getElementById("v");
 const SERIF = '"Newsreader","Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif';
 const SANS = '"Inter","Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif';
 const MONO = '"JetBrains Mono","Fira Code","SF Mono",Consolas,"Noto Sans SC",monospace';
-// 暗房色板（v10，参照 docs/video-skills-ref/opus-dark-ref-*.jpg）：深曜石黑底 + 中心/地平线径向微光，象牙白文字
+// 暗房色板（v10，参照一组暗色电影感参考图，未收入仓库）：深曜石黑底 + 中心/地平线径向微光，象牙白文字
 const PAL = {
   bg: "#090B10", bgGlow: "#141D2B", introGlow: "#1F1114", panel: "#121620", panel2: "#0D1017", dark: "#06070A",
   line: "#232A38", lineStrong: "#384357",
@@ -531,7 +531,7 @@ function buildC3(g) {
     ["gemma-4-26b: three times faster, but kept phrases like “drove alignment” as they were", PAL.ink, 400],
     ["hy-mt2: zero failed segments, and it cut nominalizations and stacked compounds the most", PAL.teal, 700],
   ].map(([s, c, w], i) => T(a, 140, 724 + i * 60, s, { size: fit(s, AUX, 1640, w), fill: c, weight: w }));
-  // 3-b round trips drift → reference only; tuning en1 → en2
+  // 3-b round trips drift → reference only; tuning first → final rules
   const b = el("g", {}, g);
   title(b, "Round trips drift, so they are only a reference", 196, 58);
   T(b, 140, 290, "Real drift from the translator test:", { size: 34, weight: 500 });
@@ -553,7 +553,7 @@ function buildC3(g) {
   sol.insertBefore(card(sol, 140, 626, 780, sy - 626 + 18, { accent: PAL.teal }), sol.firstChild);
   const eff = el("g", {}, b);
   card(eff, 1000, 270, 800, 600, { fill: PAL.panel });
-  T(eff, 1040, 332, "Tuning the rules: en1 → en2", { size: 38, weight: 700, family: SERIF });
+  T(eff, 1040, 332, "Tuning the rules: first → final", { size: 38, weight: 700, family: SERIF });
   T(eff, 1040, 380, `Tune set, ${TU.n} documents · lower is better`, { size: AUX, fill: PAL.dim });
   const E = [["Words per sentence", TU.wps, 20, v => v.toFixed(1)], ["Sentences over 30 words", TU.long, 4, v => `${v.toFixed(1)}%`], ["Jargon per 1,000 words", TU.jargon, 40, v => v.toFixed(1)]];
   const rows = E.map(([l, vals, max, f], i) => {
@@ -561,13 +561,13 @@ function buildC3(g) {
     T(rg, 1040, y - 34, `${l} (original ${f(vals[0])})`, { size: AUX, weight: 500 });
     const rl = el("rect", { x: 1040, y: y - 16, height: 26, rx: 3, fill: PAL.line }, rg);
     const rh = el("rect", { x: 1040, y: y + 34, height: 26, rx: 3, fill: PAL.teal }, rg);
-    const tl = T(rg, 1040, y + 8, `en1 ${f(vals[1])}`, { size: AUX, family: MONO, fill: PAL.dim });
-    const th = T(rg, 1040, y + 58, `en2 ${f(vals[2])}`, { size: AUX, family: MONO, fill: PAL.teal, weight: 700 });
+    const tl = T(rg, 1040, y + 8, `first ${f(vals[1])}`, { size: AUX, family: MONO, fill: PAL.dim });
+    const th = T(rg, 1040, y + 58, `final ${f(vals[2])}`, { size: AUX, family: MONO, fill: PAL.teal, weight: 700 });
     return { rg, rl, rh, tl, th, lo: vals[1] / max * 460, hi: vals[2] / max * 460 }; });
   // 3-c a locked test set
   const c = el("g", {}, g);
   title(c, "A test set the tuning never saw", 196, 58);
-  const vs = [["probe", "7 documents", ""], ["pick", "hy-mt2", "via Japanese"], ["en1", "first rules", ""], ["en2", "split long", "sentences"], ["test", `${TS.n} documents`, "locked first"]];
+  const vs = [["probe", "7 documents", ""], ["pick", "hy-mt2", "via Japanese"], ["first", "single-channel", "rules"], ["final", "structure radar", "+ domain triage"], ["test", `${TS.n} documents`, "locked first"]];
   const rx0 = 270, rstep = 345, ry = 316;
   el("line", { x1: 170, x2: 1750, y1: ry, y2: ry, stroke: PAL.line, "stroke-width": 3 }, c);
   const prog = el("line", { x1: 170, y1: ry, y2: ry, stroke: PAL.ink, "stroke-width": 3 }, c);
@@ -714,7 +714,7 @@ function buildC5(g) {
   T(judge, W / 2, 312, jS, { size: fit(jS, 36, 1340, 500), fill: PAL.inkOnDark, anchor: "middle", weight: 500 });
   const vsL = el("g", {}, a), vsR = el("g", {}, a);
   card(vsL, 260, 390, 620, 200, { accent: PAL.teal });
-  T(vsL, 310, 456, "no-ai-fluff (en2)", { size: 44, weight: 700, family: SERIF, fill: PAL.teal });
+  T(vsL, 310, 456, "no-ai-fluff", { size: 44, weight: 700, family: SERIF, fill: PAL.teal });
   T(vsL, 310, 510, "round-trip reference", { size: 34, weight: 500 });
   T(vsL, 310, 558, "+ local patches", { size: AUX, fill: PAL.dim });
   card(vsR, 1040, 390, 620, 200, { accent: PAL.ink });
@@ -761,7 +761,7 @@ function buildC5(g) {
   const c = el("g", {}, g);
   title(c, "The same answer, side by side", 180, 58);
   const th = D.two_col;
-  const cols2 = [["Original", th.orig, PAL.panel2, PAL.rose], ["no-ai-fluff (en2)", th.ours, PAL.panel, PAL.teal]];
+  const cols2 = [["Original", th.orig, PAL.panel2, PAL.rose], ["no-ai-fluff", th.ours, PAL.panel, PAL.teal]];
   // v11: a long, heavily rewritten paragraph, so the columns are wider and the two metrics sit on one line under the title
   const mS = `Sentences over 30 words (test set): ${TS.long[0].toFixed(1)}% → ${TS.long[1].toFixed(1)}%   ·   Readability (JEV, 1–5): ${J.read[0].toFixed(2)} → ${J.read[1].toFixed(2)}`;
   const m1 = T(c, W / 2, 238, mS, { size: fit(mS, 34, 1700, 500), weight: 500, anchor: "middle", fill: PAL.dim }), m2 = el("g", {}, c);
@@ -828,7 +828,7 @@ function buildC6(g) {
     ["01", "Hypothesis + paper", "Length penalties in RL reward compressed phrasing"],
     ["02", "Code 100% intact", "Backticks, paths, formulas and versions are frozen first"],
     ["03", "Round trip via Japanese", "The paper's paraphrase test, used as a plainer reference"],
-    ["04", "Checks + precise patches", "A regex radar, then JSON patches on the original"],
+    ["04", "Structure radar + triage", "Sentence structure only; technical drafts get stronger rules"],
     ["05", "Tested on a locked set", `Preferred in ${pct(J.pref_share)} of documents; no number changed`],
   ];
   const cw = 540, chh = 218, gx = 30, gy = 26;
@@ -893,7 +893,7 @@ const SUBS = [
   [56.4, 61.0, "I turned their round trip into a tool."],
   [61.2, 65.8, "hy-mt2 loosened the prose the most."],
   [66.4, 70.8, "Round trips drift, so they are a reference."],
-  [71.0, 75.8, `Two rounds: ${D.tuning.wps[0].toFixed(1)} words a sentence down to ${D.tuning.wps[2].toFixed(1)}.`],
+  [71.0, 75.8, `Five rounds: ${D.tuning.wps[0].toFixed(1)} words a sentence down to ${D.tuning.wps[2].toFixed(1)}.`],
   [76.4, 81.0, "Then a test set the tuning never saw:"],
   [81.2, 85.8, "real Claude Code PRs and assistant answers."],
   [86.4, 91.2, "PR description: the list gets its own sentence."],
@@ -903,7 +903,7 @@ const SUBS = [
   [108.4, 115.8, "The judge is JEV, a third-party model."],
   [116.4, 123.8, "No number changed. Code stayed verbatim."],
   [124.4, 131.8, "Shorter sentences, easier reading."],
-  [132.4, 136.8, "PRs and explanations are where it shines."],
+  [132.4, 136.8, "PRs and written updates are where it shines."],
   [137.0, 140.8, "It also cleans up trade-offs, announcements, and everyday answers."],
   [141.4, 146.6, "Guess, paper, experiments, a locked test."],
 ];

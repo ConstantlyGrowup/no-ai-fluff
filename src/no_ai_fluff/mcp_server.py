@@ -2,6 +2,8 @@
 
 提供两次握手的原子工具：
     prepare_rtt_draft          Stage 0 + 1 + 2a：掩码、往返翻译、雷达，返回审校材料
+                               （雷达扫出疑似电报句且本地没有分诊缓存时，先返回领域分诊请求；
+                                宿主判断后带 draft_id + domain_triage 再调一次，取回审校规则，往返翻译不重跑）
     finalize_patched_delivery  Stage 3：合并宿主模型开具的 JSON 补丁，校验后返回定稿
 
 传输：每行一条 JSON-RPC 消息（MCP stdio 规范）。stdout 只写协议消息，日志一律写 stderr。
@@ -27,11 +29,13 @@ TOOLS = [
             "把一段面向人类阅读的中文交付草稿（Markdown / HTML / 纯文本）做往返翻译解压，"
             "返回 draft_id、原文、RTT 初稿、表层雷达提示与审校规则。"
             "调用方随后应对照原文全量审校 RTT 初稿，只输出局部 JSON 补丁，再调用 finalize_patched_delivery。"
+            "少数稿子会先返回领域分诊请求（status=needs_domain_triage）：判断列出的几句是否出自技术/工程语境，"
+            "再带 draft_id 和 domain_triage 调用一次本工具（此时不用再传 text），即可取回审校规则。"
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "text": {"type": "string", "description": "待净化的草稿全文"},
+                "text": {"type": "string", "description": "待净化的草稿全文（第二步领域分诊时可省略）"},
                 "format": {"type": "string", "enum": ["auto", "markdown", "html", "text"], "default": "auto"},
                 "question": {
                     "type": "string",
@@ -43,19 +47,32 @@ TOOLS = [
                     "default": "terminal",
                     "description": "交付出口：terminal=终端回复（10s 时限），file=落盘文档（60s 时限）",
                 },
+                "draft_id": {
+                    "type": "string",
+                    "description": "第二步领域分诊：回传第一次调用返回的 draft_id（此时不用再传 text）",
+                },
+                "domain_triage": {
+                    "description": (
+                        "第二步领域分诊：列出的句子是否出自技术/工程语境。可传单个布尔（整篇同一判断）、"
+                        "布尔数组（按编号顺序），或 [{\"id\": 1, \"technical\": true}] 数组（或其 JSON 字符串）"
+                    ),
+                    "oneOf": [
+                        {"type": "boolean"},
+                        {"type": "array", "items": {"oneOf": [{"type": "boolean"}, {"type": "object"}]}},
+                        {"type": "string"},
+                    ],
+                },
             },
-            "required": ["text"],
+            "description": "text 与 draft_id 二选一：第一次调用传 text；收到领域分诊请求后传 draft_id + domain_triage",
         },
     },
     {
         "name": "finalize_patched_delivery",
         "title": "合并补丁并输出定稿（握手 2）",
         "description": (
-            "提交对 RTT 初稿的局部替换补丁，返回定稿。patches 为 "
-            '[{"find": "初稿原片段", "replace": "修改后片段", "reason": "原因"}]，无需修改时传 []。'
+            "提交对原文的局部替换补丁，返回定稿。patches 为 "
+            '[{"find": "原文片段", "replace": "修改后片段", "type": "问题类型", "reason": "原因"}]，无需修改时传 []。'
             "破坏代码/公式/路径等受保护内容的补丁会被自动拒收；最终校验失败时整体回退原文。"
-            "若有补丁把初稿的直白说法改回了原文用词，第一次调用会返回一份词对复核清单：请判断后带上 term_review "
-            "（要撤销的编号数组，可为 []）用同样的 patches 再调用一次。"
         ),
         "inputSchema": {
             "type": "object",
@@ -72,7 +89,6 @@ TOOLS = [
                                     "find": {"type": "string"},
                                     "replace": {"type": "string"},
                                     "type": {"type": "string"},
-                                    "misread": {"type": "string"},
                                     "reason": {"type": "string"},
                                 },
                                 "required": ["find", "replace"],
@@ -80,11 +96,6 @@ TOOLS = [
                         },
                         {"type": "string"},
                     ],
-                },
-                "term_review": {
-                    "type": "array",
-                    "items": {"type": "integer"},
-                    "description": "词对复核结果：要撤销的编号（1 起始）。第一次调用不传；收到复核清单后再传",
                 },
             },
             "required": ["draft_id", "patches"],
@@ -117,12 +128,20 @@ def format_finalize(res) -> str:
     return "\n".join(lines)
 
 
+def format_domain_triage(res) -> str:
+    return (
+        f"draft_id: {res.draft_id}\n"
+        "往返翻译已完成并存为草稿。还差一步：雷达在稿子里扫到几句被切得很碎的短句，请先判断它们是否出自技术/工程语境。\n\n"
+        + res.triage_prompt
+        + f"\n\n判断后调用 prepare_rtt_draft(draft_id=\"{res.draft_id}\", domain_triage=上面的 JSON 数组) 取回审校规则。"
+    )
+
+
 MESSAGES = {
     "text_empty": "text 不能为空",
+    "text_or_draft": "需要 text（第一次调用），或 draft_id + domain_triage（领域分诊后的第二次调用）",
     "no_draft_id": "缺少 draft_id",
     "draft_not_found": "找不到草稿 {draft_id}（可能已定稿或过期），请重新调用 prepare_rtt_draft",
-    "term_review": ("还差一步：有 {n} 处补丁把初稿的说法改回了原文用词，请单独复核。\n\n{prompt}\n\n"
-                    "判断后用同样的 patches 再调用 finalize_patched_delivery，并带上 term_review=上面的编号数组。"),
     "unknown_tool": "未知工具：{name}",
 }
 INSTRUCTIONS = (
@@ -155,31 +174,40 @@ class MCPServer:
     def format_finalize(self, res) -> str:
         return format_finalize(res)
 
+    def format_domain_triage(self, res) -> str:
+        return format_domain_triage(res)
+
+    def _prepare_reply(self, res) -> dict:
+        if getattr(res, "needs_domain_triage", False):
+            return {"content": [{"type": "text", "text": self.format_domain_triage(res)}], "structuredContent": {
+                "status": "needs_domain_triage", "draft_id": res.draft_id,
+                "sentences": [{"id": i, "text": x} for i, x in enumerate(res.triage_sentences, 1)]}}
+        payload = {k: v for k, v in res.to_dict().items() if k != "audit_prompt"}
+        return {"content": [{"type": "text", "text": self.format_prepare(res)}], "structuredContent": payload}
+
     # -- 工具实现 ---------------------------------------------------------------
     def call_tool(self, name: str, args: dict) -> dict:
         try:
             if name == "prepare_rtt_draft":
+                draft_id = args.get("draft_id")
+                if isinstance(draft_id, str) and draft_id and "domain_triage" in args:
+                    try:
+                        res = self.pipeline.complete_prepare(draft_id, args.get("domain_triage"))
+                    except DraftNotFound:
+                        return _tool_error(self.messages["draft_not_found"].format(draft_id=draft_id))
+                    return self._prepare_reply(res)
                 text = args.get("text")
                 if not isinstance(text, str) or not text.strip():
-                    return _tool_error(self.messages["text_empty"])
+                    return _tool_error(self.messages.get("text_or_draft", self.messages["text_empty"]) if draft_id else self.messages["text_empty"])
                 res = self.pipeline.prepare(text, fmt=args.get("format", "auto"), exit=args.get("exit", "terminal"),
                                             question=args.get("question"))
-                payload = {k: v for k, v in res.to_dict().items() if k != "audit_prompt"}
-                return {"content": [{"type": "text", "text": self.format_prepare(res)}], "structuredContent": payload}
+                return self._prepare_reply(res)
             if name == "finalize_patched_delivery":
                 draft_id = args.get("draft_id")
                 if not isinstance(draft_id, str):
                     return _tool_error(self.messages["no_draft_id"])
                 try:
-                    if args.get("term_review") is None:
-                        tr = self.pipeline.term_review(draft_id, args.get("patches", []))
-                        if tr:
-                            prompt, suspects = tr
-                            text = self.messages["term_review"].format(n=len(suspects), prompt=prompt)
-                            return {"content": [{"type": "text", "text": text}], "structuredContent": {
-                                "status": "needs_term_review", "draft_id": draft_id,
-                                "pairs": [{"no": i, "left": sp.left, "right": sp.right} for i, sp in enumerate(suspects, 1)]}}
-                    res = self.pipeline.finalize(draft_id, args.get("patches", []), term_reject=args.get("term_review"))
+                    res = self.pipeline.finalize(draft_id, args.get("patches", []))
                 except DraftNotFound:
                     return _tool_error(self.messages["draft_not_found"].format(draft_id=draft_id))
                 return {"content": [{"type": "text", "text": self.format_finalize(res)}], "structuredContent": res.to_dict()}

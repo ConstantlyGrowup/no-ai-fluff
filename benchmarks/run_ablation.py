@@ -131,7 +131,7 @@ def make_client(args, timeout: float = 300) -> OpenRouterClient:
 
 
 EFFORT = "high"  # main() 里按 --effort 覆盖；m2v2hi 证实低推理强度是宿主漏修的主因
-RULES = "v6"  # 宿主审校规则版本，main() 里按 --rules 覆盖
+RULES = "v16"  # 宿主审校规则版本，main() 里按 --rules 覆盖
 
 
 def chat_json(client: OpenRouterClient, model: str, prompt: str, max_tokens: int = 16000,
@@ -227,35 +227,72 @@ def _patch_env(args):
 
 
 def patch_prompt(pipe: Pipeline, r: dict) -> str:
-    from no_ai_fluff.patcher import ORIGINAL_BASE_RULES, build_audit_prompt
+    from no_ai_fluff.patcher import DENSE_RADAR_RULES, ORIGINAL_BASE_RULES, build_audit_prompt
     from no_ai_fluff.radar import scan_single
 
     draft = pipe.store.get(r["draft_id"])
     # 用当前版本的雷达重新生成提示（阶段 1 记录的提示可能来自旧口径）
     if RULES in ORIGINAL_BASE_RULES:  # v6：补丁打在原文上，雷达报原文自己的疑点
-        hints = scan_single([s.masked for s in draft.doc.slots]).to_prompt()
+        from no_ai_fluff.patcher import NO_CLICHE_RADAR_RULES
+        report = scan_single([s.masked for s in draft.doc.slots], dense=RULES in DENSE_RADAR_RULES,
+                             cliche=RULES not in NO_CLICHE_RADAR_RULES)  # v16：运行时不跑黑话词表
+        from no_ai_fluff.patcher import ROUTED_RULES
+        if RULES in ROUTED_RULES:  # v14：电报提示先过分诊子 Agent（DeepSeek low，按句子 sha256 缓存）
+            from no_ai_fluff.telegraph_router import route_report
+            rr = route_report(report, [s.masked for s in draft.doc.slots], draft.doc.placeholders, router(RULES))
+            report = rr.report
+            ROUTE_LOG[r["sample_id"]] = {"verdicts": [{"sentence": v.sentence, "telegraph": v.telegraph, "why": v.why,
+                                                       "cached": v.cached} for v in rr.verdicts],
+                                         "kept": rr.kept, "dense": rr.dense, "calls": rr.calls, "usage": rr.usage}
+        hints = report.to_prompt()
     else:
         hints = scan([s.masked for s in draft.doc.slots], draft.rtt_slots, only=draft.translated).to_prompt()
     question = next((x.get("prompt") for x in samples() if x["id"] == r["sample_id"]), None)
     return build_audit_prompt(draft.original_text, draft.rtt_text(), hints, RULES, question)
 
 
-def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str,
-                 term: dict | None = None) -> None:
-    term = term or {}
-    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True, audit_rules=RULES, term_reject=term.get("raw"))
+ROUTE_LOG: dict[str, dict] = {}  # v14：每篇的分诊结果，写进 patch.jsonl 的 router 字段
+_ROUTERS: dict = {}
+
+
+def router(rules: str = "v14"):
+    """评测用的分诊子 Agent：DeepSeek 官方 API、effort=low，判定缓存在 .cache/telegraph_router（v14 逐句、v15 文档级领域）。"""
+    with _ROUTER_LOCK:
+        return _router_locked(rules)
+
+
+_ROUTER_LOCK = threading.Lock()
+
+
+def _router_locked(rules: str):
+    if rules not in _ROUTERS:
+        from no_ai_fluff.telegraph_router import (ROUTER_EFFORT, ROUTER_MAX_TOKENS, ROUTER_MODEL, ROUTER_SPECS,
+                                                  TelegraphRouter)
+        client = ChatClient(provider="deepseek", timeout=120, cache_dir=CACHE / "deepseek")
+        client.is_local = True
+
+        def chat(prompt: str) -> tuple[str, dict]:
+            raw, usage, _lat = chat_json(client, ROUTER_MODEL, prompt, max_tokens=ROUTER_MAX_TOKENS, effort=ROUTER_EFFORT)
+            return raw, usage
+
+        _ROUTERS[rules] = TelegraphRouter(chat, CACHE / "telegraph_router", spec=ROUTER_SPECS[rules])
+    return _ROUTERS[rules]
+
+
+def record_patch(pipe: Pipeline, out: Path, r: dict, host: str, raw: str, usage: dict, lat: float, prompt: str) -> None:
+    fin = pipe.finalize(r["draft_id"], raw, keep_draft=True, audit_rules=RULES)
     rec = {
         "sample_id": r["sample_id"], "scenario": r["scenario"], "combo": r["combo"], "host": host,
         "raw_patches": raw, "patches": fin.patches, "applied": fin.applied, "rejected": fin.rejected,
         "final_text": fin.final_text, "fallback": fin.fallback, "fallback_reason": fin.fallback_reason,
         "host_latency_s": round(lat, 2), "host_cost_usd": usage.get("cost"), "host_usage": usage,
         "prompt_chars": len(prompt), "effort": EFFORT, "rules": RULES,
-        "term_pairs": term.get("pairs"), "term_raw": term.get("raw"), "term_suspects": fin.term_suspects,
-        "term_rejected": fin.term_rejected, "term_latency_s": term.get("latency_s"), "term_effort": term.get("effort"),
     }
+    if r["sample_id"] in ROUTE_LOG:
+        rec["router"] = ROUTE_LOG[r["sample_id"]]
     append_jsonl(out, rec)
     print(f"  {r['sample_id']:15} {r['combo']:9} patches={len(fin.patches)} applied={fin.applied} "
-          f"rejected={fin.rejected} term={fin.term_rejected}/{fin.term_suspects} {lat:.1f}s"
+          f"rejected={fin.rejected} {lat:.1f}s"
           f"{' ' + fin.fallback_reason if fin.fallback_reason else ''}", flush=True)
 
 
@@ -271,18 +308,7 @@ def stage_patch(args) -> None:
         except Exception as e:  # noqa: BLE001 —— 调用失败不落盘，下次重跑会补上
             print(f"  {r['sample_id']} {r['combo']} HOST FAILED {e}", flush=True)
             return
-        term = None
-        tr = pipe.term_review(r["draft_id"], raw, RULES)
-        if tr:
-            # 词对微筛：脱离上下文的小请求，用同一个宿主模型，推理强度单独设置（不改全局，避免并发线程串味）
-            try:
-                t_raw, _t_usage, t_lat = chat_json(client, args.host, tr[0], max_tokens=32000, effort=args.term_effort)
-            except Exception as e:  # noqa: BLE001
-                print(f"  {r['sample_id']} {r['combo']} TERM REVIEW FAILED {e}", flush=True)
-                t_raw, t_lat = None, 0.0
-            term = {"pairs": [{"no": i, "left": sp.left, "right": sp.right} for i, sp in enumerate(tr[1], 1)],
-                    "raw": t_raw, "latency_s": round(t_lat, 2), "prompt": tr[0], "effort": args.term_effort}
-        record_patch(pipe, out, r, args.host, raw, usage, lat, prompt, term)
+        record_patch(pipe, out, r, args.host, raw, usage, lat, prompt)
 
     with ThreadPoolExecutor(args.workers) as pool:
         list(pool.map(run, jobs))
@@ -304,7 +330,7 @@ def stage_refinalize(args) -> None:
     before = after = 0
     for r in rows:
         fin = pipe.finalize(rtt[(r["sample_id"], r["combo"])]["draft_id"], r["raw_patches"], keep_draft=True,
-                            audit_rules=r.get("rules") or "v2", term_reject=r.get("term_raw"))
+                            audit_rules=r.get("rules") or "v8")
         before += r["applied"]
         after += fin.applied
         if fin.final_text != r["final_text"]:
@@ -704,10 +730,8 @@ def main() -> None:
                     help="patch / judge 阶段的大模型服务商；OpenRouter 只用于翻译小模型，默认 deepseek")
     ap.add_argument("--patch-max-tokens", type=int, default=64000,
                     help="宿主补丁的输出上限（含推理）；DeepSeek 会按它预扣额度，余额低时可调小")
-    ap.add_argument("--term-effort", default="high", choices=["low", "medium", "high"],
-                    help="v5 词对微筛的推理强度（脱离上下文的小请求）")
     ap.add_argument("--rtt-context", type=int, default=300, help="往返翻译附带的中文上文长度；0 关闭（v6 之前的轮次均为 0）")
-    ap.add_argument("--rules", default="v8", choices=["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"],
+    ap.add_argument("--rules", default="v16", choices=["v1", "v2", "v8", "v16"],
                     help="宿主审校规则版本（v4：保真以“读者会不会被误导”为准，按 SKILL 原则放宽改写）")
     ap.add_argument("--combos", nargs="*", help="patch 阶段只处理这些组合，如 hymt-fr hymt-ja")
     ap.add_argument("--effort", default="high", choices=["low", "high", "max"],
@@ -718,7 +742,9 @@ def main() -> None:
     args = ap.parse_args()
     global EFFORT, RULES
     EFFORT = args.effort
-    RULES = args.rules
+    from no_ai_fluff.patcher import resolve_rules
+
+    RULES = resolve_rules(args.rules)
     args.dir = BENCH / "results" / args.run
     args.dir.mkdir(parents=True, exist_ok=True)
     load_run_config(args.dir)

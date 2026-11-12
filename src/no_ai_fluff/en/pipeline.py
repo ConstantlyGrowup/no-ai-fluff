@@ -4,7 +4,7 @@ Configuration (environment or .env), all optional:
     NO_AI_FLUFF_EN_PROVIDER   openrouter (default) | tencent
     NO_AI_FLUFF_EN_MODEL      default: provider's default (OpenRouter: tencent/hy-mt2-30b-a3b; Tencent Cloud: hy-mt2-pro)
     NO_AI_FLUFF_EN_BRIDGE     ja (default)
-    NO_AI_FLUFF_EN_RULES      en1 (default)
+    NO_AI_FLUFF_EN_RULES      en5 = v2 (default: structure-only radar + domain-triage handshake); en2 = v1 (single channel)
 If NO_AI_FLUFF_EN_PROVIDER is unset, OpenRouter is used when OPENROUTER_API_KEY is set, otherwise Tencent Cloud when
 its key is set. The Chinese edition's NO_AI_FLUFF_* settings are not read, so both editions can be installed side by side.
 """
@@ -21,12 +21,14 @@ from ..config import env_float, load_dotenv
 from ..masker import PLACEHOLDER_RE, Document, Slot
 from ..patcher import apply_patches
 from ..pipeline import DraftStore, Pipeline, PipelineConfig
+from ..telegraph_router import TelegraphRouter, route_report
 from ..rtt import PROVIDERS, ChatClient, OpenRouterError, default_provider
 from .cleanup import clean_punctuation_en
 from .masker import EnMasker
-from .radar import scan
+from .radar import scan, telegraph_sentences
 from .rtt import EnRoundTripTranslator
-from .rules import DEFAULT_RULES, MAX_FIND, PROBLEM_TYPES, build_audit_prompt
+from .rules import (DEFAULT_RULES, DENSE_RADAR_RULES, MAX_FIND, NO_JARGON_RADAR_RULES, PROBLEM_TYPES, ROUTED_RULES,
+                    build_audit_prompt, resolve_rules)
 
 _WORDS = re.compile(r"[A-Za-z]{2,}")
 
@@ -103,10 +105,12 @@ def reason_en(reason: str | None) -> str:
 class EnPipeline(Pipeline):
     masker_cls = EnMasker
 
-    def __init__(self, config: PipelineConfig | None = None, translator_factory=None, store: DraftStore | None = None):
+    def __init__(self, config: PipelineConfig | None = None, translator_factory=None, store: DraftStore | None = None,
+                 router: TelegraphRouter | None = None):
         config = config or EnPipelineConfig.from_env()
         super().__init__(config, translator_factory or en_translator_factory,
-                         store or DraftStore(config.store_dir or telemetry.home() / "drafts-en", config.draft_ttl_s))
+                         store or DraftStore(config.store_dir or telemetry.home() / "drafts-en", config.draft_ttl_s),
+                         router)
 
     def _needs_rtt(self, slot: Slot) -> bool:
         return len(_WORDS.findall(PLACEHOLDER_RE.sub("", slot.masked))) >= self.config.min_rtt_chars
@@ -129,7 +133,13 @@ class EnPipeline(Pipeline):
         return out
 
     def _radar(self, orig_masked, rtt_slots, translated, rules):
-        return scan(orig_masked)
+        return scan(orig_masked, dense=rules in DENSE_RADAR_RULES, jargon=rules not in NO_JARGON_RADAR_RULES)
+
+    def _is_routed(self, rules: str) -> bool:
+        return rules in ROUTED_RULES
+
+    def _route_report(self, report, masked_slots, placeholders, router):
+        return route_report(report, masked_slots, placeholders, router, sentences_fn=telegraph_sentences)
 
     def _radar_counts(self, slots: list[str]) -> dict:
         return scan(slots).counts
@@ -140,14 +150,15 @@ class EnPipeline(Pipeline):
     def _clean(self, text: str, reference: str) -> tuple[str, int]:
         return clean_punctuation_en(text, reference)
 
+    def _resolve_rules(self, rules: str) -> str:
+        return resolve_rules(rules)
+
     def _apply(self, draft, plist, rules, rejected=None):
         base = [s.masked for s in draft.doc.slots]  # patches land on the original; the round trip is a reference
-        return apply_patches(draft.doc, base, plist, MAX_FIND.get(rules, 400), None, False, None, rejected,
-                             PROBLEM_TYPES.get(rules))
+        return apply_patches(draft.doc, base, plist, MAX_FIND.get(rules, 400), rejected, PROBLEM_TYPES.get(rules))
 
-    def finalize(self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None,
-                 term_reject: Any = None):
-        res = super().finalize(draft_id, patches, keep_draft, audit_rules, term_reject)
+    def finalize(self, draft_id: str, patches: Any = None, keep_draft: bool = False, audit_rules: str | None = None):
+        res = super().finalize(draft_id, patches, keep_draft, audit_rules)
         for p in res.patches:
             if p.get("reject_reason"):
                 p["reject_reason"] = reason_en(p["reject_reason"])
