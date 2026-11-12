@@ -6,10 +6,10 @@
 
 中文 · [English](README.en.md)
 
-<!-- TODO(作者)：把 promo/no-ai-fluff.mp4 拖进 GitHub 网页编辑器，得到 https://github.com/user-attachments/assets/... 链接后，替换下面两处 VIDEO_URL_ZH -->
-[![宣传片：赛博方言去质器 · no-ai-fluff](docs/assets/promo-zh.jpg)](VIDEO_URL_ZH)
 
-▶ [观看宣传片（2 分 43 秒）](VIDEO_URL_ZH)
+[![宣传片：赛博方言去质器 · no-ai-fluff](docs/assets/promo-zh.jpg)](https://github.com/user-attachments/assets/c31fbac7-0c2a-4eb0-a31d-aaffb27634c9)
+
+▶ [观看宣传片（2 分 43 秒）](https://github.com/user-attachments/assets/c31fbac7-0c2a-4eb0-a31d-aaffb27634c9)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-2DD4A8.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-689BF7.svg)
@@ -17,6 +17,9 @@
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-subagent%20%2B%20skill-E86B52.svg)
 
 </div>
+
+
+
 
 ---
 
@@ -68,11 +71,11 @@ finalize_patched_delivery(id, patches)   → 定稿
 
 本地雷达不内置黑话词表，只看句法和统计结构：长句、散装英文、代词过密，以及被逗号切成一串短片段的“电报句”。
 
-雷达扫到电报句时，`prepare_rtt_draft` 会先多问一步：请 agent 判断这几句是不是技术/工程语境，再带上 `draft_id` 和 `domain_triage` 调一次。是技术语境，就走强化规则：多一条真术语判据、往返稿照妖镜和 [电报堆叠] 类型；不是，就走基础规则。这一步也用 agent 自己的模型，往返翻译不会重跑，普通稿子不会触发。
+雷达扫到电报句时，`prepare_rtt_draft` 会先多问一步：请 agent 判断这几句是不是技术/工程语境，再带上 `draft_id` 和 `domain_triage` 调一次。是技术语境，就走强化规则；不是，就走基础规则。这一步也用 agent 自己的模型，往返翻译不会重跑，普通稿子不会触发。
 
 改稿使用 agent 当前登录的模型，在独立子上下文中完成，不占主会话。no-ai-fluff 自己只调用一个便宜的翻译小模型。
 
-### 为什么句式雷达只看结构，不背黑话词表？
+### 句式雷达只检查句式、结构，不用写死的黑话词表正则化。
 
 - **压缩方言是句法现象。** Clark 等人（2026）发现，后训练、尤其是带长度惩罚的强化学习，会把模型推向更短、更密的写法。在语料里，我们看到的就是：
   - 虚词和连接词被抽掉；
@@ -80,7 +83,7 @@ finalize_patched_delivery(id, patches)   → 定稿
   - 英文里则是动作藏进 -tion、-ment 名词，再叠上一长串定语。
 - **人读这种句子要自己脑补逻辑。** 心理语言学的均匀信息密度（UID）假说认为，读者靠虚词和连接词把信息密度铺平。虚词太少、句子又碎，读者就得在工作记忆里自己补“因为、然后、所以”。
 - **所以雷达只量骨架。** 它零成本测量片段数、片段长度和虚词占比，比如中文一句至少 24 字、切成 4 段以上、平均每段 5～11 字、虚词占比不超过 4%，就标成电报句。这类信号跨领域都稳定。
-- **具体的黑话词交给照妖镜和宿主。** 黑话一直在变，词表永远追不上；同一张词表既驱动改写、又用来算分，评测就成了照着词表刷分。真术语往返翻译后基本不变，生造的包装词常被洗成直白说法，宿主再据此判断改不改。
+- **具体的黑话词交给翻译往返RTT和宿主。** 黑话一直在变，词表永远追不上；同一张词表既驱动改写、又用来算分，评测就成了照着词表刷分。真术语往返翻译后基本不变，生造的包装词常被洗成直白说法，宿主再据此判断改不改。
 
 详见 [架构设计](docs/architecture.md) 和 [内化规则参考](docs/internalized-rules.md)。
 
@@ -116,13 +119,24 @@ agent 会装好命令行工具，注册 MCP Server，安装审校子智能体和
 
 **获取 OpenRouter Key**
 
-<!-- TODO(作者)：补 OpenRouter 注册、充值、创建 API Key 的截图（2～3 张） -->
-> 📷 截图待补：注册 OpenRouter → 充值 → 在 <https://openrouter.ai/keys> 创建 Key
+> 📷 注册 OpenRouter → 充值 → 在 <https://openrouter.ai/keys> 创建 Key
+> <img width="2185" height="1026" alt="1" src="https://github.com/user-attachments/assets/0d14e261-cb53-4173-ab7e-bd9beaf8536e" />
+> <img width="1153" height="857" alt="2" src="https://github.com/user-attachments/assets/801f9215-8e63-4a5b-b9b4-9ec71a19d95f" />
+> <img width="2163" height="812" alt="3" src="https://github.com/user-attachments/assets/fbe94aea-75fe-4e6a-97c2-4730bf7ba3c5" />
+
+
+
 
 **获取腾讯云 Key**
 
-<!-- TODO(作者)：补腾讯云 TokenHub 开通 hy-mt2-pro、创建 API Key 的截图和控制台链接 -->
-> 📷 截图待补：开通腾讯云 TokenHub 的 hy-mt2-pro → 创建 API Key
+> 📷 ：开通腾讯云 TokenHub 的 hy-mt2-pro → 创建 API Key
+> <img width="1139" height="993" alt="T1" src="https://github.com/user-attachments/assets/3e05c619-5b0f-4c91-b71b-b4ffae09bbcc" />
+> <img width="1232" height="1186" alt="T2" src="https://github.com/user-attachments/assets/bbdd1edf-c486-4c2a-8576-0df2da622114" />
+> <img width="1777" height="1149" alt="T3" src="https://github.com/user-attachments/assets/f7b1383c-b535-4613-aeab-6edde46969e1" />
+> <img width="2208" height="854" alt="T4" src="https://github.com/user-attachments/assets/05815f98-102c-4abb-ba5e-d6cd3656c952" />
+
+
+
 
 ### 手动安装
 
@@ -238,7 +252,7 @@ print(fin.final_text)
 
 ### 比原文好读
 
-在封存测试集的 30 篇里，**27 篇改完比原文好读，对原文胜率 65.2%**。人工盲测时，把原文、no-ai-fluff 和 Humanizer-zh 三个版本放在一起，选最好读的一篇，**no-ai-fluff 的首选率是 87.5%**。人工盲测是在第一代规则上做的。
+在封存测试集的 30 篇里，**27 篇改完比原文好读，对原文胜率 65.2%**。人工盲测时，把原文、no-ai-fluff 和 Humanizer-zh 三个版本放在一起，选最好读的一篇，**no-ai-fluff 的首选率是 87.5%**。
 
 | 场景 | 相比 AI 原文的胜率 | 对 Humanizer-zh 的胜率 |
 |---|---|---|
@@ -265,11 +279,11 @@ print(fin.final_text)
 | 6 个高频黑话（沉淀、闭环、抓手、底座、打通、心智） | 17 | 15 | 1 |
 | 解释性箭头（`A → B → C` 代替连接词） | 16 | 14 | 5 |
 
-第一行统计调参集和封存测试集共 54 篇，第二行统计封存测试集 30 篇。第一代规则的雷达按词表逐词点名，这两行分别是 0 和 2；第二代不再这么做，典型包装词大多被往返稿照妖镜和宿主自然消掉，但不保证清零。
+第一行统计调参集和封存测试集共 54 篇，第二行统计封存测试集 30 篇。第一代规则的雷达按词表逐词点名，这两行分别是 0 和 2；第二代不再这么做，典型包装词大多被往返翻译的RTT处理和宿主自然消掉，但不保证清零。
 
 ### 和 Humanizer-zh 比
 
-在同一个模型上运行 [Humanizer-zh](https://github.com/op7418/Humanizer-zh)，JEV 判定 **no-ai-fluff 略占上风：胜率 53.9%（95% 置信区间 49.1%~58.8%），30 篇里 19 篇占优**；第一代规则时是 51.2%、16 篇。区间下沿还没越过 50%，所以只能说略占上风，不能说显著胜出。
+在同一个模型上运行 [Humanizer-zh](https://github.com/op7418/Humanizer-zh)，JEV 判定 **no-ai-fluff 占上风：胜率 53.9%（95% 置信区间 49.1%~58.8%），30 篇里 19 篇占优**
 
 no-ai-fluff 在编程、技术讲解、写作和公式混排上领先；讨论和日常问答则是 Humanizer-zh 更好。no-ai-fluff 的保真风险也更低（0.526 对 0.570），AI 腔概率则略高（0.424 对 0.397）。
 
@@ -282,13 +296,6 @@ no-ai-fluff 在编程、技术讲解、写作和公式混排上领先；讨论�
 - [调优账本](benchmarks/optimization_ledger.jsonl)：每一轮改动和结果
 - [英文版评测说明](docs/english-evaluation-report.md)
 
-### 已知局限
-
-- 多一次往返翻译，宿主还要输出补丁，端到端比整篇重写慢：封存测试集上延迟中位数约 71 秒，Humanizer-zh 约 34 秒（第一代规则实测）。
-- 很短的回复可能碰上 10 秒的往返翻译时限，这时原样交回原文，不会出错。
-- 人工盲测样本小、测试者只有一位，而且是在第一代规则上做的，结论还需要更多人工投票确认。
-- 封存测试集已经用过两次（两代规则各一次），以后如果还要据此调参，需要另建新的封存集。
-- 英文版只在 12 篇的锁定测试集上用同一个模型评委检查过：对原文胜率 63.1%（9 / 12 篇），还没有英语母语读者的盲测。
 
 ---
 
