@@ -58,7 +58,7 @@ Files that already exist with different content are not overwritten unless `--fo
 
 ### 3b. Other agents
 
-Agents other than Claude Code do not understand Claude Code's subagent files, so they get a portable skill instead (a `SKILL.md` in the Agent Skills format) plus a short section in `AGENTS.md`. Both tell the agent how to call the two MCP tools, to add the one-line "ask me to rewrite a paragraph" note after delivery, and the five rules for that rewrite. Run the line for your agent in the user's project root (use `no-ai-fluff-en` for the English edition):
+Agents other than Claude Code do not understand Claude Code's subagent files, so they get a portable skill instead (a `SKILL.md` in the Agent Skills format) plus a short section in `AGENTS.md`. Both tell the agent how to call the two MCP tools, to add the one-line "ask me to rewrite a paragraph" note after delivery, and the seven rules for that rewrite. Run the line for your agent in the user's project root (use `no-ai-fluff-en` for the English edition):
 
 | Agent | Command | Skill goes to | Also writes | Register the MCP server |
 |---|---|---|---|---|
@@ -74,7 +74,7 @@ Notes:
 - The `AGENTS.md` section sits between `<!-- no-ai-fluff:start -->` and `<!-- no-ai-fluff:end -->`; the rest of the file is left alone. Re-running is safe. If the user edited that section, it is not replaced unless `--force` is passed.
 - If your agent keeps skills or rules somewhere not listed here, run `no-ai-fluff install generic --dir <some temp folder>` and copy the generated `SKILL.md` (and the `AGENTS.md` section) to where your agent reads them. Tell the user where you put them.
 - Every MCP server entry is the same: a stdio server with command `no-ai-fluff` and argument `mcp` (or `no-ai-fluff-en` / `mcp`). In JSON configs: `{"mcpServers": {"no-ai-fluff": {"command": "no-ai-fluff", "args": ["mcp"]}}}`.
-- Even without the skill or `AGENTS.md`, the rewrite note still reaches the agent: `finalize_patched_delivery` returns it after the final text, together with the five rules.
+- Even without the skill or `AGENTS.md`, the rewrite note still reaches the agent: `finalize_patched_delivery` returns it after the final text, together with the seven rules.
 
 ## 4. Configure the API key (ask the user)
 

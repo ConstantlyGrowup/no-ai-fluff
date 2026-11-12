@@ -115,7 +115,7 @@ LANG = {
 
 
 def generic_template(name: str, lang: str = "zh") -> str:
-    """通用 Skill / AGENTS.md 段落：提示语和五条规则从 delivery_note 填入，和 MCP 返回的交付说明同源。"""
+    """通用 Skill / AGENTS.md 段落：提示语和七条规则从 delivery_note 填入，和 MCP 返回的交付说明同源。"""
     cfg = LANG[lang]
     text = resources.files(cfg["pkg"]).joinpath(name).read_text("utf-8")
     return text.replace("{{NOTE}}", cfg["note"]).replace("{{RULES}}", cfg["rules"])

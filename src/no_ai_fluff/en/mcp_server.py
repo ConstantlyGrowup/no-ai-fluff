@@ -113,7 +113,7 @@ class EnMCPServer(MCPServer):
         "patches on the original following the returned rules, then call finalize_patched_delivery for the final text. "
         "The final text is followed by delivery notes for the host: deliver the text as is, add the one-line note "
         "offering a paragraph rewrite in the chat, and if the user names a paragraph, rewrite only that part by the "
-        "five rules given there."
+        "seven rules given there."
     )
     messages = MESSAGES_EN
     pipeline_cls = EnPipeline

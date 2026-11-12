@@ -27,7 +27,7 @@ If your agent supports subagents, steps 1 to 4 can run in a subagent with its ow
 
 ## When the user asks for a rewrite: the paragraph-rewrite fallback
 
-When the user says "rewrite paragraph 2", "this part is still too dense, rewrite it", or pastes a few sentences to rewrite, rewrite them yourself without calling the MCP tools again. This is no longer a light edit, and you may reorder the whole paragraph, but keep these five rules:
+When the user says "rewrite paragraph 2", "this part is still too dense, rewrite it", or pastes a few sentences to rewrite, rewrite them yourself without calling the MCP tools again. This is no longer a light edit, and you may reorder the whole paragraph, but keep these seven rules:
 
 {{RULES}}
 

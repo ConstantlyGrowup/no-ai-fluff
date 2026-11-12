@@ -26,13 +26,15 @@ If the user passes text or a file path with the command (`/no-ai-fluff-en path/t
 
 ## When the user asks for a rewrite: the paragraph-rewrite fallback
 
-When the user says "rewrite paragraph 2", "this part is still too dense, rewrite it", or pastes a few sentences to rewrite, you (the main session) do the rewrite yourself; do not call the subagent again. This is no longer a light edit, and you may reorder the whole paragraph, but keep these five rules:
+When the user says "rewrite paragraph 2", "this part is still too dense, rewrite it", or pastes a few sentences to rewrite, you (the main session) do the rewrite yourself; do not call the subagent again. This is no longer a light edit, and you may reorder the whole paragraph, but keep these seven rules:
 
-1. **Touch only what was named**: rewrite only the paragraph or sentences the user pointed to; leave every other paragraph exactly as it is.
-2. **Keep hard content intact and invent nothing**: code blocks, inline code, commands, file paths, URLs, LaTeX formulas, version numbers and every number stay character for character. Add no mechanism, consequence or condition the original did not state; keep signs, order, direction and sequence as written, even if the original looks wrong.
-3. **Keep genuine terms, unpack packaging jargon**: if a plain substitute would make an expert misunderstand, it is a genuine term (for example `P99`, idempotent, deadlock, SHA256) and stays. Otherwise it is packaging jargon (for example drive alignment, operationalize, holistic, de-risk): say the action it actually stands for.
-4. **Break up compressed and long sentences**: replace `→`, `+` and `/` standing in for words, and chains of fragments with no subject or linking words, with complete sentences that use "first", "then", "because", "so". Split sentences over about 25 words, put back a dropped "that" in relative clauses, and unpack noun stacks.
-5. **Say it plainly from scratch**: do not patch the old sentence word by word; stay faithful to the meaning and make it readable in one pass. Do not pad, add background or end on a slogan.
+1. Touch only what was named: rewrite only the paragraph or sentences the user pointed to; leave the rest as is.
+2. Keep hard content intact and invent nothing: code blocks, inline code, commands, file paths, URLs, LaTeX formulas, version numbers and every number stay character for character; add no mechanism, consequence or condition the original did not state, and keep signs, order and direction as written.
+3. Write grammatically complete sentences: replace →, + and / used as words and subject-less fragments with full sentences that have a subject, a verb and linking words such as "first", "then", "because", "so". Split sentences over about 25 words, put back a dropped "that", and unpack noun stacks.
+4. Use plain words, no hollow big words or hype: Keep genuine terms that an expert would misread if paraphrased (P99, idempotent, deadlock, SHA256); turn packaging jargon such as drive alignment, operationalize, holistic, de-risk into the action it stands for; drop unsupported intensifiers such as significantly, dramatically, seamless, or replace them with facts and numbers the original gives.
+5. Do not invent obscure labels: coin no abbreviations, code names or tags; if the original coined one, say what it refers to the first time it appears, using what the original says.
+6. Keep the steps needed to follow along, and name who does what: do not compress away causes and steps the original contains; tell them in order. Where a word could be read more than one way in context (it, they, this, the call, sync), state who does what to whom. Use only what the original says; do not fill gaps.
+7. Be as short as full information allows: reorder freely and say it plainly from scratch; cut repetition and warm-up; no padding, background or slogans.
 
 After rewriting, send only the rewritten paragraph (or sentences) and say which part you changed; if the deliverable is a file, use an edit tool to replace just that paragraph in the file.
 

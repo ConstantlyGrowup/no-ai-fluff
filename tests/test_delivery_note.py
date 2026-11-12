@@ -14,8 +14,16 @@ from no_ai_fluff.pipeline import Pipeline, PipelineConfig
 
 
 def test_claude_code_skills_quote_the_same_note():
-    assert NOTE_ZH in cc_template("skill.md")
-    assert NOTE_EN in en_cc_template("skill.md")
+    assert NOTE_ZH in cc_template("skill.md") and RULES_ZH in cc_template("skill.md")
+    assert NOTE_EN in en_cc_template("skill.md") and RULES_EN in en_cc_template("skill.md")
+    # 七条规则：前两条是护栏，后五条对应“说人话”七原则（语法完整、大白话、不造代号、不用空洞大词、
+    # 不省中间步骤、尽量简洁、写清主体和客体）
+    assert len(RULES_ZH.splitlines()) == len(RULES_EN.splitlines()) == 7
+    for word in ("语法完整", "大白话", "不发明晦涩代号", "空洞大词", "中间步骤", "尽量简洁", "主体和客体"):
+        assert word in RULES_ZH, word
+    for word in ("grammatically complete", "plain words", "obscure labels", "hollow big words", "steps needed",
+                 "as short as", "who does what"):
+        assert word in RULES_EN, word
 
 
 @pytest.mark.parametrize("lang,note,rules", [("zh", NOTE_ZH, RULES_ZH), ("en", NOTE_EN, RULES_EN)])
@@ -87,7 +95,7 @@ def test_agents_md_merge_keeps_user_text_and_respects_edits(tmp_path):
     text = md.read_text("utf-8")
     assert text.startswith("# 项目约定\n\n用 4 空格缩进。\n\n<!-- no-ai-fluff:start -->")
     assert text.count("<!-- no-ai-fluff:end -->") == 1 and "<!-- no-ai-fluff-en:start -->" in text
-    md.write_text(text.replace("守住五条", "守住我改过的五条"), "utf-8")  # 用户改了这段
+    md.write_text(text.replace("守住七条", "守住我改过的七条"), "utf-8")  # 用户改了这段
     rep = install_generic("codex", "project", tmp_path)
     assert md in rep.skipped and "我改过的" in md.read_text("utf-8")
     rep = install_generic("codex", "project", tmp_path, force=True)
