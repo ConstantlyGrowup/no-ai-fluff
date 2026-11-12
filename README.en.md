@@ -9,9 +9,9 @@
 [中文](README.md) · English
 
 <!-- TODO(author): drag promo/no-ai-fluff-en.mp4 into the GitHub web editor, then replace both VIDEO_URL_EN below with the https://github.com/user-attachments/assets/... link -->
-[![Promo video: no-ai-fluff](docs/assets/promo-en.jpg)](VIDEO_URL_EN)
+[![Promo video: no-ai-fluff](docs/assets/promo-en.jpg)](https://github.com/user-attachments/assets/3ea156d7-24b2-42a3-9a4b-64b70f9a5511)
 
-▶ [Watch the 2:43 promo](VIDEO_URL_EN)
+▶ [Watch the 2:43 promo](https://github.com/user-attachments/assets/3ea156d7-24b2-42a3-9a4b-64b70f9a5511)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-2DD4A8.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-689BF7.svg)
@@ -21,6 +21,10 @@
 </div>
 
 ---
+
+
+
+
 
 ## What it does
 
@@ -124,8 +128,14 @@ If both keys are set, OpenRouter is used. If only the Tencent Cloud key is set, 
 
 **Get an OpenRouter key**
 
-<!-- TODO(author): add 2–3 screenshots: sign up, add credits, create a key -->
-> 📷 Screenshots coming: sign up at OpenRouter → add credits → create a key at <https://openrouter.ai/keys>
+
+> 📷: sign up at OpenRouter → add credits → create a key at <https://openrouter.ai/keys>
+> <img width="2185" height="1026" alt="1" src="https://github.com/user-attachments/assets/35f7364c-388b-493a-963e-d46e1a030a8a" />
+> <img width="1153" height="857" alt="2" src="https://github.com/user-attachments/assets/a2a4585b-cfe3-4675-9511-34ee02e87a96" />
+> <img width="2163" height="812" alt="3" src="https://github.com/user-attachments/assets/0c3992fe-2d9e-4211-aff9-4ec16ce6e837" />
+
+
+
 
 ### Manual install
 
@@ -228,7 +238,7 @@ Unless noted, the numbers below are the second generation on that sealed Chinese
 
 ### At a glance
 
-| Sealed Chinese test set, 30 documents | Original | Humanizer-zh | no-ai-fluff |
+| Sealed Chinese test set, 30 documents | Original | Humanizer | no-ai-fluff |
 |---|---|---|---|
 | Win rate against the original | – | 60.2% | **65.2%** (95% CI 61.3%–69.0%) |
 | Documents that read better than the original | – | 24 / 30 | **27 / 30** |
@@ -240,7 +250,7 @@ The overall reward R is **0.656** (95% CI 0.632–0.681), up from 0.641 for the 
 
 ### Easier to read than the original
 
-On the 30 sealed test documents, **27 read better after editing, a 65.2% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer-zh side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**.
+On the 30 sealed test documents, **27 read better after editing, a 65.2% win rate against the original**. In a human blind test that put the original, no-ai-fluff and Humanizer side by side, **no-ai-fluff was picked as the easiest to read 87.5% of the time**.
 
 | Category | Win rate vs. the original AI text |
 |---|---|
@@ -253,7 +263,7 @@ On the 30 sealed test documents, **27 read better after editing, a 65.2% win rat
 
 ### Code and formulas stay intact
 
-| | no-ai-fluff | Humanizer-zh |
+| | no-ai-fluff | Humanizer |
 |---|---|---|
 | Code, paths, formulas and URLs kept verbatim | **100% in every document** | 99.1%; 88.9% in the worst document |
 | Documents with a changed number | 1 (a duplicated aside removed; no value changed) | 2 |
@@ -262,7 +272,7 @@ On the 30 sealed test documents, **27 read better after editing, a 65.2% win rat
 
 The runtime radar no longer carries a jargon word list. Counting "jargon removed" with that same list would only grade the tool against its own checklist, so the counts below are a rough side observation, not a score. Quality is judged by blind win rates, readability and fidelity risk.
 
-| Side observation | Original | Humanizer-zh | no-ai-fluff |
+| Side observation | Original | Humanizer | no-ai-fluff |
 |---|---|---|---|
 | 6 common Chinese buzzwords | 17 | 15 | 1 |
 | Arrows used instead of connectives (`A → B → C`) | 16 | 14 | 5 |
@@ -286,13 +296,14 @@ The English edition was tuned on 13 documents and checked on a locked set of 12:
 
 Head to head against the first-generation English rules (en2), the current rules (en5) win 51.9% on this set (6 wins, 3 losses, 3 ties) and 57.5% on the tune set (7 wins, 2 losses, 4 ties). The gains are small, and not uniform: on the real PRs en2 scored higher (75.4%).
 
-### Compared with Humanizer-zh
+### Compared with Humanizer
+#### (Notice: I use the Humanizer-zh SKILL to compare, there maybe small change if you replicate with Humanizer SKILL)
 
-[Humanizer-zh](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, **no-ai-fluff comes out ahead: a 53.9% win rate (95% CI 49.1%–58.8%), ahead on 19 of 30 documents**.
+[Humanizer](https://github.com/op7418/Humanizer-zh) is a widely used Chinese de-AI skill (22k+ GitHub stars). Run on the same model, **no-ai-fluff comes out ahead: a 53.9% win rate (95% CI 49.1%–58.8%), ahead on 19 of 30 documents**.
 
-no-ai-fluff leads on coding, technical explanations, writing and mixed math/code text, while Humanizer-zh does better on discussion and everyday questions. no-ai-fluff's fidelity risk is lower (0.526 against 0.570), and its AI-tone probability is slightly higher (0.424 against 0.397).
+no-ai-fluff leads on coding, technical explanations, writing and mixed math/code text, while Humanizer does better on discussion and everyday questions. no-ai-fluff's fidelity risk is lower (0.526 against 0.570), and its AI-tone probability is slightly higher (0.424 against 0.397).
 
-Humanizer-zh rewrites the whole text; no-ai-fluff only edits what is hard to read, which makes it safer on text full of code, formulas and terms.
+Humanizer rewrites the whole text; no-ai-fluff only edits what is hard to read, which makes it safer on text full of code, formulas and terms.
 
 Full records:
 
